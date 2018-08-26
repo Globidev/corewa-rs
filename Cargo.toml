@@ -1,0 +1,10 @@
+[package]
+name = "corewar"
+version = "0.1.0"
+authors = ["Guillaume Depardon <guillaume.depardon@gmail.com>"]
+
+[[bin]]
+name = "asm"
+path = "asm/main.rs"
+
+[dependencies]
