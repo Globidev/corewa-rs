@@ -2,7 +2,7 @@ const IDENT_CHARS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_
 
 type InputRange = ::std::ops::Range<usize>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
     pub term: Term,
     pub range: InputRange
@@ -13,9 +13,10 @@ pub type TokenResult = Result<Token, LexerError>;
 use std::iter::Peekable;
 use std::str::CharIndices;
 
+#[derive(Clone)]
 pub struct Tokenizer<'a> {
     chars: Peekable<CharIndices<'a>>,
-    input: &'a str
+    pub input: &'a str
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
@@ -163,7 +164,7 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Term {
     ChampionNameCmd,
     ChampionCommentCmd,
@@ -176,13 +177,13 @@ pub enum Term {
     Ident
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LexerError {
     kind: LexerErrorKind,
     at: usize
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum LexerErrorKind {
     NoMatch,
     InvalidCommand,

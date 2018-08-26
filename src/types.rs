@@ -19,24 +19,17 @@ pub enum Op {
 }
 
 #[derive(Debug)]
-pub struct Register(u8);
+pub struct Register(pub u8);
 
 #[derive(Debug)]
 pub enum Direct {
-    Label(Label),
+    Label(String),
     Numeric(i32)
 }
 #[derive(Debug)]
 pub enum Indirect {
-    Label(Label),
+    Label(String),
     Numeric(i32)
-}
-
-#[derive(Debug)]
-pub enum AnyParam {
-    Reg(Register),
-    Dir(Direct),
-    Ind(Indirect)
 }
 
 #[derive(Debug)]
@@ -53,6 +46,13 @@ pub enum RegInd {
 
 #[derive(Debug)]
 pub enum DirInd {
+    Dir(Direct),
+    Ind(Indirect)
+}
+
+#[derive(Debug)]
+pub enum AnyParam {
+    Reg(Register),
     Dir(Direct),
     Ind(Indirect)
 }
