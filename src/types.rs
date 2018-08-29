@@ -24,12 +24,12 @@ pub struct Register(pub u8);
 #[derive(Debug)]
 pub enum Direct {
     Label(String),
-    Numeric(i32)
+    Numeric(i64)
 }
 #[derive(Debug)]
 pub enum Indirect {
     Label(String),
-    Numeric(i32)
+    Numeric(i64)
 }
 
 #[derive(Debug)]
