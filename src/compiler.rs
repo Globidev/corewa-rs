@@ -1,32 +1,35 @@
 use types::*;
 use assembler::{Champion, ParsedInstruction};
 
-use std::io::{Write, Seek, SeekFrom, Result as IOResult};
+use std::io::{Write, Seek, SeekFrom, Error as IOError};
 use std::mem;
 
 use std::collections::HashMap;
 
+type CompileResult<T> = Result<T, CompileError>;
+
 pub fn write_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
-    -> Result<usize, CompileError>
+    -> CompileResult<usize>
 {
-    let mut state = State::new(out);
+    let mut state = State::new(out)?;
 
     for instr in &champion.instructions {
         match instr {
-            ParsedInstruction::Op(op)       => { state.write_op(op); },
-            ParsedInstruction::Label(label) => state.register_label(label)
+            ParsedInstruction::Op(op)       => state.write_op(op)?,
+            ParsedInstruction::Label(label) => state.register_label(label)?
         }
     }
 
-    state.write_header(champion);
-    state.resolve_labels();
+    state.write_header(champion)?;
+    state.resolve_labels()?;
 
-    Ok(0)
+    Ok(state.size)
 }
 
 fn ocp(op: &Op) -> u8 {
     use self::Op::*;
 
+    let combine1 = |a|       a << 6;
     let combine2 = |a, b|    a << 6 | b << 4;
     let combine3 = |a, b, c| a << 6 | b << 4 | c << 2;
 
@@ -52,8 +55,8 @@ fn ocp(op: &Op) -> u8 {
     };
 
     match op {
-        Ld    ( di,   _        ) => combine2(di_code(di),    REG_PARAM_CODE                ),
-        St    ( _,    ri       ) => combine2(REG_PARAM_CODE, ri_code(ri)                   ),
+        Ld    ( di,   _        ) => combine2(di_code(di),    REG_PARAM_CODE,               ),
+        St    ( _,    ri       ) => combine2(REG_PARAM_CODE, ri_code(ri),                  ),
         Add   ( _,    _,    _  ) => combine3(REG_PARAM_CODE, REG_PARAM_CODE, REG_PARAM_CODE),
         Sub   ( _,    _,    _  ) => combine3(REG_PARAM_CODE, REG_PARAM_CODE, REG_PARAM_CODE),
         And   ( any1, any2, _  ) => combine3(any_code(any1), any_code(any2), REG_PARAM_CODE),
@@ -61,9 +64,9 @@ fn ocp(op: &Op) -> u8 {
         Xor   ( any1, any2, _  ) => combine3(any_code(any1), any_code(any2), REG_PARAM_CODE),
         Ldi   ( any,  rd,   _  ) => combine3(any_code(any),  rd_code(rd),    REG_PARAM_CODE),
         Sti   ( _,    any,  rd ) => combine3(REG_PARAM_CODE, any_code(any),  rd_code(rd)   ),
-        Lld   ( di,   _        ) => combine2(di_code(di),    REG_PARAM_CODE                ),
+        Lld   ( di,   _        ) => combine2(di_code(di),    REG_PARAM_CODE,               ),
         Lldi  ( any,  rd,    _ ) => combine3(any_code(any),  rd_code(rd),    REG_PARAM_CODE),
-        Aff   ( _              ) => REG_PARAM_CODE << 6,
+        Aff   ( _              ) => combine1(REG_PARAM_CODE,                               ),
 
         _ => unreachable!("has_ocp invariant broken!")
     }
@@ -72,7 +75,7 @@ fn ocp(op: &Op) -> u8 {
 struct OpAttributes {
     code: u8,
     has_ocp: bool,
-    dir_size: u8
+    dir_size: usize
 }
 
 fn op_attribute(op: &Op) -> OpAttributes {
@@ -107,23 +110,19 @@ struct State<W> {
 }
 
 impl<W: Write + Seek> State<W> {
-    fn new(mut out: W) -> Self {
-        out.seek(SeekFrom::Start(mem::size_of::<Header>() as u64));
-        Self {
+    fn new(mut out: W) -> CompileResult<Self> {
+        out.seek(SeekFrom::Start(mem::size_of::<Header>() as u64))?;
+        Ok(Self {
             out,
             size: 0,
             label_positions: HashMap::new(),
             labels_to_fill: Vec::new(),
             current_op_pos: 0
-        }
+        })
     }
 
-    fn write_header(&mut self, champion: &Champion) {
-        // eprintln!("{:?}", self.size);
-        // eprintln!("{:?}", self.size as u32);
-        let header = Header::new(champion, self.size as u32).expect("TODO: err handling");
-
-        // eprintln!("{:?}", &header.prog_name[0..129]);
+    fn write_header(&mut self, champion: &Champion) -> CompileResult<()> {
+        let header = Header::new(champion, self.size as u32)?;
 
         let header_data = {
             let raw_header = &header as *const Header;
@@ -131,126 +130,75 @@ impl<W: Write + Seek> State<W> {
             unsafe { ::std::slice::from_raw_parts(raw_header as *const u8, header_len) }
         };
 
-        self.out.seek(SeekFrom::Start(0));
-        self.out.write(header_data);
+        self.out.seek(SeekFrom::Start(0))?;
+        self.out.write(header_data)?;
+
+        Ok(())
     }
 
-    fn register_label(&mut self, label: &str) {
-        self.label_positions.insert(String::from(label), self.size);
+    fn register_label(&mut self, label: &str) -> CompileResult<()> {
+        self.label_positions.insert(String::from(label), self.size)
+            .map(|_| Err(CompileError::DuplicateLabel(String::from(label))))
+            .unwrap_or_else(|| Ok(()))
     }
 
-    fn resolve_labels(&mut self) {
-        // eprintln!("{:?}", self.labels_to_fill);
-        // eprintln!("{:?}", self.label_positions);
+    fn resolve_labels(&mut self) -> CompileResult<()> {
         for placeholder in &self.labels_to_fill {
-            let position = *self.label_positions.get(&placeholder.name).expect("TODO: err");
-            self.out.seek(SeekFrom::Start((mem::size_of::<Header>() + placeholder.write_pos) as u64));
-            // self.write_numeric(position as u32, placeholder.size as u8);
-            // eprintln!("{:?} {:?} {:?}", position, placeholder.op_pos, ((position as isize) - (placeholder.op_pos as isize)) as u32);
-            let as_be = (((position as isize) - (placeholder.op_pos as isize)) as u32).to_be() >> (4 - placeholder.size) * 8;
-            let as_array: [u8; 4] = unsafe { mem::transmute(as_be) };
-            self.out.write(&as_array[..placeholder.size]);
+            let position = *self.label_positions.get(&placeholder.name)
+                .ok_or_else(|| CompileError::MissingLabel(placeholder.name.clone()))?;
+            self.out.seek(SeekFrom::Start((mem::size_of::<Header>() + placeholder.write_pos) as u64))?;
+            write_numeric(&mut self.out, ((position as isize) - (placeholder.op_pos as isize)) as u32, placeholder.size)?;
         }
+
+        Ok(())
     }
 
-    fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
-        let written = self.out.write(buf)?;
-        self.size += written;
-        Ok(written)
+    fn write(&mut self, buf: &[u8]) -> CompileResult<()> {
+        self.size += self.out.write(buf)?;
+        Ok(())
     }
 
-    fn write_op(&mut self, op: &Op) -> Result<usize, CompileError> {
+    fn write_op(&mut self, op: &Op) -> CompileResult<()> {
         let OpAttributes { code, has_ocp, dir_size } = op_attribute(op);
 
         self.current_op_pos = self.size;
 
-        if has_ocp { self.write(&[code, ocp(op)]); }
-        else       { self.write(&[code]); }
+        if has_ocp { self.write(&[code, ocp(op)])?; }
+        else       { self.write(&[code])?; }
 
         self.write_params(&op, dir_size)
     }
 
-    fn write_params(&mut self, op: &Op, dir_size: u8)
-        -> Result<usize, CompileError>
-    {
+    fn write_params(&mut self, op: &Op, size: usize) -> CompileResult<()> {
         use self::Op::*;
 
-        let r = match op {
-            Live  ( dir                 ) => self.write_dir(dir, dir_size),
-            Ld    ( di,   reg           ) => {
-                self.write_di(di, dir_size);
-                self.write_reg(reg);
-            },
-            St    ( reg, ri             ) => {
-                self.write_reg(reg);
-                self.write_ri(ri);
-            },
-            Add   ( reg1, reg2, reg3 ) => {
-                self.write_reg(reg1);
-                self.write_reg(reg2);
-                self.write_reg(reg3);
-            },
-            Sub   ( reg1, reg2, reg3 ) => {
-                self.write_reg(reg1);
-                self.write_reg(reg2);
-                self.write_reg(reg3);
-            },
-            And   ( any1, any2, reg ) => {
-                self.write_any(any1, dir_size);
-                self.write_any(any2, dir_size);
-                self.write_reg(reg);
-            },
-            Or    ( any1, any2, reg ) => {
-                self.write_any(any1, dir_size);
-                self.write_any(any2, dir_size);
-                self.write_reg(reg);
-            },
-            Xor   ( any1, any2, reg ) => {
-                self.write_any(any1, dir_size);
-                self.write_any(any2, dir_size);
-                self.write_reg(reg);
-            },
-            Zjmp  ( dir                       ) => {
-                self.write_dir(dir, dir_size)
-            },
-            Ldi   ( any, rd,   reg ) => {
-                self.write_any(any, dir_size);
-                self.write_rd(rd, dir_size);
-                self.write_reg(reg);
-            },
-            Sti   ( reg, any, rd   ) => {
-                self.write_reg(reg);
-                self.write_any(any, dir_size);
-                self.write_rd(rd, dir_size);
-            },
-            Fork  ( dir                       ) => {
-                self.write_dir(dir, dir_size)
-            },
-            Lld   ( di,   reg           ) => {
-                self.write_di(di, dir_size);
-                self.write_reg(reg);
-            },
-            Lldi  ( any, rd,   reg ) => {
-                self.write_any(any, dir_size);
-                self.write_rd(rd, dir_size);
-                self.write_reg(reg);
-            },
-            Lfork ( dir                       ) => {
-                self.write_dir(dir, dir_size);
-            },
-            Aff   ( reg                     ) => {
-                self.write_reg(reg);
-            },
+        match op {
+            Live  ( dir,             ) => { self.write_dir(dir, size)?                                                         },
+            Ld    ( di,   reg,       ) => { self.write_di(di, size)?;    self.write_reg(reg)?                                  },
+            St    ( reg,  ri,        ) => { self.write_reg(reg)?;        self.write_ri(ri)?                                    },
+            Add   ( reg1, reg2, reg3 ) => { self.write_reg(reg1)?;       self.write_reg(reg2)?;       self.write_reg(reg3)?    },
+            Sub   ( reg1, reg2, reg3 ) => { self.write_reg(reg1)?;       self.write_reg(reg2)?;       self.write_reg(reg3)?    },
+            And   ( any1, any2, reg  ) => { self.write_any(any1, size)?; self.write_any(any2, size)?; self.write_reg(reg)?     },
+            Or    ( any1, any2, reg  ) => { self.write_any(any1, size)?; self.write_any(any2, size)?; self.write_reg(reg)?     },
+            Xor   ( any1, any2, reg  ) => { self.write_any(any1, size)?; self.write_any(any2, size)?; self.write_reg(reg)?     },
+            Zjmp  ( dir,             ) => { self.write_dir(dir, size)?;                                                        },
+            Ldi   ( any,  rd,   reg  ) => { self.write_any(any, size)?;  self.write_rd(rd, size)?;    self.write_reg(reg)?     },
+            Sti   ( reg,  any,  rd   ) => { self.write_reg(reg)?;        self.write_any(any, size)?;  self.write_rd(rd, size)? },
+            Fork  ( dir,             ) => { self.write_dir(dir, size)?                                                         },
+            Lld   ( di,   reg,       ) => { self.write_di(di, size)?;    self.write_reg(reg)?                                  },
+            Lldi  ( any,  rd,   reg  ) => { self.write_any(any, size)?;  self.write_rd(rd, size)?;    self.write_reg(reg)?     },
+            Lfork ( dir,             ) => { self.write_dir(dir, size)?                                                         },
+            Aff   ( reg,             ) => { self.write_reg(reg)?                                                               },
         };
 
-        Ok(0)
+        Ok(())
     }
 
-    fn write_reg(&mut self, reg: &Register) {
-        self.write(&[reg.0]);
+    fn write_reg(&mut self, reg: &Register) -> CompileResult<()> {
+        self.write(&[reg.0])
     }
 
-    fn write_dir(&mut self, dir: &Direct, size: u8) {
+    fn write_dir(&mut self, dir: &Direct, size: usize) -> CompileResult<()> {
         match dir {
             Direct::Label(label) => {
                 self.labels_to_fill.push(LabelPlaceholder {
@@ -259,13 +207,16 @@ impl<W: Write + Seek> State<W> {
                     name: label.clone(),
                     size: size as usize,
                 });
-                self.write(&::std::iter::repeat(0).take(size as usize).collect::<Vec<_>>());
+                self.write(&::std::iter::repeat(0).take(size as usize).collect::<Vec<_>>())
             },
-            Direct::Numeric(n)   => self.write_numeric(*n as u32, size),
+            Direct::Numeric(n)   => {
+                self.size += write_numeric(&mut self.out, *n as u32, size)?;
+                Ok(())
+            },
         }
     }
 
-    fn write_ind(&mut self, ind: &Indirect) {
+    fn write_ind(&mut self, ind: &Indirect) -> CompileResult<()> {
         match ind {
             Indirect::Label(label) => {
                 self.labels_to_fill.push(LabelPlaceholder {
@@ -274,46 +225,52 @@ impl<W: Write + Seek> State<W> {
                     name: label.clone(),
                     size: IND_SIZE as usize,
                 });
-                self.write(&[0, 0]);
+                self.write(&[0, 0])
             },
-            Indirect::Numeric(n)   => self.write_numeric(*n as u32, IND_SIZE),
+            Indirect::Numeric(n)   => {
+                self.size += write_numeric(&mut self.out, *n as u32, IND_SIZE)?;
+                Ok(())
+            }
         }
     }
 
-    fn write_rd(&mut self, rd: &RegDir, size: u8) {
+    fn write_rd(&mut self, rd: &RegDir, size: usize) -> CompileResult<()> {
         match rd {
             RegDir::Reg(reg) => self.write_reg(reg),
             RegDir::Dir(dir) => self.write_dir(dir, size)
         }
     }
 
-    fn write_ri(&mut self, ri: &RegInd) {
+    fn write_ri(&mut self, ri: &RegInd) -> CompileResult<()> {
         match ri {
             RegInd::Reg(reg) => self.write_reg(reg),
             RegInd::Ind(ind) => self.write_ind(ind)
         }
     }
 
-    fn write_di(&mut self, di: &DirInd, size: u8) {
+    fn write_di(&mut self, di: &DirInd, size: usize) -> CompileResult<()> {
         match di {
             DirInd::Dir(dir) => self.write_dir(dir, size),
             DirInd::Ind(ind) => self.write_ind(ind)
         }
     }
 
-    fn write_any(&mut self, any: &AnyParam, size: u8) {
+    fn write_any(&mut self, any: &AnyParam, size: usize) -> CompileResult<()> {
         match any {
             AnyParam::Reg(reg) => self.write_reg(reg),
             AnyParam::Dir(dir) => self.write_dir(dir, size),
             AnyParam::Ind(ind) => self.write_ind(ind),
         }
     }
+}
 
-    fn write_numeric(&mut self, n: u32, size: u8) {
-        let as_be = n.to_be() >> (4 - size) * 8;
-        let as_array: [u8; 4] = unsafe { mem::transmute(as_be) };
-        self.write(&as_array[..size as usize]);
-    }
+fn write_numeric(out: &mut impl Write, n: u32, size: usize)
+    -> CompileResult<usize>
+{
+    let as_be = n.to_be() >> (4 - size) * 8;
+    let as_array: [u8; 4] = unsafe { mem::transmute(as_be) };
+
+    Ok(out.write(&as_array[..size])?)
 }
 
 #[derive(Debug)]
@@ -332,8 +289,7 @@ const REG_PARAM_CODE: u8 = 1;
 const DIR_PARAM_CODE: u8 = 2;
 const IND_PARAM_CODE: u8 = 3;
 
-const REG_SIZE: u8 = 1;
-const IND_SIZE: u8 = 2;
+const IND_SIZE: usize = 2;
 
 type ProgName = [u8; PROG_NAME_LENGTH + 1];
 type ProgComment = [u8; PROG_COMMENT_LENGTH + 1];
@@ -347,9 +303,7 @@ struct Header {
 }
 
 impl Header {
-    fn new(champion: &Champion, prog_size: u32)
-        -> Result<Self, CompileError>
-    {
+    fn new(champion: &Champion, prog_size: u32)-> CompileResult<Self> {
         let mut header: Self = unsafe { mem::zeroed() };
 
         header.magic = COREWAR_MAGIC.to_be();
@@ -372,5 +326,14 @@ impl Header {
 #[derive(Debug)]
 pub enum CompileError {
     ProgramNameTooLong(usize),
-    ProgramCommentTooLong(usize)
+    ProgramCommentTooLong(usize),
+    MissingLabel(String),
+    DuplicateLabel(String),
+    IOError(IOError),
+}
+
+impl From<IOError> for CompileError {
+    fn from(err: IOError) -> Self {
+        CompileError::IOError(err)
+    }
 }

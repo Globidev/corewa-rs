@@ -40,8 +40,8 @@ pub fn dump_champion(champion: Champion) {
     use std::io::*;
 
     let mut seek_vec = Cursor::new(Vec::with_capacity(8192));
-    write_champion(&mut seek_vec, &champion);
-    stdout().write_all(&seek_vec.into_inner());
+    write_champion(&mut seek_vec, &champion).expect("TODO");
+    stdout().write_all(&seek_vec.into_inner()).expect("TODO");
 }
 
 
