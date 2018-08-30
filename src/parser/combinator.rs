@@ -12,6 +12,14 @@ pub trait Parser<I> {
         Map(self, f)
     }
 
+    fn map_err<E, F>(self, f: F) -> MapErr<Self, F>
+    where
+        F: FnOnce(Self::Err) -> E,
+        Self: Sized
+    {
+        MapErr(self, f)
+    }
+
     fn or<C>(self, other: C) -> Or<Self, C> where Self: Sized {
         Or(self, other)
     }
@@ -26,6 +34,7 @@ pub trait Parser<I> {
 }
 
 pub struct Map<P, F>(P, F);
+pub struct MapErr<P, F>(P, F);
 pub struct Or<P1, P2>(P1, P2);
 pub struct And<P1, P2>(P1, P2);
 pub struct Optional<P>(P);
@@ -43,23 +52,36 @@ where
     }
 }
 
-impl<I, E, T, P1, P2> Parser<I> for Or<P1, P2>
+impl<I, E, T, G, P, F> Parser<I> for MapErr<P, F>
 where
-    P1: Parser<I, Output = T, Err = E>,
-    P2: Parser<I, Output = T, Err = E>,
+    P: Parser<I, Output = T, Err = E>,
+    F: FnOnce(E) -> G
+{
+    type Output = T;
+    type Err = G;
+
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
+        self.0.parse(input).map_err(self.1)
+    }
+}
+
+impl<I, E1, E2, T, P1, P2> Parser<I> for Or<P1, P2>
+where
+    P1: Parser<I, Output = T, Err = E1>,
+    P2: Parser<I, Output = T, Err = E2>,
     I: Clone
 {
     type Output = T;
-    type Err = E;
+    type Err = (E1, E2);
 
     fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err>
     {
         let saved = input.clone();
         match self.0.parse(input) {
             Ok(r) => Ok(r),
-            Err(_) => {
+            Err(e1) => {
                 ::std::mem::replace(input, saved);
-                self.1.parse(input)
+                self.1.parse(input).map_err(|e2| (e1, e2))
             }
         }
     }

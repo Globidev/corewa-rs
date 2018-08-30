@@ -1,8 +1,18 @@
-mod combinator;
-
 use lexer::{Token, Term, Tokenizer, TokenResult, LexerError};
 use types::*;
+
+mod combinator;
 use self::combinator::*;
+
+#[derive(Debug)]
+pub enum ParsedLine {
+    ChampionName(String),
+    ChampionComment(String),
+    Op(Op),
+    Label(String),
+    LabelAndOp(String, Op),
+    Empty,
+}
 
 pub fn parse_line(input: &str) -> Result<ParsedLine, ParseError> {
     let mut tokens = TokenStream::new(input);
@@ -28,16 +38,18 @@ pub fn parse_line(input: &str) -> Result<ParsedLine, ParseError> {
                     Some(op) => ParsedLine::LabelAndOp(label, op)
                 })
                 .or(op.map(ParsedLine::Op))
+                .map_err(expected_either)
                 .parse(&mut tokens)
         },
         Term::Comment => return Ok(ParsedLine::Empty),
         _             => return Err(ParseError::Unexpected(first_tok)),
-    };
+    }?;
 
     // Remaining input besides comments => Error
     match tokens.peek() {
-        None | Some(Ok(Token { term: Term::Comment, .. })) => parse_result,
-        _ => Err(ParseError::RemainingInput)
+        None | Some(Ok(Token { term: Term::Comment, .. })) => Ok(parse_result),
+        Some(Ok(token))      => Err(ParseError::RemainingInput(token.clone())),
+        Some(Err(lex_error)) => Err(ParseError::LexerError(lex_error.clone()))
     }
 }
 
@@ -74,14 +86,14 @@ fn register(input: &mut TokenStream) -> ParseResult<Register> {
     let reg_str = input.next(Term::Ident)?;
     let mut chars = reg_str.chars();
 
-    let first_char = chars.next().ok_or(ParseError::Failed)?;
+    let first_char = chars.next().ok_or(ParseError::MissingRegisterPrefix)?;
     let reg_num: i64 = chars.as_str().parse()
         .map_err(ParseError::ParseIntError)?;
 
     match (first_char, reg_num) {
         ('r', x) if 1 <= x && x <= 16 => Ok(Register(reg_num as u8)),
-        ('r', _) => Err(ParseError::Failed),
-        _        => Err(ParseError::Failed),
+        ('r', x) => Err(ParseError::InvalidRegisterCount(x)),
+        (c,   _) => Err(ParseError::InvalidRegisterPrefix(c)),
     }
 }
 
@@ -89,30 +101,35 @@ fn direct(input: &mut TokenStream) -> ParseResult<Direct> {
     input.next(Term::DirectChar)?;
     label_param.map(Direct::Label)
         .or(number.map(Direct::Numeric))
+        .map_err(expected_either)
         .parse(input)
 }
 
 fn indirect(input: &mut TokenStream) -> ParseResult<Indirect> {
     label_param.map(Indirect::Label)
         .or(number.map(Indirect::Numeric))
+        .map_err(expected_either)
         .parse(input)
 }
 
 fn reg_dir(input: &mut TokenStream) -> ParseResult<RegDir> {
     register.map(RegDir::Reg)
         .or(direct.map(RegDir::Dir))
+        .map_err(expected_either)
         .parse(input)
 }
 
 fn reg_ind(input: &mut TokenStream) -> ParseResult<RegInd> {
     register.map(RegInd::Reg)
         .or(indirect.map(RegInd::Ind))
+        .map_err(expected_either)
         .parse(input)
 }
 
 fn dir_ind(input: &mut TokenStream) -> ParseResult<DirInd> {
     direct.map(DirInd::Dir)
         .or(indirect.map(DirInd::Ind))
+        .map_err(expected_either)
         .parse(input)
 }
 
@@ -120,6 +137,7 @@ fn any_param(input: &mut TokenStream) -> ParseResult<AnyParam> {
     register.map(AnyParam::Reg)
         .or(direct.map(AnyParam::Dir))
         .or(indirect.map(AnyParam::Ind))
+        .map_err(|((e1, e2), e3)| ParseError::ExpectedOneOf(vec![e1, e2, e3]))
         .parse(input)
 }
 
@@ -153,7 +171,7 @@ fn op(input: &mut TokenStream) -> ParseResult<Op> {
         "lfork" => parse_op!( Op::Lfork, direct                         ),
         "aff"   => parse_op!( Op::Aff,   register                       ),
 
-        _ => Err(ParseError::Failed)
+        _ => Err(ParseError::InvalidOpMnemonic(String::from(mnemonic)))
     }
 }
 
@@ -178,35 +196,33 @@ impl<'a> TokenStream<'a> {
     fn next(&mut self, term: Term) -> ParseResult<&'a str> {
         let token_result = self.tokens
             .next()
-            .ok_or(ParseError::Failed)?; // ParseError::Expected term / EOF
+            .ok_or_else(|| ParseError::ExpectedButGotEof(term.clone()))?;
 
         let token = token_result.map_err(ParseError::LexerError)?;
 
         if token.term == term {
             Ok(&self.input[token.range])
         } else {
-            Err(ParseError::Failed) // ParseError::Expected...
+            Err(ParseError::ExpectedButGot(term, token))
         }
     }
 }
 
 #[derive(Debug)]
-pub enum ParsedLine {
-    ChampionName(String),
-    ChampionComment(String),
-    Op(Op),
-    Label(String),
-    LabelAndOp(String, Op),
-    Empty,
-}
-
-#[derive(Debug)]
 pub enum ParseError {
-    Failed,
-    RemainingInput,
+    RemainingInput(Token),
     LexerError(LexerError),
     Unexpected(Token),
-    Expected(Term),
-    InvalidRegisterCount(i32),
+    ExpectedButGot(Term, Token),
+    ExpectedButGotEof(Term),
+    ExpectedOneOf(Vec<ParseError>),
+    InvalidRegisterCount(i64),
+    InvalidRegisterPrefix(char),
+    MissingRegisterPrefix,
     ParseIntError(::std::num::ParseIntError),
+    InvalidOpMnemonic(String),
+}
+
+fn expected_either((e1, e2): (ParseError, ParseError)) -> ParseError {
+    ParseError::ExpectedOneOf(vec![e1, e2])
 }
