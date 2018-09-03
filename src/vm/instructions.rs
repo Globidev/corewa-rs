@@ -50,7 +50,14 @@ pub fn exec_sti(instr: &Instruction, context: &mut ExecutionContext) {
 }
 
 pub fn exec_fork(instr: &Instruction, context: &mut ExecutionContext) {
-
+    let n = instr.params[0].value;
+    context.forks.push(Process {
+        pid: 1,
+        pc: (*context.pc as i32 + n + MEM_SIZE as i32) as usize % MEM_SIZE,
+        registers: Registers::default(),
+        carry: false,
+        state: ProcessState::Idle,
+    });
 }
 
 pub fn exec_lld(instr: &Instruction, context: &mut ExecutionContext) {
