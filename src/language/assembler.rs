@@ -1,5 +1,5 @@
-use parser::ParsedLine;
-use types::*;
+use super::parser::ParsedLine;
+use super::types::*;
 
 #[derive(Debug)]
 pub struct Champion {

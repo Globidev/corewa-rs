@@ -1,5 +1,6 @@
-use types::*;
-use assembler::{Champion, ParsedInstruction};
+use super::types::*;
+use super::assembler::{Champion, ParsedInstruction};
+use spec::{self, Header};
 
 use std::io::{Write, Seek, SeekFrom, Error as IOError};
 use std::mem;
@@ -8,7 +9,7 @@ use std::collections::HashMap;
 
 type CompileResult<T> = Result<T, CompileError>;
 
-pub fn write_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
+pub fn compile_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
     -> CompileResult<usize>
 {
     let mut state = State::new(out)?;
@@ -28,6 +29,7 @@ pub fn write_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
 
 fn ocp(op: &Op) -> u8 {
     use self::Op::*;
+    use spec::{REG_PARAM_CODE, DIR_PARAM_CODE, IND_PARAM_CODE};
 
     let combine1 = |a|       a << 6;
     let combine2 = |a, b|    a << 6 | b << 4;
@@ -35,23 +37,23 @@ fn ocp(op: &Op) -> u8 {
 
     let rd_code = |rd| match rd {
         &RegDir::Dir (..) => DIR_PARAM_CODE,
-        &RegDir::Reg (..) => REG_PARAM_CODE,
+        RegDir::Reg (..) => REG_PARAM_CODE,
     };
 
     let ri_code = |ri| match ri {
         &RegInd::Reg (..) => REG_PARAM_CODE,
-        &RegInd::Ind (..) => IND_PARAM_CODE,
+        RegInd::Ind (..) => IND_PARAM_CODE,
     };
 
     let di_code = |di| match di {
         &DirInd::Dir (..) => DIR_PARAM_CODE,
-        &DirInd::Ind (..) => IND_PARAM_CODE,
+        DirInd::Ind (..) => IND_PARAM_CODE,
     };
 
     let any_code = |any| match any {
         &AnyParam::Reg (..) => REG_PARAM_CODE,
-        &AnyParam::Dir (..) => DIR_PARAM_CODE,
-        &AnyParam::Ind (..) => IND_PARAM_CODE,
+        AnyParam::Dir (..) => DIR_PARAM_CODE,
+        AnyParam::Ind (..) => IND_PARAM_CODE,
     };
 
     match op {
@@ -124,14 +126,14 @@ impl<W: Write + Seek> State<W> {
     fn write_header(&mut self, champion: &Champion) -> CompileResult<()> {
         let header = Header::new(champion, self.size as u32)?;
 
-        let header_data = {
-            let raw_header = &header as *const Header;
-            let header_len = mem::size_of::<Header>();
-            unsafe { ::std::slice::from_raw_parts(raw_header as *const u8, header_len) }
-        };
+let header_data = {
+    let raw_header = &header as *const Header;
+    let header_len = mem::size_of::<Header>();
+    unsafe { ::std::slice::from_raw_parts(raw_header as *const u8, header_len) }
+};
 
         self.out.seek(SeekFrom::Start(0))?;
-        self.out.write(header_data)?;
+        self.out.write_all(header_data)?;
 
         Ok(())
     }
@@ -146,7 +148,7 @@ impl<W: Write + Seek> State<W> {
         for placeholder in &self.labels_to_fill {
             let position = *self.label_positions.get(&placeholder.name)
                 .ok_or_else(|| CompileError::MissingLabel(placeholder.name.clone()))?;
-            self.out.seek(SeekFrom::Start((mem::size_of::<Header>() + placeholder.write_pos) as u64))?;
+            self.out.seek(SeekFrom::Start((mem::size_of::<spec::Header>() + placeholder.write_pos) as u64))?;
             write_numeric(&mut self.out, ((position as isize) - (placeholder.op_pos as isize)) as u32, placeholder.size)?;
         }
 
@@ -205,9 +207,9 @@ impl<W: Write + Seek> State<W> {
                     write_pos: self.size,
                     op_pos: self.current_op_pos,
                     name: label.clone(),
-                    size: size as usize,
+                    size: size,
                 });
-                self.write(&::std::iter::repeat(0).take(size as usize).collect::<Vec<_>>())
+                self.write(&::std::iter::repeat(0).take(size).collect::<Vec<_>>())
             },
             Direct::Numeric(n)   => {
                 self.size += write_numeric(&mut self.out, *n as u32, size)?;
@@ -223,7 +225,7 @@ impl<W: Write + Seek> State<W> {
                     write_pos: self.size,
                     op_pos: self.current_op_pos,
                     name: label.clone(),
-                    size: IND_SIZE as usize,
+                    size: IND_SIZE,
                 });
                 self.write(&[0, 0])
             },
@@ -267,7 +269,7 @@ impl<W: Write + Seek> State<W> {
 fn write_numeric(out: &mut impl Write, n: u32, size: usize)
     -> CompileResult<usize>
 {
-    let as_be = n.to_be() >> (4 - size) * 8;
+    let as_be = n.to_be() >> ((4 - size) * 8);
     let as_array: [u8; 4] = unsafe { mem::transmute(as_be) };
 
     Ok(out.write(&as_array[..size])?)
@@ -281,32 +283,13 @@ struct LabelPlaceholder {
     size: usize
 }
 
-const COREWAR_MAGIC: u32 = 0x00EA83F3;
-const PROG_NAME_LENGTH: usize = 128;
-const PROG_COMMENT_LENGTH: usize = 2048;
-
-const REG_PARAM_CODE: u8 = 1;
-const DIR_PARAM_CODE: u8 = 2;
-const IND_PARAM_CODE: u8 = 3;
-
 const IND_SIZE: usize = 2;
-
-type ProgName = [u8; PROG_NAME_LENGTH + 1];
-type ProgComment = [u8; PROG_COMMENT_LENGTH + 1];
-
-#[repr(C)]
-struct Header {
-    magic: u32,
-    prog_name: ProgName,
-    prog_size: u32,
-    prog_comment: ProgComment,
-}
 
 impl Header {
     fn new(champion: &Champion, prog_size: u32)-> CompileResult<Self> {
         let mut header: Self = unsafe { mem::zeroed() };
 
-        header.magic = COREWAR_MAGIC.to_be();
+        header.magic = spec::COREWAR_MAGIC.to_be();
         header.prog_size = prog_size.to_be();
 
         let name = champion.name.as_bytes();

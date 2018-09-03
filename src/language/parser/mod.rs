@@ -1,5 +1,5 @@
-use lexer::{Token, Term, Tokenizer, TokenResult, LexerError};
-use types::*;
+use super::lexer::{Token, Term, Tokenizer, TokenResult, LexerError};
+use super::types::*;
 
 mod combinator;
 use self::combinator::*;
