@@ -1,53 +1,39 @@
-mod types;
-mod lexer;
-mod parser;
-mod assembler;
-mod compiler;
+mod spec;
+mod language;
+pub mod vm;
 
-use std::io::{Read, BufRead, BufReader, Error as IOError};
+mod utils;
 
-use parser::{parse_line, ParseError};
-use assembler::{ChampionBuilder, Champion, AssembleError, assemble_line};
-use compiler::write_champion;
 
-pub fn read_champion(input: impl Read)
-    -> Result<assembler::Champion, ReadError>
-{
-    let mut parsed_lines = BufReader::new(input)
-        .lines()
-        .enumerate()
-        .map(|(line_no, read_result)| {
-            let line = read_result
-                .map_err(ReadError::IOError)?;
+extern crate wasm_bindgen;
 
-            parse_line(&line)
-                .map_err(|e| ReadError::ParseError(e, line_no + 1))
-        });
+use wasm_bindgen::prelude::*;
 
-    let champion_assembler = parsed_lines
-        .try_fold(ChampionBuilder::default(), |builder, line_result| {
-            line_result.and_then(|parsed_line| {
-                assemble_line(builder, parsed_line)
-                    .map_err(ReadError::AssembleError)
-            })
-        })?;
-
-    champion_assembler.finish()
-        .map_err(ReadError::AssembleError)
+#[wasm_bindgen]
+extern {
+    fn alert(s: &str);
 }
 
-pub fn dump_champion(champion: Champion) {
-    use std::io::*;
+#[wasm_bindgen]
+pub fn vm_from_code(input: &str) -> vm::VirtualMachine {
+    utils::set_panic_hook();
 
-    let mut seek_vec = Cursor::new(Vec::with_capacity(8192));
-    write_champion(&mut seek_vec, &champion).expect("TODO");
-    stdout().write_all(&seek_vec.into_inner()).expect("TODO");
-}
+    let parsed_champion = language::read_champion(input.as_bytes())
+        .expect("TODO: Read error");
 
+    let mut byte_code = Vec::new();
+    language::write_champion(&mut byte_code, &parsed_champion)
+        .expect("TODO: Write error");
 
-#[derive(Debug)]
-pub enum ReadError {
-    IOError(IOError),
-    ParseError(ParseError, usize),
-    AssembleError(AssembleError),
+    let mut vm = vm::VirtualMachine::new();
+
+    let players = [
+        (1, byte_code.as_slice()),
+        (2, byte_code.as_slice()),
+        (3, byte_code.as_slice()),
+        (4, byte_code.as_slice()),
+    ];
+
+    vm.load_players(&players[..]);
+    vm
 }
