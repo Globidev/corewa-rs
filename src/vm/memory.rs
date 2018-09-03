@@ -76,15 +76,15 @@ impl Memory {
                 }
             },
             (Direct, DirectSize::FourBytes) => {
-                let value = (i32::from(self[idx + 0]) << (3 * 8))
-                          + (i32::from(self[idx + 1]) << (2 * 8))
-                          + (i32::from(self[idx + 2]) << (1 * 8))
-                          + (i32::from(self[idx + 3]) << (0 * 8));
+                let value = (i32::from(self[idx    ]) << 24)
+                          + (i32::from(self[idx + 1]) << 16)
+                          + (i32::from(self[idx + 2]) << 8 )
+                          + (i32::from(self[idx + 3])      );
                 (value, 4)
             },
             _ => {
-                let value = (i16::from(self[idx + 0]) << (1 * 8))
-                          + (i16::from(self[idx + 1]) << (0 * 8));
+                let value = (i16::from(self[idx    ]) << 8)
+                          + (i16::from(self[idx + 1])     );
                 (i32::from(value), 2)
             },
         };

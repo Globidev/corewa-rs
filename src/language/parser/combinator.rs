@@ -1,34 +1,24 @@
-pub trait Parser<I> {
+use std::mem;
+
+pub trait Parser<I>: Sized {
     type Output;
     type Err;
 
     fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err>;
 
-    fn map<T, F>(self, f: F) -> Map<Self, F>
-    where
-        F: FnOnce(Self::Output) -> T,
-        Self: Sized
-    {
+    fn map<F>(self, f: F) -> Map<Self, F> {
         Map(self, f)
     }
-
-    fn map_err<E, F>(self, f: F) -> MapErr<Self, F>
-    where
-        F: FnOnce(Self::Err) -> E,
-        Self: Sized
-    {
+    fn map_err<F>(self, f: F) -> MapErr<Self, F> {
         MapErr(self, f)
     }
-
-    fn or<C>(self, other: C) -> Or<Self, C> where Self: Sized {
+    fn or<C>(self, other: C) -> Or<Self, C> {
         Or(self, other)
     }
-
-    fn and<C>(self, other: C) -> And<Self, C> where Self: Sized {
+    fn and<C>(self, other: C) -> And<Self, C> {
         And(self, other)
     }
-
-    fn optional(self) -> Optional<Self> where Self: Sized {
+    fn optional(self) -> Optional<Self> {
         Optional(self)
     }
 }
@@ -42,7 +32,7 @@ pub struct Optional<P>(P);
 impl<I, E, T, U, P, F> Parser<I> for Map<P, F>
 where
     P: Parser<I, Output = T, Err = E>,
-    F: FnOnce(T) -> U
+    F: FnOnce(T) -> U,
 {
     type Output = U;
     type Err = E;
@@ -55,7 +45,7 @@ where
 impl<I, E, T, G, P, F> Parser<I> for MapErr<P, F>
 where
     P: Parser<I, Output = T, Err = E>,
-    F: FnOnce(E) -> G
+    F: FnOnce(E) -> G,
 {
     type Output = T;
     type Err = G;
@@ -69,21 +59,19 @@ impl<I, E1, E2, T, P1, P2> Parser<I> for Or<P1, P2>
 where
     P1: Parser<I, Output = T, Err = E1>,
     P2: Parser<I, Output = T, Err = E2>,
-    I: Clone
+    I: Clone,
 {
     type Output = T;
     type Err = (E1, E2);
 
-    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err>
-    {
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
+        let (p1, p2) = (self.0, self.1);
         let saved = input.clone();
-        match self.0.parse(input) {
-            Ok(r) => Ok(r),
-            Err(e1) => {
-                ::std::mem::replace(input, saved);
-                self.1.parse(input).map_err(|e2| (e1, e2))
-            }
-        }
+
+        p1.parse(input).or_else(|e1| {
+            mem::replace(input, saved);
+            p2.parse(input).map_err(|e2| (e1, e2))
+        })
     }
 }
 
@@ -105,25 +93,24 @@ where
 impl<I, E, T, P> Parser<I> for Optional<P>
 where
     P: Parser<I, Output = T, Err = E>,
-    I: Clone
+    I: Clone,
 {
     type Output = Option<T>;
     type Err = E;
 
     fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
         let saved = input.clone();
-        self.0.parse(input)
-            .map(Some)
-            .or_else(|_| {
-                ::std::mem::replace(input, saved);
-                Ok(None)
-            })
+
+        self.0.parse(input).map(Some).or_else(|_| {
+            mem::replace(input, saved);
+            Ok(None)
+        })
     }
 }
 
 impl<I, T, E, F> Parser<I> for F
 where
-    F: FnOnce(&mut I) -> Result<T, E>
+    F: FnOnce(&mut I) -> Result<T, E>,
 {
     type Output = T;
     type Err = E;

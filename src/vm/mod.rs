@@ -139,32 +139,6 @@ fn execute_instr(instr: &Instruction, mut context: ExecutionContext) {
 
     exec(instr, &mut context);
     *context.pc = (*context.pc + instr.byte_size) % MEM_SIZE;
-    // match instr {
-    //     Live(Dir4(n)) => {
-    //         *process.pc += 5;
-    //     },
-    //     //
-    //     Zjmp(Dir2(n)) => {
-    //         let new_pc = *process.pc as i64 + *n as i64;
-    //         *process.pc = (new_pc % MEM_SIZE as i64) as usize;
-    //     },
-    //     //
-    //     Fork(Dir2(n)) => {
-    //         // let new_pc = *process.pc as i64 + n;
-    //         // *process.pc = (new_pc % MEM_SIZE as i64) as usize;
-
-    //         processes.push(Process {
-    //             champion_id: 0,
-    //             pid: 1,
-    //             pc: *process.pc + *n as usize,
-    //             registers: Registers::default(),
-    //             carry: false,
-    //             state: ProcessState::Idle,
-    //         });
-    //         *process.pc += 3;
-    //     },
-    //     _ => ()
-    // }
 }
 
 fn from_nul_bytes(bytes: &[u8]) -> String {
