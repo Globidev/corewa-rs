@@ -13,7 +13,8 @@ pub struct Process {
     pub pc: ProgramCounter,
     pub registers: Registers,
     pub carry: bool,
-    pub state: ProcessState
+    pub state: ProcessState,
+    pub last_live_cycle: u32,
 }
 
 #[derive(Debug)]
@@ -41,7 +42,10 @@ pub struct ExecutionContext<'a> {
     pub pc: &'a mut ProgramCounter,
     pub registers: &'a mut Registers,
     pub carry: &'a mut bool,
+    pub last_live_cycle: &'a mut u32,
     pub forks: &'a mut Processes,
+    pub cycle: u32,
+    pub live_count: &'a mut u32,
 }
 
 pub type Register = i32;
