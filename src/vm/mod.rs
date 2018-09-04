@@ -11,17 +11,27 @@ use spec::*;
 #[wasm_bindgen]
 #[derive(Default)]
 pub struct VirtualMachine {
-    pid_pool: u32,
     players: Vec<Player>,
     memory: memory::Memory,
     processes: Processes,
+
+    pid_pool: u32,
+
+    pub cycles: u32,
+    pub last_live_check: u32,
+    pub cycles_to_die: u32,
+    pub live_count_since_last_check: u32,
+    pub checks_without_cycle_decrement: u32,
 }
 
 #[wasm_bindgen]
 impl VirtualMachine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Default::default()
+        Self {
+            cycles_to_die: CYCLE_TO_DIE,
+            ..Default::default()
+        }
     }
 
     pub fn size(&self) -> usize {
@@ -43,40 +53,70 @@ impl VirtualMachine {
     pub fn tick(&mut self) {
         let mut forks = Vec::new();
         for process in self.processes.iter_mut() {
+
             let next_state = match process.state {
                 ProcessState::Idle => {
-                    match self.memory.read_instr(process.pc).ok() {
-                        Some(instr) => {
+                    match self.memory.read_instr(process.pc) {
+                        Ok(instr) => {
                             let cycle_left = OpSpec::from(instr.kind).cycles;
                             ProcessState::Executing { cycle_left, instr }
                         },
-                        None => {
+                        Err(e) => {
                             process.pc = (process.pc + 1) % MEM_SIZE;
                             ProcessState::Idle
                         }
                     }
                 },
+
                 ProcessState::Executing { cycle_left: 0, ref instr } => {
                     let execution_context = ExecutionContext {
                         memory: &mut self.memory,
                         pc: &mut process.pc,
                         registers: &mut process.registers,
                         carry: &mut process.carry,
+                        last_live_cycle: &mut process.last_live_cycle,
                         forks: &mut forks,
+                        cycle: self.cycles,
+                        live_count: &mut self.live_count_since_last_check
                     };
                     execute_instr(instr, execution_context);
                     ProcessState::Idle
                 },
+
                 ProcessState::Executing { cycle_left: ref mut n, .. } => {
                     *n -= 1;
                     continue
-                }
+                },
             };
 
             process.state = next_state;
         }
 
         self.processes.append(&mut forks);
+        self.cycles += 1;
+
+        let last_live_check = self.last_live_check;
+        let should_live_check = self.cycles - last_live_check >= self.cycles_to_die;
+        if should_live_check {
+            self.processes.retain(|process|
+                process.last_live_cycle > last_live_check
+            );
+
+            if self.live_count_since_last_check >= NBR_LIVE {
+                self.cycles_to_die -= CYCLE_DELTA;
+                self.checks_without_cycle_decrement = 0;
+            } else {
+                self.checks_without_cycle_decrement += 1;
+            }
+
+            if self.checks_without_cycle_decrement >= MAX_CHECKS {
+                self.cycles_to_die -= 1;
+                self.checks_without_cycle_decrement = 0;
+            }
+
+            self.live_count_since_last_check = 0;
+            self.last_live_check = self.cycles;
+        }
     }
 }
 
@@ -87,7 +127,9 @@ impl VirtualMachine {
             let header_bytes = &program[..HEADER_SIZE];
 
             unsafe {
+                #[allow(cast_ptr_alignment)] // ⚠ UB ?
                 let header_ptr = header_bytes.as_ptr() as * const Header;
+
                 self.players.push(Player {
                     id: *player_id,
                     name: from_nul_bytes(&(*header_ptr).prog_name),
@@ -103,13 +145,16 @@ impl VirtualMachine {
     fn load_champion(&mut self, champion: ByteCode, at: usize) {
         self.memory.write(at, champion);
 
-        self.processes.push(Process {
+        let mut starting_process = Process {
             pid: self.pid_pool,
             pc: at,
             registers: Registers::default(),
             carry: false,
             state: ProcessState::Idle,
-        });
+            last_live_cycle: 0
+        };
+        starting_process.registers[0] = 42;
+        self.processes.push(starting_process);
         self.pid_pool += 1;
     }
 }
