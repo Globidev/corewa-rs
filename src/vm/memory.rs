@@ -22,6 +22,7 @@ impl Memory {
     }
 
     pub fn write(&mut self, at: usize, bytes: &[u8]) {
+        let at = at % MEM_SIZE;
         if at + bytes.len() >= MEM_SIZE {
             let max_bytes = MEM_SIZE - at;
             self.0[at..at+max_bytes].copy_from_slice(&bytes[..max_bytes]);
@@ -75,21 +76,28 @@ impl Memory {
                     _ => return Err(ReadError::InvalidRegNumber(reg))
                 }
             },
-            (Direct, DirectSize::FourBytes) => {
-                let value = (i32::from(self[idx    ]) << 24)
-                          + (i32::from(self[idx + 1]) << 16)
-                          + (i32::from(self[idx + 2]) << 8 )
-                          + (i32::from(self[idx + 3])      );
-                (value, 4)
-            },
-            _ => {
-                let value = (i16::from(self[idx    ]) << 8)
-                          + (i16::from(self[idx + 1])     );
-                (i32::from(value), 2)
-            },
+            (Direct, DirectSize::FourBytes) => (self.read_i32(idx), 4),
+            _ => (i32::from(self.read_i16(idx)), 2)
         };
 
         Ok((Param { kind, value }, size))
+    }
+
+    pub fn read_i32(&self, addr: usize) -> i32 {
+          (i32::from(self[addr    ]) << 24)
+        + (i32::from(self[addr + 1]) << 16)
+        + (i32::from(self[addr + 2]) << 8 )
+        + (i32::from(self[addr + 3])      )
+    }
+
+    pub fn read_i16(&self, addr: usize) -> i16 {
+          (i16::from(self[addr    ]) << 8)
+        + (i16::from(self[addr + 1])     )
+    }
+
+    pub fn write_i32(&mut self, value: i32, at: usize) {
+        let value_as_bytes: [u8; 4] = unsafe { mem::transmute(value.to_be()) };
+        self.write(at, &value_as_bytes)
     }
 }
 
@@ -124,6 +132,7 @@ fn read_ocp_params(ocp: u8, op_spec: &OpSpec)
     let unused_mask = (4 - op_spec.param_count) as u8 * 0b100 - 1;
 
     if ocp & unused_mask != 0 {
+        super::super::log("unused");
         return Err(ReadError::InvalidOCP(ocp))
     }
 
@@ -137,7 +146,8 @@ fn read_ocp_params(ocp: u8, op_spec: &OpSpec)
             IND_PARAM_CODE => (ParamType::Indirect, T_IND),
             _  => return Err(ReadError::InvalidOCP(ocp))
         };
-        if op_spec.param_masks[i] | mask != mask {
+        if op_spec.param_masks[i] & mask != mask {
+            super::super::log(&format!("mask: {}, pmask: {}", mask, op_spec.param_masks[i]));
             return Err(ReadError::InvalidOCP(ocp))
         }
         param_types[i] = param_type;
@@ -150,9 +160,22 @@ fn op_from_code(code: u8) -> Option<OpType> {
     use self::OpType::*;
 
     let op = match code {
-        1 =>  Live, 2 =>  Ld, 3 =>  St, 4 =>  Add, 5 =>  Sub, 6 =>  And,
-        7 =>  Or, 8 =>  Xor, 9 =>  Zjmp, 10 => Ldi, 11 => Sti, 12 => Fork,
-        13 => Lld, 14 => Lldi, 15 => Lfork, 16 => Aff,
+        1 =>  Live,
+        2 =>  Ld,
+        3 =>  St,
+        4 =>  Add,
+        5 =>  Sub,
+        6 =>  And,
+        7 =>  Or,
+        8 =>  Xor,
+        9 =>  Zjmp,
+        10 => Ldi,
+        11 => Sti,
+        12 => Fork,
+        13 => Lld,
+        14 => Lldi,
+        15 => Lfork,
+        16 => Aff,
         _ => return None
     };
 
@@ -167,6 +190,7 @@ impl Index<usize> for Memory {
     }
 }
 
+#[derive(Debug)]
 pub enum ReadError {
     InvalidOpCode(u8),
     InvalidOCP(u8),
