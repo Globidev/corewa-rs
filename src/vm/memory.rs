@@ -129,31 +129,37 @@ fn params_from_unambiguous_masks(masks: [u8; MAX_PARAMS]) -> ParamTypes {
 fn read_ocp_params(ocp: u8, op_spec: &OpSpec)
     -> Result<ParamTypes, ReadError>
 {
-    let unused_mask = (4 - op_spec.param_count) as u8 * 0b100 - 1;
+    let unused_mask = (1 << ((4 - op_spec.param_count) * 2)) - 1;
 
     if ocp & unused_mask != 0 {
-        super::super::log("unused");
         return Err(ReadError::InvalidOCP(ocp))
     }
 
     let mut param_types = ParamTypes::default();
 
-    for i in 0..op_spec.param_count {
+    for (i, (param_type_out, param_mask)) in param_types.iter_mut().take(op_spec.param_count)
+        .zip(op_spec.param_masks.iter())
+        .enumerate()
+    {
         let shifted_bits = ocp >> (6 - 2 * i);
-        let (param_type, mask) = match shifted_bits & 0b0000_0011 {
-            REG_PARAM_CODE => (ParamType::Register, T_REG),
-            DIR_PARAM_CODE => (ParamType::Direct, T_DIR),
-            IND_PARAM_CODE => (ParamType::Indirect, T_IND),
-            _  => return Err(ReadError::InvalidOCP(ocp))
-        };
-        if op_spec.param_masks[i] & mask != mask {
-            super::super::log(&format!("mask: {}, pmask: {}", mask, op_spec.param_masks[i]));
+        let (param_type, bit) = read_type_and_bit(shifted_bits & 0b0000_0011)
+            .ok_or_else(|| ReadError::InvalidOCP(ocp))?;
+        if param_mask & bit != bit {
             return Err(ReadError::InvalidOCP(ocp))
         }
-        param_types[i] = param_type;
+        *param_type_out = param_type;
     }
 
     Ok(param_types)
+}
+
+fn read_type_and_bit(param_code: u8) -> Option<(ParamType, u8)> {
+    match param_code {
+        REG_PARAM_CODE => Some((ParamType::Register, T_REG)),
+        DIR_PARAM_CODE => Some((ParamType::Direct, T_DIR)),
+        IND_PARAM_CODE => Some((ParamType::Indirect, T_IND)),
+        _ => None
+    }
 }
 
 fn op_from_code(code: u8) -> Option<OpType> {

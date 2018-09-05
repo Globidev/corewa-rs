@@ -14,7 +14,6 @@ pub struct VirtualMachine {
     players: Vec<Player>,
     memory: memory::Memory,
     processes: Processes,
-
     pid_pool: u32,
 
     pub cycles: u32,
@@ -52,7 +51,7 @@ impl VirtualMachine {
 
     pub fn tick(&mut self) {
         let mut forks = Vec::new();
-        for process in self.processes.iter_mut() {
+        for process in self.processes.iter_mut().rev() {
 
             let next_state = match process.state {
                 ProcessState::Idle => {
@@ -62,13 +61,15 @@ impl VirtualMachine {
                             ProcessState::Executing { cycle_left, instr }
                         },
                         Err(e) => {
+                            // super::log(&format!("{:?}", e));
                             process.pc = (process.pc + 1) % MEM_SIZE;
                             ProcessState::Idle
                         }
                     }
                 },
 
-                ProcessState::Executing { cycle_left: 0, ref instr } => {
+                ProcessState::Executing { cycle_left: 1, ref instr } => {
+                    {
                     let execution_context = ExecutionContext {
                         memory: &mut self.memory,
                         pc: &mut process.pc,
@@ -80,7 +81,19 @@ impl VirtualMachine {
                         live_count: &mut self.live_count_since_last_check
                     };
                     execute_instr(instr, execution_context);
-                    ProcessState::Idle
+                    }
+                    // ProcessState::Idle
+                    match self.memory.read_instr(process.pc) {
+                        Ok(instr) => {
+                            let cycle_left = OpSpec::from(instr.kind).cycles;
+                            ProcessState::Executing { cycle_left, instr }
+                        },
+                        Err(e) => {
+                            // super::log(&format!("{:?}", e));
+                            process.pc = (process.pc + 1) % MEM_SIZE;
+                            ProcessState::Idle
+                        }
+                    }
                 },
 
                 ProcessState::Executing { cycle_left: ref mut n, .. } => {
@@ -103,14 +116,14 @@ impl VirtualMachine {
             );
 
             if self.live_count_since_last_check >= NBR_LIVE {
-                self.cycles_to_die -= CYCLE_DELTA;
+                self.cycles_to_die = self.cycles_to_die.saturating_sub(CYCLE_DELTA);
                 self.checks_without_cycle_decrement = 0;
             } else {
                 self.checks_without_cycle_decrement += 1;
             }
 
             if self.checks_without_cycle_decrement >= MAX_CHECKS {
-                self.cycles_to_die -= 1;
+                self.cycles_to_die = self.cycles_to_die.saturating_sub(CYCLE_DELTA);
                 self.checks_without_cycle_decrement = 0;
             }
 
@@ -145,12 +158,23 @@ impl VirtualMachine {
     fn load_champion(&mut self, champion: ByteCode, at: usize) {
         self.memory.write(at, champion);
 
+        let state = match self.memory.read_instr(at) {
+            Ok(instr) => {
+                let cycle_left = OpSpec::from(instr.kind).cycles;
+                ProcessState::Executing { cycle_left, instr }
+            },
+            Err(e) => {
+                // process.pc = (process.pc + 1) % MEM_SIZE;
+                ProcessState::Idle
+            }
+        };
+
         let mut starting_process = Process {
             pid: self.pid_pool,
             pc: at,
             registers: Registers::default(),
             carry: false,
-            state: ProcessState::Idle,
+            state: state,
             last_live_cycle: 0
         };
         starting_process.registers[0] = 42;
@@ -159,9 +183,20 @@ impl VirtualMachine {
     }
 }
 
-fn execute_instr(instr: &Instruction, mut context: ExecutionContext) {
+fn execute_instr(_: &Instruction, mut ctx: ExecutionContext) {
     use self::OpType::*;
     use self::instructions::*;
+
+    let instr = match ctx.memory.read_instr(*ctx.pc) {
+        Ok(instr) => {
+            instr
+        },
+        Err(e) => {
+            return
+            // process.pc = (process.pc + 1) % MEM_SIZE;
+            // ProcessState::Idle
+        }
+    };
 
     let exec = match instr.kind {
         Live  => exec_live,
@@ -182,8 +217,8 @@ fn execute_instr(instr: &Instruction, mut context: ExecutionContext) {
         Aff   => exec_aff,
     };
 
-    exec(instr, &mut context);
-    *context.pc = (*context.pc + instr.byte_size) % MEM_SIZE;
+    exec(&instr, &mut ctx);
+    *ctx.pc = (*ctx.pc + instr.byte_size) % MEM_SIZE;
 }
 
 fn from_nul_bytes(bytes: &[u8]) -> String {

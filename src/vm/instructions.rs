@@ -1,5 +1,5 @@
 use super::types::*;
-use spec::{MEM_SIZE, ParamType, IDX_MOD};
+use spec::{MEM_SIZE, ParamType, IDX_MOD, OpSpec};
 
 fn offseted_pc(pc: usize, offset: i32) -> usize {
     let offset = offset % IDX_MOD as i32;
@@ -7,7 +7,7 @@ fn offseted_pc(pc: usize, offset: i32) -> usize {
 }
 
 fn offseted_pc_long(pc: usize, offset: i32) -> usize {
-    let offset = offset as i32;
+    let offset = offset % MEM_SIZE as i32;
     (pc as i32 + MEM_SIZE as i32 + offset) as usize
 }
 
@@ -102,7 +102,7 @@ pub fn exec_zjmp(instr: &Instruction, ctx: &mut ExecutionContext) {
     if !*ctx.carry { return }
 
     let offset = instr.params[0].value;
-    let mut new_pc = *ctx.pc as i32 + offset;
+    let mut new_pc = *ctx.pc as i32 + offset % IDX_MOD as i32;
     new_pc -= instr.byte_size as i32; // Negating the instruction jump
     new_pc += MEM_SIZE as i32; // Avoiding negative pc values
     *ctx.pc = new_pc as usize;
@@ -120,18 +120,28 @@ pub fn exec_sti(instr: &Instruction, ctx: &mut ExecutionContext) {
     let value = ctx.registers[instr.params[0].value as usize - 1];
     let lhs = ctx.get_param(&instr.params[1]);
     let rhs = ctx.get_param(&instr.params[2]);
-    let addr = ((lhs + rhs) % MEM_SIZE as i32) + MEM_SIZE as i32;
-    ctx.memory.write_i32(value, addr as usize);
+    let addr = offseted_pc(*ctx.pc, lhs + rhs);
+    ctx.memory.write_i32(value, addr);
 }
 
 pub fn exec_fork(instr: &Instruction, ctx: &mut ExecutionContext) {
     let forked_pc = offseted_pc(*ctx.pc, instr.params[0].value);
+    let state = match ctx.memory.read_instr(forked_pc) {
+        Ok(instr) => {
+            let cycle_left = OpSpec::from(instr.kind).cycles;
+            ProcessState::Executing { cycle_left, instr }
+        },
+        Err(e) => {
+            // process.pc = (process.pc + 1) % MEM_SIZE;
+            ProcessState::Idle
+        }
+    };
     ctx.forks.push(Process {
         pid: 1,
         pc: forked_pc,
         registers: *ctx.registers,
         carry: *ctx.carry,
-        state: ProcessState::Idle,
+        state: state,
         last_live_cycle: ctx.cycle
     });
 }
@@ -153,12 +163,23 @@ pub fn exec_lldi(instr: &Instruction, ctx: &mut ExecutionContext) {
 
 pub fn exec_lfork(instr: &Instruction, ctx: &mut ExecutionContext) {
     let forked_pc = offseted_pc_long(*ctx.pc, instr.params[0].value);
+
+    let state = match ctx.memory.read_instr(forked_pc) {
+        Ok(instr) => {
+            let cycle_left = OpSpec::from(instr.kind).cycles;
+            ProcessState::Executing { cycle_left, instr }
+        },
+        Err(e) => {
+            // process.pc = (process.pc + 1) % MEM_SIZE;
+            ProcessState::Idle
+        }
+    };
     ctx.forks.push(Process {
         pid: 1,
         pc: forked_pc,
         registers: *ctx.registers,
         carry: *ctx.carry,
-        state: ProcessState::Idle,
+        state: state,
         last_live_cycle: ctx.cycle
     });
 }
