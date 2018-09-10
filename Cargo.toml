@@ -7,8 +7,8 @@ repository = "https://github.com/Globidev/corewar-rs"
 license = "MIT"
 
 # [[bin]]
-# name = "asm"
-# path = "asm/main.rs"
+# name = "assembler"
+# path = "bin/main.rs"
 
 [lib]
 crate-type = ["cdylib"]
