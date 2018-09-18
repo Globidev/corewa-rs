@@ -4,3 +4,4 @@ Cargo.lock
 /champs
 node_modules
 *.wasm
+dist
