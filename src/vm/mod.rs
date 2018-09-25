@@ -15,7 +15,7 @@ pub struct VirtualMachine {
     players: Vec<Player>,
     memory: memory::Memory,
     processes: Processes,
-    pid_pool: u32,
+    pid_pool: PidPool,
 
     pub cycles: u32,
     pub last_live_check: u32,
@@ -79,7 +79,8 @@ impl VirtualMachine {
                                 last_live_cycle: &mut process.last_live_cycle,
                                 forks: &mut forks,
                                 cycle: self.cycles,
-                                live_count: &mut self.live_count_since_last_check
+                                live_count: &mut self.live_count_since_last_check,
+                                pid_pool: &mut self.pid_pool
                             };
                             execute_instr(&instr, execution_context);
                         },
@@ -152,10 +153,9 @@ impl VirtualMachine {
     fn load_champion(&mut self, champion: ByteCode, at: usize) {
         self.memory.write(at, champion);
 
-        let mut starting_process = Process::new(self.pid_pool, at);
+        let mut starting_process = Process::new(self.pid_pool.get(), at);
         starting_process.registers[0] = 42;
         self.processes.push(starting_process);
-        self.pid_pool += 1;
     }
 }
 
@@ -197,4 +197,11 @@ fn from_nul_bytes(bytes: &[u8]) -> String {
         .expect("Invalid UTF8 string");
 
     String::from(as_str)
+}
+
+impl PidPool {
+    pub fn get(&mut self) -> Pid {
+        let next = self.0 + 1;
+        mem::replace(&mut self.0, next)
+    }
 }

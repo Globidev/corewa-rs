@@ -127,7 +127,7 @@ pub fn exec_sti(instr: &Instruction, ctx: &mut ExecutionContext) {
 pub fn exec_fork(instr: &Instruction, ctx: &mut ExecutionContext) {
     let forked_pc = offseted_pc(*ctx.pc, instr.params[0].value);
 
-    let child_process = Process::fork(1 /* TODO */, forked_pc, ctx);
+    let child_process = Process::fork(ctx.pid_pool.get(), forked_pc, ctx);
     ctx.forks.push(child_process);
 }
 
@@ -149,7 +149,7 @@ pub fn exec_lldi(instr: &Instruction, ctx: &mut ExecutionContext) {
 pub fn exec_lfork(instr: &Instruction, ctx: &mut ExecutionContext) {
     let forked_pc = offseted_pc_long(*ctx.pc, instr.params[0].value);
 
-    let child_process = Process::fork(1 /* TODO */, forked_pc, ctx);
+    let child_process = Process::fork(ctx.pid_pool.get(), forked_pc, ctx);
     ctx.forks.push(child_process);
 }
 

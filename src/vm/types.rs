@@ -30,8 +30,7 @@ pub struct Instruction {
     pub byte_size: usize,
 }
 
-#[derive(Debug)]
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Param {
     pub kind: ParamType,
     pub value: i32,
@@ -46,7 +45,11 @@ pub struct ExecutionContext<'a> {
     pub forks: &'a mut Processes,
     pub cycle: u32,
     pub live_count: &'a mut u32,
+    pub pid_pool: &'a mut PidPool,
 }
+
+#[derive(Debug, Default)]
+pub struct PidPool(pub Pid);
 
 pub type Register = i32;
 pub type Pid = u32;
