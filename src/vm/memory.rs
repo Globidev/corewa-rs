@@ -32,12 +32,14 @@ impl Memory {
         }
     }
 
-    pub fn read_instr(&self, idx: usize) -> Result<Instruction, ReadError> {
+    pub fn read_op(&self, idx: usize) -> Result<OpType, ReadError> {
         let op_code = self[idx];
 
-        let op = op_from_code(op_code)
-            .ok_or_else(|| ReadError::InvalidOpCode(op_code))?;
+        op_from_code(op_code)
+            .ok_or_else(|| ReadError::InvalidOpCode(op_code))
+    }
 
+    pub fn read_instr(&self, op: OpType, idx: usize) -> Result<Instruction, ReadError> {
         let op_spec = OpSpec::from(op);
 
         let (param_types, mut byte_size) = if op_spec.has_ocp {

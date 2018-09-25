@@ -1,5 +1,5 @@
 use super::types::*;
-use spec::{MEM_SIZE, ParamType, IDX_MOD, OpSpec};
+use spec::{MEM_SIZE, ParamType, IDX_MOD};
 
 fn offseted_pc(pc: usize, offset: i32) -> usize {
     let offset = offset % IDX_MOD as i32;
@@ -126,24 +126,9 @@ pub fn exec_sti(instr: &Instruction, ctx: &mut ExecutionContext) {
 
 pub fn exec_fork(instr: &Instruction, ctx: &mut ExecutionContext) {
     let forked_pc = offseted_pc(*ctx.pc, instr.params[0].value);
-    let state = match ctx.memory.read_instr(forked_pc) {
-        Ok(instr) => {
-            let cycle_left = OpSpec::from(instr.kind).cycles;
-            ProcessState::Executing { cycle_left, instr }
-        },
-        Err(e) => {
-            // process.pc = (process.pc + 1) % MEM_SIZE;
-            ProcessState::Idle
-        }
-    };
-    ctx.forks.push(Process {
-        pid: 1,
-        pc: forked_pc,
-        registers: *ctx.registers,
-        carry: *ctx.carry,
-        state: state,
-        last_live_cycle: ctx.cycle
-    });
+
+    let child_process = Process::fork(1 /* TODO */, forked_pc, ctx);
+    ctx.forks.push(child_process);
 }
 
 pub fn exec_lld(instr: &Instruction, ctx: &mut ExecutionContext) {
@@ -164,24 +149,8 @@ pub fn exec_lldi(instr: &Instruction, ctx: &mut ExecutionContext) {
 pub fn exec_lfork(instr: &Instruction, ctx: &mut ExecutionContext) {
     let forked_pc = offseted_pc_long(*ctx.pc, instr.params[0].value);
 
-    let state = match ctx.memory.read_instr(forked_pc) {
-        Ok(instr) => {
-            let cycle_left = OpSpec::from(instr.kind).cycles;
-            ProcessState::Executing { cycle_left, instr }
-        },
-        Err(e) => {
-            // process.pc = (process.pc + 1) % MEM_SIZE;
-            ProcessState::Idle
-        }
-    };
-    ctx.forks.push(Process {
-        pid: 1,
-        pc: forked_pc,
-        registers: *ctx.registers,
-        carry: *ctx.carry,
-        state: state,
-        last_live_cycle: ctx.cycle
-    });
+    let child_process = Process::fork(1 /* TODO */, forked_pc, ctx);
+    ctx.forks.push(child_process);
 }
 
 pub fn exec_aff(instr: &Instruction, ctx: &mut ExecutionContext) {

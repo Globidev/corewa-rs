@@ -9,7 +9,7 @@ pub struct Player {
 
 #[derive(Debug)]
 pub struct Process {
-    pub pid: u32,
+    pub pid: Pid,
     pub pc: ProgramCounter,
     pub registers: Registers,
     pub carry: bool,
@@ -20,7 +20,7 @@ pub struct Process {
 #[derive(Debug)]
 pub enum ProcessState {
     Idle,
-    Executing { instr: Instruction, cycle_left: u32 }
+    Executing { op: OpType, cycle_left: u32 }
 }
 
 #[derive(Debug)]
@@ -49,6 +49,7 @@ pub struct ExecutionContext<'a> {
 }
 
 pub type Register = i32;
+pub type Pid = u32;
 pub type Registers = [Register; REG_COUNT];
 pub type PlayerId = u16;
 pub type ProgramCounter = usize;

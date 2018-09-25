@@ -2,6 +2,7 @@ use wasm_bindgen::prelude::*;
 
 pub mod types;
 mod memory;
+mod process;
 mod instructions;
 
 use self::types::*;
@@ -52,57 +53,51 @@ impl VirtualMachine {
     pub fn tick(&mut self) {
         let mut forks = Vec::new();
         for process in self.processes.iter_mut().rev() {
+            // Attempt to read instructions
+            if let ProcessState::Idle = process.state {
+                match self.memory.read_op(process.pc) {
+                    Ok(op) => {
+                        let cycle_left = OpSpec::from(op).cycles;
+                        process.state = ProcessState::Executing { cycle_left, op };
+                    },
+                    Err(e) => {
+                        // super::log(&format!("{:?}", e));
+                    }
+                }
+            }
 
-            let next_state = match process.state {
-                ProcessState::Idle => {
-                    match self.memory.read_instr(process.pc) {
+            match process.state {
+                ProcessState::Executing { cycle_left: 1, op } => {
+                    let instr_result = self.memory.read_instr(op, process.pc);
+                    match instr_result {
                         Ok(instr) => {
-                            let cycle_left = OpSpec::from(instr.kind).cycles;
-                            ProcessState::Executing { cycle_left, instr }
+                            let execution_context = ExecutionContext {
+                                memory: &mut self.memory,
+                                pc: &mut process.pc,
+                                registers: &mut process.registers,
+                                carry: &mut process.carry,
+                                last_live_cycle: &mut process.last_live_cycle,
+                                forks: &mut forks,
+                                cycle: self.cycles,
+                                live_count: &mut self.live_count_since_last_check
+                            };
+                            execute_instr(&instr, execution_context);
                         },
                         Err(e) => {
                             // super::log(&format!("{:?}", e));
-                            process.pc = (process.pc + 1) % MEM_SIZE;
-                            ProcessState::Idle
                         }
-                    }
-                },
-
-                ProcessState::Executing { cycle_left: 1, ref instr } => {
-                    {
-                    let execution_context = ExecutionContext {
-                        memory: &mut self.memory,
-                        pc: &mut process.pc,
-                        registers: &mut process.registers,
-                        carry: &mut process.carry,
-                        last_live_cycle: &mut process.last_live_cycle,
-                        forks: &mut forks,
-                        cycle: self.cycles,
-                        live_count: &mut self.live_count_since_last_check
                     };
-                    execute_instr(instr, execution_context);
-                    }
-                    // ProcessState::Idle
-                    match self.memory.read_instr(process.pc) {
-                        Ok(instr) => {
-                            let cycle_left = OpSpec::from(instr.kind).cycles;
-                            ProcessState::Executing { cycle_left, instr }
-                        },
-                        Err(e) => {
-                            // super::log(&format!("{:?}", e));
-                            process.pc = (process.pc + 1) % MEM_SIZE;
-                            ProcessState::Idle
-                        }
-                    }
+                    process.state = ProcessState::Idle;
                 },
 
                 ProcessState::Executing { cycle_left: ref mut n, .. } => {
                     *n -= 1;
-                    continue
                 },
-            };
 
-            process.state = next_state;
+                ProcessState::Idle => {
+                    process.pc = (process.pc + 1) % MEM_SIZE;
+                }
+            };
         }
 
         self.processes.append(&mut forks);
@@ -158,45 +153,16 @@ impl VirtualMachine {
     fn load_champion(&mut self, champion: ByteCode, at: usize) {
         self.memory.write(at, champion);
 
-        let state = match self.memory.read_instr(at) {
-            Ok(instr) => {
-                let cycle_left = OpSpec::from(instr.kind).cycles;
-                ProcessState::Executing { cycle_left, instr }
-            },
-            Err(e) => {
-                // process.pc = (process.pc + 1) % MEM_SIZE;
-                ProcessState::Idle
-            }
-        };
-
-        let mut starting_process = Process {
-            pid: self.pid_pool,
-            pc: at,
-            registers: Registers::default(),
-            carry: false,
-            state: state,
-            last_live_cycle: 0
-        };
+        let mut starting_process = Process::new(self.pid_pool, at, &self.memory);
         starting_process.registers[0] = 42;
         self.processes.push(starting_process);
         self.pid_pool += 1;
     }
 }
 
-fn execute_instr(_: &Instruction, mut ctx: ExecutionContext) {
+fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext) {
     use self::OpType::*;
     use self::instructions::*;
-
-    let instr = match ctx.memory.read_instr(*ctx.pc) {
-        Ok(instr) => {
-            instr
-        },
-        Err(e) => {
-            return
-            // process.pc = (process.pc + 1) % MEM_SIZE;
-            // ProcessState::Idle
-        }
-    };
 
     let exec = match instr.kind {
         Live  => exec_live,
