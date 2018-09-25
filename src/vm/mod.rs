@@ -135,7 +135,6 @@ impl VirtualMachine {
             let header_bytes = &program[..HEADER_SIZE];
 
             unsafe {
-                #[allow(cast_ptr_alignment)] // ⚠ UB ?
                 let header_ptr = header_bytes.as_ptr() as * const Header;
 
                 self.players.push(Player {

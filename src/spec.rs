@@ -6,7 +6,7 @@ pub const PROG_COMMENT_LENGTH: usize = 2048;
 pub type ProgName = [u8; PROG_NAME_LENGTH + 1];
 pub type ProgComment = [u8; PROG_COMMENT_LENGTH + 1];
 
-#[repr(C)]
+#[repr(packed)]
 pub struct Header {
     pub magic: u32,
     pub prog_name: ProgName,
