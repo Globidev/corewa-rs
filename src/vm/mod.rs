@@ -153,7 +153,7 @@ impl VirtualMachine {
     fn load_champion(&mut self, champion: ByteCode, at: usize) {
         self.memory.write(at, champion);
 
-        let mut starting_process = Process::new(self.pid_pool, at, &self.memory);
+        let mut starting_process = Process::new(self.pid_pool, at);
         starting_process.registers[0] = 42;
         self.processes.push(starting_process);
         self.pid_pool += 1;
