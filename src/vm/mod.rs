@@ -1,20 +1,25 @@
 use wasm_bindgen::prelude::*;
 
 pub mod types;
-mod memory;
 mod process;
+mod memory;
 mod instructions;
+mod execution_context;
+mod program_counter;
 
 use self::types::*;
+use self::execution_context::ExecutionContext;
+use self::process::{Process, ProcessState};
 use std::mem;
 use spec::*;
+
 
 #[wasm_bindgen]
 #[derive(Default)]
 pub struct VirtualMachine {
     players: Vec<Player>,
     memory: memory::Memory,
-    processes: Processes,
+    processes: Vec<Process>,
     pid_pool: PidPool,
 
     pub cycles: u32,
@@ -47,7 +52,7 @@ impl VirtualMachine {
     }
 
     pub fn process_pc(&self, at: usize) -> usize {
-        self.processes[at].pc
+        *self.processes[at].pc
     }
 
     pub fn tick(&mut self) {
@@ -55,7 +60,7 @@ impl VirtualMachine {
         for process in self.processes.iter_mut().rev() {
             // Attempt to read instructions
             if let ProcessState::Idle = process.state {
-                match self.memory.read_op(process.pc) {
+                match self.memory.read_op(*process.pc) {
                     Ok(op) => {
                         let cycle_left = OpSpec::from(op).cycles;
                         process.state = ProcessState::Executing { cycle_left, op };
@@ -68,7 +73,7 @@ impl VirtualMachine {
 
             match process.state {
                 ProcessState::Executing { cycle_left: 1, op } => {
-                    let instr_result = self.memory.read_instr(op, process.pc);
+                    let instr_result = self.memory.read_instr(op, *process.pc);
                     match instr_result {
                         Ok(instr) => {
                             let execution_context = ExecutionContext {
@@ -96,7 +101,7 @@ impl VirtualMachine {
                 },
 
                 ProcessState::Idle => {
-                    process.pc = (process.pc + 1) % MEM_SIZE;
+                    process.pc.advance(1)
                 }
             };
         }
@@ -153,7 +158,7 @@ impl VirtualMachine {
     fn load_champion(&mut self, champion: ByteCode, at: usize) {
         self.memory.write(at, champion);
 
-        let mut starting_process = Process::new(self.pid_pool.get(), at);
+        let mut starting_process = Process::new(self.pid_pool.get(), at.into());
         starting_process.registers[0] = 42;
         self.processes.push(starting_process);
     }
@@ -183,7 +188,7 @@ fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext) {
     };
 
     exec(&instr, &mut ctx);
-    *ctx.pc = (*ctx.pc + instr.byte_size) % MEM_SIZE;
+    ctx.pc.advance(instr.byte_size as isize);
 }
 
 fn from_nul_bytes(bytes: &[u8]) -> String {
@@ -198,6 +203,9 @@ fn from_nul_bytes(bytes: &[u8]) -> String {
 
     String::from(as_str)
 }
+
+#[derive(Debug, Default)]
+pub struct PidPool(Pid);
 
 impl PidPool {
     pub fn get(&mut self) -> Pid {

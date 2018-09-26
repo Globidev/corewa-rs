@@ -8,22 +8,6 @@ pub struct Player {
 }
 
 #[derive(Debug)]
-pub struct Process {
-    pub pid: Pid,
-    pub pc: ProgramCounter,
-    pub registers: Registers,
-    pub carry: bool,
-    pub state: ProcessState,
-    pub last_live_cycle: u32,
-}
-
-#[derive(Debug)]
-pub enum ProcessState {
-    Idle,
-    Executing { op: OpType, cycle_left: u32 }
-}
-
-#[derive(Debug)]
 pub struct Instruction {
     pub kind: OpType,
     pub params: [Param; MAX_PARAMS],
@@ -36,25 +20,14 @@ pub struct Param {
     pub value: i32,
 }
 
-pub struct ExecutionContext<'a> {
-    pub memory: &'a mut super::memory::Memory,
-    pub pc: &'a mut ProgramCounter,
-    pub registers: &'a mut Registers,
-    pub carry: &'a mut bool,
-    pub last_live_cycle: &'a mut u32,
-    pub forks: &'a mut Processes,
-    pub cycle: u32,
-    pub live_count: &'a mut u32,
-    pub pid_pool: &'a mut PidPool,
+#[derive(Debug)]
+pub enum OffsetType {
+    Limited,
+    Long
 }
-
-#[derive(Debug, Default)]
-pub struct PidPool(pub Pid);
 
 pub type Register = i32;
 pub type Pid = u32;
 pub type Registers = [Register; REG_COUNT];
 pub type PlayerId = u16;
-pub type ProgramCounter = usize;
-pub type Processes = Vec<Process>;
 pub type ByteCode<'a> = &'a [u8];
