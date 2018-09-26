@@ -32,14 +32,14 @@ impl Memory {
         }
     }
 
-    pub fn read_op(&self, idx: usize) -> Result<OpType, ReadError> {
+    pub fn read_op(&self, idx: usize) -> Result<OpType, DecodeError> {
         let op_code = self[idx];
 
         op_from_code(op_code)
-            .ok_or_else(|| ReadError::InvalidOpCode(op_code))
+            .ok_or_else(|| DecodeError::InvalidOpCode(op_code))
     }
 
-    pub fn read_instr(&self, op: OpType, idx: usize) -> Result<Instruction, ReadError> {
+    pub fn read_instr(&self, op: OpType, idx: usize) -> Result<Instruction, DecodeError> {
         let op_spec = OpSpec::from(op);
 
         let (param_types, mut byte_size) = if op_spec.has_ocp {
@@ -66,7 +66,7 @@ impl Memory {
     }
 
     fn read_param(&self, kind: ParamType, idx: usize, dir_size: &DirectSize)
-        -> Result<(Param, usize), ReadError>
+        -> Result<(Param, usize), DecodeError>
     {
         use self::ParamType::*;
 
@@ -75,7 +75,7 @@ impl Memory {
                 let reg = self[idx];
                 match reg as usize {
                     1 ... REG_COUNT => (i32::from(reg), 1),
-                    _ => return Err(ReadError::InvalidRegNumber(reg))
+                    _ => return Err(DecodeError::InvalidRegNumber(reg))
                 }
             },
             (Direct, DirectSize::FourBytes) => (self.read_i32(idx), 4),
@@ -129,12 +129,12 @@ fn params_from_unambiguous_masks(masks: [u8; MAX_PARAMS]) -> ParamTypes {
 }
 
 fn read_ocp_params(ocp: u8, op_spec: &OpSpec)
-    -> Result<ParamTypes, ReadError>
+    -> Result<ParamTypes, DecodeError>
 {
     let unused_mask = (1 << ((4 - op_spec.param_count) * 2)) - 1;
 
     if ocp & unused_mask != 0 {
-        return Err(ReadError::InvalidOCP(ocp))
+        return Err(DecodeError::InvalidOCP(ocp))
     }
 
     let mut param_types = ParamTypes::default();
@@ -145,9 +145,9 @@ fn read_ocp_params(ocp: u8, op_spec: &OpSpec)
     {
         let shifted_bits = ocp >> (6 - 2 * i);
         let (param_type, bit) = read_type_and_bit(shifted_bits & 0b0000_0011)
-            .ok_or_else(|| ReadError::InvalidOCP(ocp))?;
+            .ok_or_else(|| DecodeError::InvalidOCP(ocp))?;
         if param_mask & bit != bit {
-            return Err(ReadError::InvalidOCP(ocp))
+            return Err(DecodeError::InvalidOCP(ocp))
         }
         *param_type_out = param_type;
     }
@@ -199,7 +199,7 @@ impl Index<usize> for Memory {
 }
 
 #[derive(Debug)]
-pub enum ReadError {
+pub enum DecodeError {
     InvalidOpCode(u8),
     InvalidOCP(u8),
     InvalidRegNumber(u8),
