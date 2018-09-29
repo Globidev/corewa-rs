@@ -9,4 +9,4 @@ else
 fi
 
 cargo build $mode --target wasm32-unknown-unknown
-wasm-bindgen target/wasm32-unknown-unknown/$dir/corewar.wasm --out-dir web
+wasm-bindgen target/wasm32-unknown-unknown/$dir/corewar.wasm --out-dir web/src/

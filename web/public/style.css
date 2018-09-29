@@ -1,0 +1,41 @@
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background-color: #111111;
+  color: white;
+}
+
+#editor {
+  overflow: hidden;
+  height: 100%;
+}
+
+#editor-container {
+  width: 50%;
+  height: 100%;
+}
+
+#canvas {
+  width: 100vw;
+}
+
+.info {
+  margin-left: 10px;
+}
+
+#app, #main {
+  height: 100%;
+}
+
+#main {
+  display: flex;
+}
+
+#vm-container {
+  width: 50%;
+}
+
+.cycle-input {
+  max-width: 70px;
+}

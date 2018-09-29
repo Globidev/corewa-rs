@@ -1,6 +1,5 @@
 /* tslint:disable */
 import * as wasm from './corewar_bg';
-import { error_at } from './index';
 
 const TextDecoder = typeof self === 'object' && self.TextDecoder
     ? self.TextDecoder
@@ -32,7 +31,7 @@ const TextEncoder = typeof self === 'object' && self.TextEncoder
 let cachedEncoder = new TextEncoder('utf-8');
 
 function passStringToWasm(arg) {
-    
+
     const buf = cachedEncoder.encode(arg);
     const ptr = wasm.__wbindgen_malloc(buf.length);
     getUint8Memory().set(buf, ptr);
@@ -46,23 +45,23 @@ export function vm_from_code(arg0) {
     const [ptr0, len0] = passStringToWasm(arg0);
     try {
         return VirtualMachine.__construct(wasm.vm_from_code(ptr0, len0));
-        
+
     } finally {
         wasm.__wbindgen_free(ptr0, len0 * 1);
-        
+
     }
-    
+
 }
 
-const __wbg_error_2c2dd5f14f439749_target = console.error;
+const __wbg_error_cc95a3d302735ca3_target = console.error;
 
-export function __wbg_error_2c2dd5f14f439749(arg0, arg1) {
+export function __wbg_error_cc95a3d302735ca3(arg0, arg1) {
     let varg0 = getStringFromWasm(arg0, arg1);
-    
+
     varg0 = varg0.slice();
     wasm.__wbindgen_free(arg0, arg1 * 1);
-    
-    __wbg_error_2c2dd5f14f439749_target(varg0);
+
+    __wbg_error_cc95a3d302735ca3_target(varg0);
 }
 
 class ConstructorToken {
@@ -72,27 +71,27 @@ class ConstructorToken {
 }
 
 function freeVirtualMachine(ptr) {
-    
+
     wasm.__wbg_virtualmachine_free(ptr);
 }
 /**
 */
 export class VirtualMachine {
-    
+
     static __construct(ptr) {
         return new VirtualMachine(new ConstructorToken(ptr));
     }
-    
+
     constructor(...args) {
         if (args.length === 1 && args[0] instanceof ConstructorToken) {
             this.ptr = args[0].ptr;
             return;
         }
-        
+
         // This invocation of new will call this constructor with a ConstructorToken
         let instance = VirtualMachine.new(...args);
         this.ptr = instance.ptr;
-        
+
     }
     /**
     * @returns {number}

@@ -1,13 +1,40 @@
 import * as monaco from 'monaco-editor';
+import * as React from "react";
 
-export function createCorewarEditor(domNode) {
-  setupLanguage()
+interface IEditorProps {
+  onCodeChanged: (code: string) => void;
+}
 
-  return monaco.editor.create(domNode, {
-    value: DEFAULT_TEXT,
-    language: ASM_LANGUAGE_ID,
-    theme: 'vs-dark'
-  });
+export class Editor extends React.Component<IEditorProps> {
+  domContainer = React.createRef<HTMLDivElement>();
+  debounceId: number;
+
+  componentDidMount() {
+    if (this.domContainer.current) {
+      const editor = monaco.editor.create(this.domContainer.current, {
+        value: DEFAULT_TEXT,
+        language: ASM_LANGUAGE_ID,
+        theme: 'vs-dark'
+      });
+
+      editor.getModel().onDidChangeContent(e => {
+        clearTimeout(this.debounceId);
+        this.debounceId = window.setTimeout(
+          this.props.onCodeChanged, 500, editor.getValue()
+        );
+      });
+
+      this.props.onCodeChanged(editor.getValue());
+    }
+  }
+
+  render() {
+    return (
+      <div id="editor-container">
+        <div id="editor" ref={this.domContainer}></div>
+      </div>
+    )
+  }
 }
 
 const ALL_KEYWORDS = [
@@ -123,6 +150,8 @@ function setupLanguage() {
 
     monaco.languages.setMonarchTokensProvider(ASM_LANGUAGE_ID, ASM_TOKEN_PROVIDER);
 }
+
+setupLanguage()
 
 // const keywordCompletionItems = ALL_KEYWORDS.map(([kw, desc, params]) => ({
 //   label: kw,

@@ -1,11 +1,10 @@
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin')
-
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const path = require('path');
 
 module.exports = {
   mode: "development",
-  entry: "./bootstrap.js",
+  entry: "./src/bootstrap.js",
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "bootstrap.js",
@@ -27,7 +26,7 @@ module.exports = {
     extensions: [ '.tsx', '.ts', '.js', '.wasm' ]
   },
   plugins: [
-    new CopyWebpackPlugin(["index.html"]),
+    new CopyWebpackPlugin(["public"]),
     new MonacoWebpackPlugin()
   ]
 };
