@@ -55,6 +55,10 @@ impl VirtualMachine {
         *self.processes[at].pc
     }
 
+    pub fn cell_at(&self, at: usize) -> u8 {
+        self.memory.at(at)
+    }
+
     pub fn tick(&mut self) {
         let mut forks = Vec::new();
         for process in self.processes.iter_mut().rev() {
@@ -161,6 +165,14 @@ impl VirtualMachine {
         let mut starting_process = Process::new(self.pid_pool.get(), at.into());
         starting_process.registers[0] = 42;
         self.processes.push(starting_process);
+    }
+
+    pub fn processes(&self) -> &Vec<Process> {
+        &self.processes
+    }
+
+    pub fn cells(&self) -> &[u8] {
+        self.memory.iter()
     }
 }
 

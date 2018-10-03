@@ -1,6 +1,7 @@
 mod spec;
 mod language;
 pub mod vm;
+pub mod ui;
 
 mod utils;
 
