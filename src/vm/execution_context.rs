@@ -6,6 +6,7 @@ use spec::ParamType;
 
 pub struct ExecutionContext<'a> {
     pub memory: &'a mut super::memory::Memory,
+    pub player_id: PlayerId,
     pub pc: &'a mut ProgramCounter,
     pub registers: &'a mut Registers,
     pub carry: &'a mut bool,
@@ -14,6 +15,7 @@ pub struct ExecutionContext<'a> {
     pub cycle: u32,
     pub live_count: &'a mut u32,
     pub pid_pool: &'a mut PidPool,
+    pub live_ids: &'a mut Vec<PlayerId>
 }
 
 impl<'a> ExecutionContext<'a> {

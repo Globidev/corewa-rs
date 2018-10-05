@@ -29,5 +29,5 @@ pub enum OffsetType {
 pub type Register = i32;
 pub type Pid = u32;
 pub type Registers = [Register; REG_COUNT];
-pub type PlayerId = u16;
+pub type PlayerId = i32;
 pub type ByteCode<'a> = &'a [u8];

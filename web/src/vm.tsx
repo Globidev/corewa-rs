@@ -7,6 +7,7 @@ import { observe } from "mobx";
 
 const BYTE_WIDTH = 20;
 const BYTE_HEIGHT = 15;
+const PADDING = 2;
 
 @observer
 export class VM extends React.Component {
@@ -53,10 +54,8 @@ export class VM extends React.Component {
   }
 
   render() {
-    const containerWidth = uiState.fullscreen ? '100%' : '50%';
-
     return (
-      <div id="vm-container" style={{ width: containerWidth }}>
+      <div id="vm-container" style={{ width: uiState.fullscreen ? '100%' : '50%' }}>
         <div style={{display:'flex'}}>
           <ControlPanel />
           <InfoPanel />
@@ -128,6 +127,13 @@ class InfoPanel extends React.Component {
   }
 }
 
+const PLAYER_COLORS = [
+  '#FFA517',
+  '#7614CC',
+  '#14CC57',
+  '#1A2AFF',
+]
+
 function drawVm(vm: wasm.VirtualMachine, canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
@@ -137,7 +143,7 @@ function drawVm(vm: wasm.VirtualMachine, canvas: HTMLCanvasElement) {
   ctx.font = 'bold 9pt Helvetica';
 
   const size = vm.size();
-  const mem = new Uint8Array(memory.buffer, vm.memory(), size);
+  // const mem = new Uint8Array(memory.buffer, vm.memory(), size);
   const lineLength = Math.floor(canvas.width / BYTE_WIDTH) - 1;
 
   for (let i = 0; i < vm.process_count(); ++i) {
@@ -145,21 +151,31 @@ function drawVm(vm: wasm.VirtualMachine, canvas: HTMLCanvasElement) {
     const x = pc % lineLength;
     const y = Math.floor(pc / lineLength);
 
-    ctx.fillStyle = '#FFD20A80';
-    ctx.fillRect(x * BYTE_WIDTH - 2, y * BYTE_HEIGHT + 2, BYTE_WIDTH - 2, BYTE_HEIGHT);
+    ctx.fillStyle = '#FFFFFF80';
+    ctx.fillRect(
+        x * BYTE_WIDTH - PADDING,
+        y * BYTE_HEIGHT + PADDING,
+        BYTE_WIDTH - PADDING,
+        BYTE_HEIGHT
+    );
   }
 
   for (let i = 0; i < size; ++i) {
-    const byte = mem[i];
+    const cell = vm.cell_at(i);
     const x = i % lineLength;
     const y = Math.floor(i / lineLength);
 
-    let byteText = byte.toString(16).toUpperCase();
+    let byteText = cell.value.toString(16).toUpperCase();
     if (byteText.length < 2)
       byteText = `0${byteText}`;
 
-    let textColor = byte != 0 ? '#FFA517' : 'silver';
+    let textColor = cell.owner !== undefined ? PLAYER_COLORS[cell.owner-1] : 'silver';
     ctx.fillStyle = textColor;
-    ctx.fillText(byteText, x * BYTE_WIDTH, (y + 1) * BYTE_HEIGHT, BYTE_WIDTH);
+    ctx.fillText(
+        byteText,
+        x * BYTE_WIDTH,
+        (y + 1) * BYTE_HEIGHT,
+        BYTE_WIDTH
+    );
   }
 }

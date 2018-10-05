@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 
 pub mod types;
 mod process;
-mod memory;
+pub mod memory;
 mod instructions;
 mod execution_context;
 mod program_counter;
@@ -21,6 +21,7 @@ pub struct VirtualMachine {
     memory: memory::Memory,
     processes: Vec<Process>,
     pid_pool: PidPool,
+    last_live_id: Option<PlayerId>,
 
     pub cycles: u32,
     pub last_live_check: u32,
@@ -40,11 +41,7 @@ impl VirtualMachine {
     }
 
     pub fn size(&self) -> usize {
-        mem::size_of_val(&self.memory)
-    }
-
-    pub fn memory(&self) -> *const u8 {
-        self.memory.as_ptr()
+        self.memory.size()
     }
 
     pub fn process_count(&self) -> usize {
@@ -55,12 +52,21 @@ impl VirtualMachine {
         *self.processes[at].pc
     }
 
-    pub fn cell_at(&self, at: usize) -> u8 {
-        self.memory.at(at)
+    pub fn cell_at(&self, at: usize) -> memory::Cell {
+        *self.memory.at(at)
     }
 
-    pub fn tick(&mut self) {
+    pub fn winner(&self) -> Option<String> {
+        self.last_live_id.and_then(|id| {
+            self.players.iter().find(|p| p.id == id)
+                .map(|p| format!("{} ({})", p.name, p.id))
+        })
+    }
+
+    pub fn tick(&mut self) -> bool {
         let mut forks = Vec::new();
+        let mut lives = Vec::new();
+
         for process in self.processes.iter_mut().rev() {
             // Attempt to read instructions
             if let ProcessState::Idle = process.state {
@@ -82,6 +88,7 @@ impl VirtualMachine {
                         Ok(instr) => {
                             let execution_context = ExecutionContext {
                                 memory: &mut self.memory,
+                                player_id: process.player_id,
                                 pc: &mut process.pc,
                                 registers: &mut process.registers,
                                 carry: &mut process.carry,
@@ -89,7 +96,8 @@ impl VirtualMachine {
                                 forks: &mut forks,
                                 cycle: self.cycles,
                                 live_count: &mut self.live_count_since_last_check,
-                                pid_pool: &mut self.pid_pool
+                                pid_pool: &mut self.pid_pool,
+                                live_ids: &mut lives
                             };
                             execute_instr(&instr, execution_context);
                         },
@@ -110,8 +118,15 @@ impl VirtualMachine {
             };
         }
 
-        self.processes.append(&mut forks);
         self.cycles += 1;
+
+        self.processes.append(&mut forks);
+        let last_valid_live = lives.iter().rfind(|id|
+            self.players.iter().any(|p| p.id == **id)
+        );
+        if let Some(live_id) = last_valid_live {
+            self.last_live_id = Some(*live_id)
+        }
 
         let last_live_check = self.last_live_check;
         let should_live_check = self.cycles - last_live_check >= self.cycles_to_die;
@@ -135,6 +150,8 @@ impl VirtualMachine {
             self.live_count_since_last_check = 0;
             self.last_live_check = self.cycles;
         }
+
+        self.process_count() == 0
     }
 }
 
@@ -155,15 +172,18 @@ impl VirtualMachine {
             };
 
             let champion = &program[HEADER_SIZE..];
-            self.load_champion(champion, i * player_spacing);
+            self.load_champion(champion, *player_id, i * player_spacing);
         }
     }
 
-    fn load_champion(&mut self, champion: ByteCode, at: usize) {
-        self.memory.write(at, champion);
+    fn load_champion(&mut self, champion: ByteCode, player_id: PlayerId, at: usize) {
+        self.memory.write(at, &champion.iter()
+            .map(|v| memory::Cell { value: *v, owner: Some(player_id) })
+            .collect::<Vec<_>>()
+        );
 
-        let mut starting_process = Process::new(self.pid_pool.get(), at.into());
-        starting_process.registers[0] = 42;
+        let mut starting_process = Process::new(self.pid_pool.get(), player_id, at.into());
+        starting_process.registers[0] = player_id;
         self.processes.push(starting_process);
     }
 
@@ -171,9 +191,9 @@ impl VirtualMachine {
         &self.processes
     }
 
-    pub fn cells(&self) -> &[u8] {
-        self.memory.iter()
-    }
+    // pub fn cells(&self) -> &[u8] {
+    //     self.memory.iter()
+    // }
 }
 
 fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext) {

@@ -24,14 +24,20 @@ class State {
   @action
   tick(vm: VirtualMachine, n: number) {
     for (let i = 0; i < n; ++i)
-      vm.tick()
+      if (vm.tick()) {
+        this.pause();
+        let winner = vm.winner();
+        alert(`${winner !== undefined ? winner : "nobody"} Wins!`);
+        break;
+      }
     this.vmCycles = vm.cycles;
   }
 
   @action
   renderLoop(vm: VirtualMachine) {
     this.tick(vm, this.speed)
-    this.animationId = requestAnimationFrame(() => this.renderLoop(vm));
+    if (this.playing)
+      this.animationId = requestAnimationFrame(() => this.renderLoop(vm));
   }
 
   @action

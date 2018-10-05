@@ -3,10 +3,12 @@ use super::execution_context::ExecutionContext;
 use super::process::Process;
 use spec::{MEM_SIZE, ParamType};
 
-pub fn exec_live(_instr: &Instruction, ctx: &mut ExecutionContext) {
+pub fn exec_live(instr: &Instruction, ctx: &mut ExecutionContext) {
+    let player_id = instr.params[0].value;
+
     *ctx.live_count += 1;
     *ctx.last_live_cycle = ctx.cycle;
-    // TODO: player at param 0 lives
+    ctx.live_ids.push(player_id);
 }
 
 pub fn exec_ld(instr: &Instruction, ctx: &mut ExecutionContext) {
@@ -22,7 +24,8 @@ pub fn exec_st(instr: &Instruction, ctx: &mut ExecutionContext) {
         ParamType::Register => ctx.registers[dest_param.value as usize - 1] = value_to_store,
         ParamType::Indirect => ctx.memory.write_i32(
             value_to_store,
-            ctx.pc.offset(dest_param.value as isize, OffsetType::Limited)
+            ctx.player_id,
+            ctx.pc.offset(dest_param.value as isize, OffsetType::Limited),
         ),
         _ => unreachable!("St Param #2 invariant broken")
     }
@@ -89,7 +92,7 @@ pub fn exec_sti(instr: &Instruction, ctx: &mut ExecutionContext) {
     let lhs = ctx.get_param(&instr.params[1], OffsetType::Limited);
     let rhs = ctx.get_param(&instr.params[2], OffsetType::Limited);
     let offset = lhs + rhs;
-    ctx.memory.write_i32(value, ctx.pc.offset(offset as isize, OffsetType::Limited));
+    ctx.memory.write_i32(value, ctx.player_id, ctx.pc.offset(offset as isize, OffsetType::Limited));
 }
 
 pub fn exec_fork(instr: &Instruction, ctx: &mut ExecutionContext) {

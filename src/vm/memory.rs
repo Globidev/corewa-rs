@@ -1,27 +1,36 @@
 use super::types::*;
 
+use wasm_bindgen::prelude::*;
+
 use spec::*;
 use std::mem;
 use std::ops::Index;
 
-pub struct Memory([u8; MEM_SIZE]);
+#[wasm_bindgen]
+#[derive(Default, Clone, Copy)]
+pub struct Cell {
+    pub value: u8,
+    pub owner: Option<PlayerId>
+}
+
+pub struct Memory([Cell; MEM_SIZE]);
 
 impl Default for Memory {
     fn default() -> Self {
-        Memory(unsafe { mem::zeroed() })
+        Memory([Default::default(); MEM_SIZE])
     }
 }
 
 impl Memory {
     pub fn size(&self) -> usize {
-        mem::size_of_val(&self.0)
+        MEM_SIZE
     }
 
-    pub fn as_ptr(&self) -> *const u8 {
-        self.0.as_ptr()
+    pub fn at(&self, at: usize) -> &Cell {
+        &self.0[at]
     }
 
-    pub fn write(&mut self, at: usize, bytes: &[u8]) {
+    pub fn write(&mut self, at: usize, bytes: &[Cell]) {
         let at = at % MEM_SIZE;
         if at + bytes.len() >= MEM_SIZE {
             let max_bytes = MEM_SIZE - at;
@@ -33,7 +42,7 @@ impl Memory {
     }
 
     pub fn read_op(&self, idx: usize) -> Result<OpType, DecodeError> {
-        let op_code = self[idx];
+        let op_code = self[idx].value;
 
         op_from_code(op_code)
             .ok_or_else(|| DecodeError::InvalidOpCode(op_code))
@@ -43,7 +52,7 @@ impl Memory {
         let op_spec = OpSpec::from(op);
 
         let (param_types, mut byte_size) = if op_spec.has_ocp {
-            let ocp = self[idx + 1];
+            let ocp = self[idx + 1].value;
             (read_ocp_params(ocp, &op_spec)?, 2)
         } else {
             (params_from_unambiguous_masks(op_spec.param_masks), 1)
@@ -72,7 +81,7 @@ impl Memory {
 
         let (value, size) = match (&kind, dir_size) {
             (Register, _) => {
-                let reg = self[idx];
+                let reg = self[idx].value;
                 match reg as usize {
                     1 ... REG_COUNT => (i32::from(reg), 1),
                     _ => return Err(DecodeError::InvalidRegNumber(reg))
@@ -86,20 +95,23 @@ impl Memory {
     }
 
     pub fn read_i32(&self, addr: usize) -> i32 {
-          (i32::from(self[addr    ]) << 24)
-        + (i32::from(self[addr + 1]) << 16)
-        + (i32::from(self[addr + 2]) << 8 )
-        + (i32::from(self[addr + 3])      )
+          (i32::from(self[addr    ].value) << 24)
+        + (i32::from(self[addr + 1].value) << 16)
+        + (i32::from(self[addr + 2].value) << 8 )
+        + (i32::from(self[addr + 3].value)      )
     }
 
     pub fn read_i16(&self, addr: usize) -> i16 {
-          (i16::from(self[addr    ]) << 8)
-        + (i16::from(self[addr + 1])     )
+          (i16::from(self[addr    ].value) << 8)
+        + (i16::from(self[addr + 1].value)     )
     }
 
-    pub fn write_i32(&mut self, value: i32, at: usize) {
+    pub fn write_i32(&mut self, value: i32, owner: PlayerId, at: usize) {
         let value_as_bytes: [u8; 4] = unsafe { mem::transmute(value.to_be()) };
-        self.write(at, &value_as_bytes)
+        let cells: Vec<_> = value_as_bytes.iter()
+            .map(|v| Cell { value: *v, owner: Some(owner) })
+            .collect();
+        self.write(at, &cells)
     }
 }
 
@@ -191,9 +203,9 @@ fn op_from_code(code: u8) -> Option<OpType> {
 }
 
 impl Index<usize> for Memory {
-    type Output = u8;
+    type Output = Cell;
 
-    fn index(&self, index: usize) -> &u8 {
+    fn index(&self, index: usize) -> &Cell {
         self.0.index(index % MEM_SIZE)
     }
 }
