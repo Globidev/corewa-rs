@@ -1,37 +1,56 @@
-import * as monaco from 'monaco-editor';
+// import fs from 'fs';
+import { champions } from "./champions"
+
 import * as React from "react";
 
 interface IEditorProps {
   onCodeChanged: (code: string) => void;
+  visible: boolean;
 }
 
 export class Editor extends React.Component<IEditorProps> {
   domContainer = React.createRef<HTMLDivElement>();
-  debounceId: number;
+  debounceId: number = 0;
 
   componentDidMount() {
-    if (this.domContainer.current) {
-      const editor = monaco.editor.create(this.domContainer.current, {
-        value: DEFAULT_TEXT,
-        language: ASM_LANGUAGE_ID,
-        theme: 'vs-dark'
-      });
+    const container = this.domContainer.current;
 
-      editor.getModel().onDidChangeContent(e => {
-        clearTimeout(this.debounceId);
-        this.debounceId = window.setTimeout(
-          this.props.onCodeChanged, 500, editor.getValue()
-        );
-      });
+    if (container) {
+        const editor = CodeMirror(container, {
+          lineNumbers: true,
+          theme: 'base16-dark',
+          mode: ASM_LANGUAGE_ID,
+          gutters: ["CodeMirror-lint-markers"],
+          lint: true,
+          value: champions.bigzork,
+          keyMap: "sublime"
+        });
 
-      this.props.onCodeChanged(editor.getValue());
+        editor.on("change", (_e, _ch) => {
+          clearTimeout(this.debounceId);
+          this.debounceId = window.setTimeout(
+            this.props.onCodeChanged, 500, editor.getValue()
+          );
+        });
+
+
+        this.props.onCodeChanged(editor.getValue());
+
+        // window.addEventListener('resize', () => {
+        //   editor.layout({
+        //     width: container.clientWidth,
+        //     height: container.clientHeight
+        //   })
+        // }, false);
     }
   }
 
   render() {
+    const visible = this.props.visible;
+    console.log("editor render")
     return (
-      <div id="editor-container">
-        <div id="editor" ref={this.domContainer}></div>
+      <div id="editor-container" style={{ display: visible ? "" : "none" }}>
+        <div id="editor" ref={this.domContainer} />
       </div>
     )
   }
@@ -58,100 +77,413 @@ const ALL_KEYWORDS = [
 
 const ASM_LANGUAGE_ID = 'corewar-asm';
 
-const ASM_TOKEN_PROVIDER: monaco.languages.IMonarchLanguage = {
-  // Set defaultToken to invalid to see what you do not tokenize yet
-  // defaultToken: 'invalid',
+CodeMirror.defineMode(ASM_LANGUAGE_ID, function (_config, parserConfig) {
+  'use strict';
 
-  // @ts-ignore
-  keywords: ALL_KEYWORDS.map(([kw, ..._]) => kw),
+  // If an architecture is specified, its initialization function may
+  // populate this array with custom parsing functions which will be
+  // tried in the event that the standard functions do not find a match.
+  var custom = [];
 
-  commands: [
-    '.name', '.comment'
-  ],
+  // The symbol used to start a line comment changes based on the target
+  // architecture.
+  // If no architecture is pased in "parserConfig" then only multiline
+  // comments will have syntax support.
+  var lineCommentStartSymbol = "";
 
-  // C# style strings
-  escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
+  // These directives are architecture independent.
+  // Machine specific directives should go in their respective
+  // architecture initialization function.
+  // Reference:
+  // http://sourceware.org/binutils/docs/as/Pseudo-Ops.html#Pseudo-Ops
+  var directives = {
+    ".abort": "builtin",
+    ".align": "builtin",
+    ".altmacro": "builtin",
+    ".ascii": "builtin",
+    ".asciz": "builtin",
+    ".balign": "builtin",
+    ".balignw": "builtin",
+    ".balignl": "builtin",
+    ".bundle_align_mode": "builtin",
+    ".bundle_lock": "builtin",
+    ".bundle_unlock": "builtin",
+    ".byte": "builtin",
+    ".cfi_startproc": "builtin",
+    ".comm": "builtin",
+    ".data": "builtin",
+    ".def": "builtin",
+    ".desc": "builtin",
+    ".dim": "builtin",
+    ".double": "builtin",
+    ".eject": "builtin",
+    ".else": "builtin",
+    ".elseif": "builtin",
+    ".end": "builtin",
+    ".endef": "builtin",
+    ".endfunc": "builtin",
+    ".endif": "builtin",
+    ".equ": "builtin",
+    ".equiv": "builtin",
+    ".eqv": "builtin",
+    ".err": "builtin",
+    ".error": "builtin",
+    ".exitm": "builtin",
+    ".extern": "builtin",
+    ".fail": "builtin",
+    ".file": "builtin",
+    ".fill": "builtin",
+    ".float": "builtin",
+    ".func": "builtin",
+    ".global": "builtin",
+    ".gnu_attribute": "builtin",
+    ".hidden": "builtin",
+    ".hword": "builtin",
+    ".ident": "builtin",
+    ".if": "builtin",
+    ".incbin": "builtin",
+    ".include": "builtin",
+    ".int": "builtin",
+    ".internal": "builtin",
+    ".irp": "builtin",
+    ".irpc": "builtin",
+    ".lcomm": "builtin",
+    ".lflags": "builtin",
+    ".line": "builtin",
+    ".linkonce": "builtin",
+    ".list": "builtin",
+    ".ln": "builtin",
+    ".loc": "builtin",
+    ".loc_mark_labels": "builtin",
+    ".local": "builtin",
+    ".long": "builtin",
+    ".macro": "builtin",
+    ".mri": "builtin",
+    ".noaltmacro": "builtin",
+    ".nolist": "builtin",
+    ".octa": "builtin",
+    ".offset": "builtin",
+    ".org": "builtin",
+    ".p2align": "builtin",
+    ".popsection": "builtin",
+    ".previous": "builtin",
+    ".print": "builtin",
+    ".protected": "builtin",
+    ".psize": "builtin",
+    ".purgem": "builtin",
+    ".pushsection": "builtin",
+    ".quad": "builtin",
+    ".reloc": "builtin",
+    ".rept": "builtin",
+    ".sbttl": "builtin",
+    ".scl": "builtin",
+    ".section": "builtin",
+    ".set": "builtin",
+    ".short": "builtin",
+    ".single": "builtin",
+    ".size": "builtin",
+    ".skip": "builtin",
+    ".sleb128": "builtin",
+    ".space": "builtin",
+    ".stab": "builtin",
+    ".string": "builtin",
+    ".struct": "builtin",
+    ".subsection": "builtin",
+    ".symver": "builtin",
+    ".tag": "builtin",
+    ".text": "builtin",
+    ".title": "builtin",
+    ".type": "builtin",
+    ".uleb128": "builtin",
+    ".val": "builtin",
+    ".version": "builtin",
+    ".vtable_entry": "builtin",
+    ".vtable_inherit": "builtin",
+    ".warning": "builtin",
+    ".weak": "builtin",
+    ".weakref": "builtin",
+    ".word": "builtin"
+  };
 
-  // The main tokenizer for our languages
-  tokenizer: {
-    // @ts-ignore
-    root: [
-      // labels
-      [/[a-z0-9A-Z_]+:/, 'regexp'],
-      [/:[a-z0-9A-Z_]+/, 'regexp'],
+  var registers: any = {};
 
-      // keywords and commands
-      [/[a-z_$][\w$^:]*/, { cases: { '@keywords': 'keyword' } }],
-      [/\.[a-z]*/, { cases: { '@commands': 'keyword' } }],
+  function x86(_parserConfig: any) {
+    lineCommentStartSymbol = "#";
 
-      // whitespace
-      { include: '@whitespace' },
+    registers.ax = "variable";
+    registers.eax = "variable-2";
+    registers.rax = "variable-3";
 
-      // numbers
-      [/-?\d+/, 'number'],
+    registers.bx = "variable";
+    registers.ebx = "variable-2";
+    registers.rbx = "variable-3";
 
-      // delimiter: after number because of .\d floats
-      [/[,]/, 'delimiter'],
+    registers.cx = "variable";
+    registers.ecx = "variable-2";
+    registers.rcx = "variable-3";
 
-      // strings
-      [/"([^"\\]|\\.)*$/, 'string.invalid'],  // non-teminated string
-      [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }],
+    registers.dx = "variable";
+    registers.edx = "variable-2";
+    registers.rdx = "variable-3";
 
-      // characters
-      [/'[^\\']'/, 'string'],
-      [/(')(@escapes)(')/, ['string', 'string.escape', 'string']],
-      [/'/, 'string.invalid']
-    ],
+    registers.si = "variable";
+    registers.esi = "variable-2";
+    registers.rsi = "variable-3";
 
-    string: [
-      [/[^\\"]+/, 'string'],
-      [/@escapes/, 'string.escape'],
-      [/\\./, 'string.escape.invalid'],
-      [/"/, { token: 'string.quote', bracket: '@close', next: '@pop' }]
-    ],
+    registers.di = "variable";
+    registers.edi = "variable-2";
+    registers.rdi = "variable-3";
 
-    whitespace: [
-      [/[ \t\r\n]+/, 'white'],
-      [/#.*/, 'comment']
-    ],
-  },
-};
+    registers.sp = "variable";
+    registers.esp = "variable-2";
+    registers.rsp = "variable-3";
 
-const DEFAULT_TEXT = [
-  '# Live  ( T_DIR,             0,                 0           ), // Cycles: 10   ',
-  '# Ld    ( T_DIR|T_IND,       T_REG,             0           ), // Cycles: 5    ',
-  '# St    ( T_REG,             T_REG|T_IND,       0           ), // Cycles: 5    ',
-  '# Add   ( T_REG,             T_REG,             T_REG       ), // Cycles: 10   ',
-  '# Sub   ( T_REG,             T_REG,             T_REG       ), // Cycles: 10   ',
-  '# And   ( T_REG|T_DIR|T_IND, T_REG|T_DIR|T_IND, T_REG       ), // Cycles: 6    ',
-  '# Or    ( T_REG|T_DIR|T_IND, T_REG|T_DIR|T_IND, T_REG       ), // Cycles: 6    ',
-  '# Xor   ( T_REG|T_DIR|T_IND, T_REG|T_DIR|T_IND, T_REG       ), // Cycles: 6    ',
-  '# Zjmp  ( T_DIR,             0,                 0           ), // Cycles: 20   ',
-  '# Ldi   ( T_REG|T_DIR|T_IND, T_REG|T_DIR,       T_REG       ), // Cycles: 25   ',
-  '# Sti   ( T_REG,             T_REG|T_DIR|T_IND, T_REG|T_DIR ), // Cycles: 25   ',
-  '# Fork  ( T_DIR,             0,                 0           ), // Cycles: 800  ',
-  '# Lld   ( T_DIR|T_IND,       T_REG,             0           ), // Cycles: 10   ',
-  '# Lldi  ( T_REG|T_DIR|T_IND, T_REG|T_DIR,       T_REG       ), // Cycles: 50   ',
-  '# Lfork ( T_DIR,             0,                 0           ), // Cycles: 1000 ',
-  '# Aff   ( T_REG,             0,                 0           ), // Cycles: 2    ',
-  '',
-  '.name "zork"',
-  '.comment "I\'M ALIIIIVE"',
-  '',
-  'l2:		sti r1, %:live, %1',
-  '		and r1, %0, r1',
-  '',
-  'live:	live %1',
-  '		zjmp %:live',
-].join('\n');
+    registers.bp = "variable";
+    registers.ebp = "variable-2";
+    registers.rbp = "variable-3";
 
-function setupLanguage() {
-    monaco.languages.register({ id: ASM_LANGUAGE_ID });
+    registers.ip = "variable";
+    registers.eip = "variable-2";
+    registers.rip = "variable-3";
 
-    monaco.languages.setMonarchTokensProvider(ASM_LANGUAGE_ID, ASM_TOKEN_PROVIDER);
-}
+    registers.cs = "keyword";
+    registers.ds = "keyword";
+    registers.ss = "keyword";
+    registers.es = "keyword";
+    registers.fs = "keyword";
+    registers.gs = "keyword";
+  }
 
-setupLanguage()
+  function armv6(_parserConfig) {
+    // Reference:
+    // http://infocenter.arm.com/help/topic/com.arm.doc.qrc0001l/QRC0001_UAL.pdf
+    // http://infocenter.arm.com/help/topic/com.arm.doc.ddi0301h/DDI0301H_arm1176jzfs_r0p7_trm.pdf
+    lineCommentStartSymbol = "@";
+    directives.syntax = "builtin";
+
+    registers.r0 = "variable";
+    registers.r1 = "variable";
+    registers.r2 = "variable";
+    registers.r3 = "variable";
+    registers.r4 = "variable";
+    registers.r5 = "variable";
+    registers.r6 = "variable";
+    registers.r7 = "variable";
+    registers.r8 = "variable";
+    registers.r9 = "variable";
+    registers.r10 = "variable";
+    registers.r11 = "variable";
+    registers.r12 = "variable";
+
+    registers.sp = "variable-2";
+    registers.lr = "variable-2";
+    registers.pc = "variable-2";
+    registers.r13 = registers.sp;
+    registers.r14 = registers.lr;
+    registers.r15 = registers.pc;
+
+    custom.push(function (ch, stream) {
+      if (ch === '#') {
+        stream.eatWhile(/\w/);
+        return "number";
+      }
+    });
+  }
+
+  var arch = (parserConfig.architecture || "x86").toLowerCase();
+  if (arch === "x86") {
+    x86(parserConfig);
+  } else if (arch === "arm" || arch === "armv6") {
+    armv6(parserConfig);
+  }
+
+  function nextUntilUnescaped(stream, end) {
+    var escaped = false, next;
+    while ((next = stream.next()) != null) {
+      if (next === end && !escaped) {
+        return false;
+      }
+      escaped = !escaped && next === "\\";
+    }
+    return escaped;
+  }
+
+  function clikeComment(stream, state) {
+    var maybeEnd = false, ch;
+    while ((ch = stream.next()) != null) {
+      if (ch === "/" && maybeEnd) {
+        state.tokenize = null;
+        break;
+      }
+      maybeEnd = (ch === "*");
+    }
+    return "comment";
+  }
+
+  return {
+    startState: function () {
+      return {
+        tokenize: null
+      };
+    },
+
+    token: function (stream, state) {
+      if (state.tokenize) {
+        return state.tokenize(stream, state);
+      }
+
+      if (stream.eatSpace()) {
+        return null;
+      }
+
+      var style, cur, ch = stream.next();
+
+      if (ch === "/") {
+        if (stream.eat("*")) {
+          state.tokenize = clikeComment;
+          return clikeComment(stream, state);
+        }
+      }
+
+      if (ch === lineCommentStartSymbol) {
+        stream.skipToEnd();
+        return "comment";
+      }
+
+      if (ch === '"') {
+        nextUntilUnescaped(stream, '"');
+        return "string";
+      }
+
+      if (ch === '.') {
+        stream.eatWhile(/\w/);
+        cur = stream.current().toLowerCase();
+        style = directives[cur];
+        return style || null;
+      }
+
+      if (ch === '=') {
+        stream.eatWhile(/\w/);
+        return "tag";
+      }
+
+      if (ch === '{') {
+        return "braket";
+      }
+
+      if (ch === '}') {
+        return "braket";
+      }
+
+      if (/\d/.test(ch)) {
+        if (ch === "0" && stream.eat("x")) {
+          stream.eatWhile(/[0-9a-fA-F]/);
+          return "number";
+        }
+        stream.eatWhile(/\d/);
+        return "number";
+      }
+
+      if (/\w/.test(ch)) {
+        stream.eatWhile(/\w/);
+        if (stream.eat(":")) {
+          return 'tag';
+        }
+        cur = stream.current().toLowerCase();
+        style = registers[cur];
+        return style || null;
+      }
+
+      for (var i = 0; i < custom.length; i++) {
+        style = custom[i](ch, stream, state);
+        if (style) {
+          return style;
+        }
+      }
+    },
+
+    lineComment: lineCommentStartSymbol,
+    blockCommentStart: "/*",
+    blockCommentEnd: "*/"
+  };
+});
+
+CodeMirror.registerHelper("lint", ASM_LANGUAGE_ID, function (_t: any) {
+  return [
+    {
+      from: CodeMirror.Pos(0, 2),
+      to: CodeMirror.Pos(3, 10),
+      message: "WTF"
+    }
+  ];
+});
+
+// const ASM_TOKEN_PROVIDER: monaco.languages.IMonarchLanguage = {
+//   // Set defaultToken to invalid to see what you do not tokenize yet
+//   // defaultToken: 'invalid',
+
+//   // @ts-ignore
+//   keywords: ALL_KEYWORDS.map(([kw, ..._]) => kw),
+
+//   commands: [
+//     '.name', '.comment'
+//   ],
+
+//   // C# style strings
+//   escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
+
+//   // The main tokenizer for our languages
+//   tokenizer: {
+//     // @ts-ignore
+//     root: [
+//       // labels
+//       [/[a-z0-9A-Z_]+:/, 'regexp'],
+//       [/:[a-z0-9A-Z_]+/, 'regexp'],
+
+//       // keywords and commands
+//       [/[a-z_$][\w$^:]*/, { cases: { '@keywords': 'keyword' } }],
+//       [/\.[a-z]*/, { cases: { '@commands': 'keyword' } }],
+
+//       // whitespace
+//       { include: '@whitespace' },
+
+//       // numbers
+//       [/-?\d+/, 'number'],
+
+//       // delimiter: after number because of .\d floats
+//       [/[,]/, 'delimiter'],
+
+//       // strings
+//       [/"([^"\\]|\\.)*$/, 'string.invalid'],  // non-teminated string
+//       [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }],
+
+//       // characters
+//       [/'[^\\']'/, 'string'],
+//       [/(')(@escapes)(')/, ['string', 'string.escape', 'string']],
+//       [/'/, 'string.invalid']
+//     ],
+
+//     string: [
+//       [/[^\\"]+/, 'string'],
+//       [/@escapes/, 'string.escape'],
+//       [/\\./, 'string.escape.invalid'],
+//       [/"/, { token: 'string.quote', bracket: '@close', next: '@pop' }]
+//     ],
+
+//     whitespace: [
+//       [/[ \t\r\n]+/, 'white'],
+//       [/#.*/, 'comment']
+//     ],
+//   },
+// };
+
+// function setupLanguage() {
+//     monaco.languages.register({ id: ASM_LANGUAGE_ID });
+
+//     monaco.languages.setMonarchTokensProvider(ASM_LANGUAGE_ID, ASM_TOKEN_PROVIDER);
+// }
+
+// setupLanguage()
 
 // const keywordCompletionItems = ALL_KEYWORDS.map(([kw, desc, params]) => ({
 //   label: kw,

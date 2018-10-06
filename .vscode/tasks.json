@@ -1,0 +1,24 @@
+// https://github.com/Microsoft/vscode/issues/13953
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "tsc watch plop",
+            "type": "shell",
+            "command": "./web/node_modules/.bin/tsc",
+            "isBackground": true,
+            "args": ["--watch", "--noEmit", "--project", "./web"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "never",
+                "echo": false,
+                "focus": false,
+                "panel": "dedicated"
+            },
+            "problemMatcher": "$tsc-watch"
+        }
+    ]
+}

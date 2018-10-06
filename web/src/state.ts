@@ -1,5 +1,7 @@
-import { VirtualMachine, vm_from_code } from './corewar';
+import { VirtualMachine } from './corewar.d';
+// import { vm_from_code } from './corewar';
 import { observable, action, decorate, computed, extendObservable } from "mobx";
+// const { vm_from_code } = wasm_bindgen;
 
 class State {
   @observable playing: boolean = false;
@@ -23,6 +25,7 @@ class State {
 
   @action
   tick(vm: VirtualMachine, n: number) {
+    // console.log("tick")
     for (let i = 0; i < n; ++i)
       if (vm.tick()) {
         this.pause();
@@ -30,11 +33,13 @@ class State {
         alert(`${winner !== undefined ? winner : "nobody"} Wins!`);
         break;
       }
+
     this.vmCycles = vm.cycles;
   }
 
   @action
   renderLoop(vm: VirtualMachine) {
+    // console.log("renderLoop")
     this.tick(vm, this.speed)
     if (this.playing)
       this.animationId = requestAnimationFrame(() => this.renderLoop(vm));
@@ -42,11 +47,13 @@ class State {
 
   @action
   compile(code: string) {
+    // console.log("compile")
+    this.vmCycles = null; // effectively resets the VM observers
     this.currentCode = code;
 
     try {
-      this.vm = vm_from_code(code);
-      this.vmCycles = this.vm.cycles;
+      this.vm = wasm_bindgen.vm_from_code(code);
+      if (this.vm) this.vmCycles = this.vm.cycles;
     } catch (err) {
       console.error(err)
       this.vm = null;
@@ -56,12 +63,14 @@ class State {
 
   @action
   togglePlay() {
+    // console.log("togglePlay")
     if (this.playing) this.pause()
     else              this.play()
   }
 
   @action
   play() {
+    // console.log("play")
     if (this.vm) {
       this.playing = true;
       this.renderLoop(this.vm)
@@ -70,12 +79,14 @@ class State {
 
   @action
   pause() {
+    // console.log("pause")
     if (this.animationId) cancelAnimationFrame(this.animationId);
     this.playing = false;
   }
 
   @action
   stop() {
+    // console.log("stop")
     this.pause();
 
     if (this.currentCode)
@@ -84,12 +95,14 @@ class State {
 
   @action
   step() {
+    // console.log("step")
     if (this.playing) this.pause();
     if (this.vm)      this.tick(this.vm, 1);
   }
 
   @action
   nextSpeed() {
+    // console.log("nextSpeed")
     this.speed *= 2;
 
     if (this.speed > 16)
@@ -98,6 +111,7 @@ class State {
 
   @action
   setCycle(cycle: number) {
+    // console.log("setCycle")
     this.stop();
 
     if (this.vm)

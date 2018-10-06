@@ -1,19 +1,20 @@
-import * as wasm from "./corewar";
-import { memory } from "./corewar_wasm";
+// import * as wasm from "./corewar";
+// import { memory } from "./corewar_wasm";
 import * as React from "react";
 import { state, uiState } from "./state";
 import { observer } from "mobx-react";
 import { observe } from "mobx";
+import { VirtualMachine } from "./corewar.d";
 
 const BYTE_WIDTH = 20;
-const BYTE_HEIGHT = 15;
+const BYTE_HEIGHT = 13;
 const PADDING = 2;
 
 @observer
 export class VM extends React.Component {
   canvasRef = React.createRef<HTMLCanvasElement>();
 
-  constructor(props) {
+  constructor(props: {}) {
     super(props)
 
     window.addEventListener('resize', this.resizeCanvas.bind(this), false);
@@ -39,17 +40,12 @@ export class VM extends React.Component {
 
       if (vm) {
         const lineLength = Math.floor(canvas.width / BYTE_WIDTH) - 1;
-        const height = Math.round(vm.size() / lineLength);
+        const height = ROWS;
         canvas.height = height * BYTE_HEIGHT;
         drawVm(vm, canvas);
       } else {
         canvas.height = canvas.clientHeight;
       }
-
-      // editor.layout({
-      //   width: DOM.editor.clientWidth,
-      //   height: DOM.editor.clientHeight
-      // })
     }
   }
 
@@ -97,7 +93,7 @@ class ControlPanel extends React.Component {
   }
 }
 
-function vmInfo(vm: wasm.VirtualMachine) {
+function vmInfo(vm: VirtualMachine) {
   return [
     ["Processes alive",    vm.process_count()],
     ["Check interval",     vm.cycles_to_die],
@@ -111,7 +107,7 @@ function vmInfo(vm: wasm.VirtualMachine) {
 class InfoPanel extends React.Component {
   render() {
     const info = state.vmCycles !== null
-      ? vmInfo(state.vm as wasm.VirtualMachine)
+      ? vmInfo(state.vm as VirtualMachine)
       : [];
 
     return (
@@ -134,7 +130,10 @@ const PLAYER_COLORS = [
   '#1A2AFF',
 ]
 
-function drawVm(vm: wasm.VirtualMachine, canvas: HTMLCanvasElement) {
+const ROWS = 64;
+const COLUMNS = 64;
+
+function drawVm(vm: VirtualMachine, canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -144,12 +143,11 @@ function drawVm(vm: wasm.VirtualMachine, canvas: HTMLCanvasElement) {
 
   const size = vm.size();
   // const mem = new Uint8Array(memory.buffer, vm.memory(), size);
-  const lineLength = Math.floor(canvas.width / BYTE_WIDTH) - 1;
 
   for (let i = 0; i < vm.process_count(); ++i) {
     const pc = vm.process_pc(i)
-    const x = pc % lineLength;
-    const y = Math.floor(pc / lineLength);
+    const x = pc % COLUMNS;
+    const y = Math.floor(pc / COLUMNS);
 
     ctx.fillStyle = '#FFFFFF80';
     ctx.fillRect(
@@ -162,8 +160,8 @@ function drawVm(vm: wasm.VirtualMachine, canvas: HTMLCanvasElement) {
 
   for (let i = 0; i < size; ++i) {
     const cell = vm.cell_at(i);
-    const x = i % lineLength;
-    const y = Math.floor(i / lineLength);
+    const x = i % COLUMNS;
+    const y = Math.floor(i / COLUMNS);
 
     let byteText = cell.value.toString(16).toUpperCase();
     if (byteText.length < 2)

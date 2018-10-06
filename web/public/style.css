@@ -11,6 +11,11 @@ html, body {
   height: 100%;
 }
 
+.CodeMirror {
+  border: 1px solid #eee;
+  height: 100%;
+}
+
 #editor-container {
   width: 50%;
   height: 100%;
@@ -30,6 +35,7 @@ html, body {
 
 #main {
   display: flex;
+  align-items: stretch;
 }
 
 #vm-container {

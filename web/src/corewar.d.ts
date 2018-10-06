@@ -1,6 +1,11 @@
 /* tslint:disable */
 export function vm_from_code(arg0: string): VirtualMachine;
 
+export class Cell {
+value: number
+owner: number
+free(): void;
+}
 export class VirtualMachine {
 cycles: number
 last_live_check: number
@@ -22,9 +27,4 @@ free(): void;
 
  tick(): boolean;
 
-}
-export class Cell {
-value: number
-owner: number
-free(): void;
 }

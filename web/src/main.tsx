@@ -9,16 +9,17 @@ import { state, uiState } from "./state";
 @observer
 class App extends React.Component {
   render() {
+    console.log('rendered')
     return (
       <div id="main">
-        { uiState.fullscreen ? null :
-          <Editor onCodeChanged={(code) => state.compile(code)}/>
-        }
+        <Editor onCodeChanged={(code) => state.compile(code)} visible={!uiState.fullscreen}/>
         <VM />
       </div>
     )
   }
 }
 
-const $root = document.getElementById('app');
-render(<App />, $root);
+export function start() {
+  const $root = document.getElementById('app');
+  render(<App />, $root);
+}
