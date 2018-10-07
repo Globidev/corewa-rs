@@ -4,7 +4,7 @@ import * as React from 'react'
 
 interface IEditorProps {
   onCodeChanged: (code: string) => void
-  visible: boolean
+  // visible: boolean
 }
 
 export class Editor extends React.Component<IEditorProps> {
@@ -21,7 +21,7 @@ export class Editor extends React.Component<IEditorProps> {
         mode: ASM_LANGUAGE_ID,
         gutters: ['CodeMirror-lint-markers'],
         lint: true,
-        value: champions.fluttershy,
+        value: champions.casimir,
         keyMap: 'sublime'
       })
 
@@ -34,14 +34,19 @@ export class Editor extends React.Component<IEditorProps> {
         )
       })
 
+      // ?????
+      setTimeout(() => {
+        editor.refresh()
+      }, 0)
+
       this.props.onCodeChanged(editor.getValue())
     }
   }
 
   render() {
-    const visible = this.props.visible
+    // const visible = this.props.visible
     return (
-      <div id="editor-container" style={{ display: visible ? '' : 'none' }}>
+      <div id="editor-container">
         <div id="editor" ref={this.domContainer} />
       </div>
     )
@@ -404,15 +409,15 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, parserConfig) {
   }
 })
 
-CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(_t: any) {
-  return [
-    {
-      from: CodeMirror.Pos(0, 2),
-      to: CodeMirror.Pos(3, 10),
-      message: 'WTF'
-    }
-  ]
-})
+// CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(_t: any) {
+//   return [
+//     {
+//       from: CodeMirror.Pos(0, 2),
+//       to: CodeMirror.Pos(3, 10),
+//       message: 'WTF'
+//     }
+//   ]
+// })
 
 // const ASM_TOKEN_PROVIDER: monaco.languages.IMonarchLanguage = {
 //   // Set defaultToken to invalid to see what you do not tokenize yet

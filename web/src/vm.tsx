@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { state, uiState } from './state'
+import { state, uiState, ObservableVM } from './state'
 import { observer } from 'mobx-react'
 import { observe } from 'mobx'
 import { VirtualMachine } from './corewar.d'
@@ -8,19 +8,24 @@ const BYTE_WIDTH = 20
 const BYTE_HEIGHT = 13
 const PADDING = 2
 
+interface IVMProps {
+  vm: ObservableVM
+  // visible: boolean
+}
+
 @observer
-export class VM extends React.Component {
+export class VM extends React.Component<IVMProps> {
   canvasRef = React.createRef<HTMLCanvasElement>()
 
-  constructor(props: {}) {
+  constructor(props) {
     super(props)
 
     window.addEventListener('resize', this.resizeCanvas.bind(this), false)
 
-    observe(state, 'vmCycles', _ => {
+    observe(props.vm, 'cycles', _ => {
       const canvas = this.canvasRef.current
 
-      if (state.vm && canvas) drawVm(state.vm, canvas)
+      if (props.vm.vm && canvas) drawVm(props.vm.vm, canvas)
     })
   }
 
@@ -33,12 +38,12 @@ export class VM extends React.Component {
 
     if (canvas) {
       canvas.width = canvas.clientWidth
-      const vm = state.vm
+      const vm = this.props.vm
 
-      if (vm) {
+      if (vm.vm) {
         const height = ROWS
         canvas.height = height * BYTE_HEIGHT
-        drawVm(vm, canvas)
+        drawVm(vm.vm, canvas)
       } else {
         canvas.height = canvas.clientHeight
       }
@@ -47,10 +52,10 @@ export class VM extends React.Component {
 
   render() {
     return (
-      <div id="vm-container" style={{ width: uiState.fullscreen ? '100%' : '50%' }}>
+      <div id="vm-container">
         <div style={{ display: 'flex' }}>
-          <ControlPanel />
-          <InfoPanel />
+          <ControlPanel vm={this.props.vm} />
+          <InfoPanel vm={this.props.vm} />
         </div>
         <canvas ref={this.canvasRef} id="canvas" style={{ marginTop: '50px' }} />
       </div>
@@ -59,29 +64,32 @@ export class VM extends React.Component {
 }
 
 @observer
-class ControlPanel extends React.Component {
+class ControlPanel extends React.Component<IVMProps> {
   render() {
     let cyclesInput =
-      state.vmCycles === null ? null : (
+      this.props.vm.cycles === null ? null : (
         <div className="info">
           <div>Cycles</div>
           <input
             style={{ textAlign: 'center' }}
             className="cycle-input"
             type="number"
-            value={state.vmCycles}
-            onChange={ev => state.setCycle(parseInt(ev.target.value))}
+            value={this.props.vm.cycles}
+            onChange={ev => this.props.vm.setCycle(parseInt(ev.target.value))}
           />
         </div>
       )
 
     return (
       <div style={{ display: 'flex' }}>
-        <button onClick={() => uiState.toggleFullscreen()}>🎦️</button>
-        <button onClick={() => state.togglePlay()}>{state.playing ? '⏸️' : '▶️'}️</button>
-        <button onClick={() => state.stop()}>⏹️</button>
-        <button onClick={() => state.step()}>⏭️</button>
-        <button onClick={() => state.nextSpeed()}>⏩ {state.speed}x</button>
+        <button onClick={() => this.props.vm.togglePlay()}>
+          {this.props.vm.playing ? '⏸️' : '▶️'}️
+        </button>
+        <button onClick={() => this.props.vm.stop()}>⏹️</button>
+        <button onClick={() => this.props.vm.step()}>⏭️</button>
+        <button onClick={() => this.props.vm.nextSpeed()}>
+          ⏩ {this.props.vm.speed}x
+        </button>
         {cyclesInput}
       </div>
     )
@@ -99,9 +107,10 @@ function vmInfo(vm: VirtualMachine) {
 }
 
 @observer
-class InfoPanel extends React.Component {
+class InfoPanel extends React.Component<IVMProps> {
   render() {
-    const info = state.vmCycles !== null ? vmInfo(state.vm as VirtualMachine) : []
+    const info =
+      this.props.vm.cycles !== null ? vmInfo(this.props.vm.vm as VirtualMachine) : []
 
     return (
       <div style={{ display: 'flex' }}>

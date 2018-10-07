@@ -6,4 +6,4 @@ node_modules
 dist
 dev
 .cache
-src/champions.ts
+web/src/champions.ts

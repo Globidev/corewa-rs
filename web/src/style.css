@@ -1,4 +1,4 @@
-/* html,
+html,
 body {
   width: 100%;
   height: 100%;
@@ -18,7 +18,6 @@ body {
 }
 
 #editor-container {
-  width: 50%;
   height: 100%;
 }
 
@@ -46,9 +45,9 @@ body {
 
 .cycle-input {
   max-width: 70px;
-} */
+}
 
-html,
+/* html,
 body {
   height: 100%;
   margin: 0;
@@ -76,4 +75,4 @@ body {
   right: 0px;
   bottom: 0px;
   position: absolute;
-}
+} */

@@ -1,7 +1,7 @@
 import { VirtualMachine } from './corewar.d'
 import { observable, action } from 'mobx'
 
-class State {
+export class ObservableVM {
   @observable
   playing: boolean = false
   @observable
@@ -17,25 +17,24 @@ class State {
   //   - vmCycles === vm.cycles otherwise
   vm: VirtualMachine | null = null
   @observable
-  vmCycles: number | null = null
+  cycles: number | null = null
 
-  debounceId: number | undefined = undefined
   animationId: number | undefined = undefined
 
-  currentCode: string | undefined = undefined // TODO: remove when reset implemented on vm
+  champions: Map<number, string> = new Map()
 
   @action
   tick(vm: VirtualMachine, n: number) {
-    // console.log("tick")
     for (let i = 0; i < n; ++i)
       if (vm.tick()) {
+        this.cycles = vm.cycles
         this.pause()
         let winner = vm.winner()
         alert(`${winner !== undefined ? winner : 'nobody'} Wins!`)
         break
       }
 
-    this.vmCycles = vm.cycles
+    this.cycles = vm.cycles
   }
 
   @action
@@ -46,19 +45,27 @@ class State {
   }
 
   @action
-  compile(code: string) {
-    // console.log("compile")
-    this.vmCycles = null // effectively resets the VM observers
-    this.currentCode = code
+  compile() {
+    this.pause()
+    // console.log('compile')
+    this.cycles = null // effectively resets the VM observers
+    // this.currentCodes = codes
+    const codes = Array.from(this.champions.values())
 
     try {
-      this.vm = wasm_bindgen.vm_from_code(code)
-      if (this.vm) this.vmCycles = this.vm.cycles
+      this.vm = wasm_bindgen.vm_from_code(codes)
+      this.cycles = 0
+      // this.vm = observable(new ObservableVM(wasm_bindgen.vm_from_code(codes)))
     } catch (err) {
       console.error(err)
-      this.vm = null
-      this.vmCycles = null
+      // this.vm = null
     }
+  }
+
+  @action
+  setChampionCode(championId: number, code: string) {
+    this.champions.set(championId, code)
+    this.compile()
   }
 
   @action
@@ -70,7 +77,7 @@ class State {
 
   @action
   play() {
-    // console.log("play")
+    // console.log('play')
     if (this.vm) {
       this.playing = true
       this.renderLoop(this.vm)
@@ -88,8 +95,7 @@ class State {
   stop() {
     // console.log("stop")
     this.pause()
-
-    if (this.currentCode) this.compile(this.currentCode)
+    this.compile()
   }
 
   @action
@@ -116,15 +122,31 @@ class State {
   }
 }
 
-class UIState {
+class State {
   @observable
-  fullscreen: boolean = false
+  vms: Map<number, ObservableVM> = new Map()
+  vmIdPool: number = 0
 
   @action
-  toggleFullscreen() {
-    this.fullscreen = !this.fullscreen
+  newVm() {
+    let vmId = this.nextVmId()
+    let vm = new ObservableVM()
+    this.vms.set(vmId, vm)
+    return [vmId, vm]
+  }
+
+  nextVmId() {
+    let id = this.vmIdPool
+    ++this.vmIdPool
+    return id
+  }
+
+  getVm(id: number) {
+    return this.vms.get(id)
   }
 }
+
+class UIState {}
 
 export const state = new State()
 export const uiState = new UIState()

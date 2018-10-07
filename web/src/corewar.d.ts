@@ -1,5 +1,5 @@
 /* tslint:disable */
-export function vm_from_code(arg0: string): VirtualMachine
+export function vm_from_code(arg0: any[]): VirtualMachine
 
 export class VirtualMachine {
   cycles: number

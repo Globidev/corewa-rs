@@ -2,7 +2,50 @@
   var wasm
   const __exports = {}
 
-  let cachedEncoder = new TextEncoder('utf-8')
+  let cachegetUint32Memory = null
+  function getUint32Memory() {
+    if (
+      cachegetUint32Memory === null ||
+      cachegetUint32Memory.buffer !== wasm.memory.buffer
+    ) {
+      cachegetUint32Memory = new Uint32Array(wasm.memory.buffer)
+    }
+    return cachegetUint32Memory
+  }
+
+  const slab = [{ obj: undefined }, { obj: null }, { obj: true }, { obj: false }]
+
+  let slab_next = slab.length
+
+  function addHeapObject(obj) {
+    if (slab_next === slab.length) slab.push(slab.length + 1)
+    const idx = slab_next
+    const next = slab[idx]
+
+    slab_next = next
+
+    slab[idx] = { obj, cnt: 1 }
+    return idx << 1
+  }
+
+  function passArrayJsValueToWasm(array) {
+    const ptr = wasm.__wbindgen_malloc(array.length * 4)
+    const mem = getUint32Memory()
+    for (let i = 0; i < array.length; i++) {
+      mem[ptr / 4 + i] = addHeapObject(array[i])
+    }
+    return [ptr, array.length]
+  }
+  /**
+   * @param {any[]} arg0
+   * @returns {VirtualMachine}
+   */
+  __exports.vm_from_code = function(arg0) {
+    const [ptr0, len0] = passArrayJsValueToWasm(arg0)
+    return VirtualMachine.__wrap(wasm.vm_from_code(ptr0, len0))
+  }
+
+  let cachedDecoder = new TextDecoder('utf-8')
 
   let cachegetUint8Memory = null
   function getUint8Memory() {
@@ -15,27 +58,6 @@
     return cachegetUint8Memory
   }
 
-  function passStringToWasm(arg) {
-    const buf = cachedEncoder.encode(arg)
-    const ptr = wasm.__wbindgen_malloc(buf.length)
-    getUint8Memory().set(buf, ptr)
-    return [ptr, buf.length]
-  }
-  /**
-   * @param {string} arg0
-   * @returns {VirtualMachine}
-   */
-  __exports.vm_from_code = function(arg0) {
-    const [ptr0, len0] = passStringToWasm(arg0)
-    try {
-      return VirtualMachine.__wrap(wasm.vm_from_code(ptr0, len0))
-    } finally {
-      wasm.__wbindgen_free(ptr0, len0 * 1)
-    }
-  }
-
-  let cachedDecoder = new TextDecoder('utf-8')
-
   function getStringFromWasm(ptr, len) {
     return cachedDecoder.decode(getUint8Memory().subarray(ptr, ptr + len))
   }
@@ -46,17 +68,6 @@
       cachedGlobalArgumentPtr = wasm.__wbindgen_global_argument_ptr()
     }
     return cachedGlobalArgumentPtr
-  }
-
-  let cachegetUint32Memory = null
-  function getUint32Memory() {
-    if (
-      cachegetUint32Memory === null ||
-      cachegetUint32Memory.buffer !== wasm.memory.buffer
-    ) {
-      cachegetUint32Memory = new Uint32Array(wasm.memory.buffer)
-    }
-    return cachegetUint32Memory
   }
 
   const __wbg_error_cc95a3d302735ca3_target = console.error
@@ -250,6 +261,52 @@
     }
   }
   __exports.Cell = Cell
+
+  function dropRef(idx) {
+    idx = idx >> 1
+    if (idx < 4) return
+    let obj = slab[idx]
+
+    obj.cnt -= 1
+    if (obj.cnt > 0) return
+
+    // If we hit 0 then free up our space in the slab
+    slab[idx] = slab_next
+    slab_next = idx
+  }
+
+  __exports.__wbindgen_object_drop_ref = function(i) {
+    dropRef(i)
+  }
+
+  let cachedEncoder = new TextEncoder('utf-8')
+
+  function passStringToWasm(arg) {
+    const buf = cachedEncoder.encode(arg)
+    const ptr = wasm.__wbindgen_malloc(buf.length)
+    getUint8Memory().set(buf, ptr)
+    return [ptr, buf.length]
+  }
+
+  const stack = []
+
+  function getObject(idx) {
+    if ((idx & 1) === 1) {
+      return stack[idx >> 1]
+    } else {
+      const val = slab[idx >> 1]
+
+      return val.obj
+    }
+  }
+
+  __exports.__wbindgen_string_get = function(i, len_ptr) {
+    let obj = getObject(i)
+    if (typeof obj !== 'string') return 0
+    const [ptr, len] = passStringToWasm(obj)
+    getUint32Memory()[len_ptr / 4] = len
+    return ptr
+  }
 
   __exports.__wbindgen_throw = function(ptr, len) {
     throw new Error(getStringFromWasm(ptr, len))
