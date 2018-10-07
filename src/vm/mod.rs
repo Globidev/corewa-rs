@@ -102,6 +102,7 @@ impl VirtualMachine {
                             execute_instr(&instr, execution_context);
                         },
                         Err(e) => {
+                            process.pc.advance(1)
                             // super::log(&format!("{:?}", e));
                         }
                     };
