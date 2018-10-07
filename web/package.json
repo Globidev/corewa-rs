@@ -1,12 +1,13 @@
 {
   "scripts": {
-    "serve": "parcel public/index.html",
-    "bundle": "parcel build public/index.html"
+    "serve": "parcel -d dev src/index.html",
+    "bundle": "parcel build -d dist --no-source-maps --public-url=/corewar src/index.html"
   },
   "devDependencies": {
     "@types/codemirror": "0.0.62",
     "@types/react": "^16.4.14",
     "@types/react-dom": "^16.0.8",
+    "cssnano": "^4.1.4",
     "typescript": "^3.1.1"
   },
   "dependencies": {
