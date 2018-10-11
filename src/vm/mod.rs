@@ -14,6 +14,7 @@ use std::mem;
 use spec::*;
 
 #[wasm_bindgen]
+#[derive(Default)]
 pub struct VMBuilder {
     players: Vec<(PlayerId, Vec<u8>)>
 }
@@ -22,7 +23,7 @@ pub struct VMBuilder {
 impl VMBuilder {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self { players: Vec::new() }
+        Default::default()
     }
 
     pub fn with_player(mut self, player_id: PlayerId, champion: Vec<u8>) -> VMBuilder {
@@ -107,7 +108,6 @@ impl VirtualMachine {
                         process.state = ProcessState::Executing { cycle_left, op };
                     },
                     Err(e) => {
-                        // super::log(&format!("{:?}", e));
                     }
                 }
             }
@@ -134,7 +134,6 @@ impl VirtualMachine {
                         },
                         Err(e) => {
                             process.pc.advance(1)
-                            // super::log(&format!("{:?}", e));
                         }
                     };
                     process.state = ProcessState::Idle;

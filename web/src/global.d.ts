@@ -1,10 +1,6 @@
 import * as types from './corewar.d'
 import * as CodeMirrorObj from 'codemirror'
 
-interface Constructable<T> {
-  new (): T
-}
-
 declare global {
   var CodeMirror: typeof CodeMirrorObj
 
@@ -12,7 +8,7 @@ declare global {
     compile_champion: typeof types.compile_champion
     (wasm_path: string): Promise<any>
     wasm: any
-    VMBuilder: Constructable<types.VMBuilder>
+    VMBuilder: typeof types.VMBuilder
   }
 
   type CompiledChampion = Uint8Array

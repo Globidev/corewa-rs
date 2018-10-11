@@ -153,11 +153,6 @@ fn op(input: &mut TokenStream) -> ParseResult<Op> {
 
     let mnemonic = input.next(Term::Ident)?;
 
-    // if mnemonic == "ld" {
-    //     panic!(format!("{:?}", input.input));
-
-    // }
-
     match mnemonic {
         "live"  => parse_op!( Op::Live,  direct                         ),
         "ld"    => parse_op!( Op::Ld,    dir_ind,   register            ),
