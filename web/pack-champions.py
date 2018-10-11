@@ -11,7 +11,13 @@ champions = {
     if filename.endswith('.s')
 }
 
-champion_data = json.dumps(champions, sort_keys=True, indent=2)
+non_extend_champions = {
+    k: v
+    for k, v in champions.items()
+    if '.extend\n' not in v
+}
+
+champion_data = json.dumps(non_extend_champions, sort_keys=True, indent=2)
 js_code = f'export const champions = {champion_data}'
 
 open(OUT_FILE, 'w').write(js_code)
