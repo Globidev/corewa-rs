@@ -13,6 +13,29 @@ use self::process::{Process, ProcessState};
 use std::mem;
 use spec::*;
 
+#[wasm_bindgen]
+pub struct VMBuilder {
+    players: Vec<(PlayerId, Vec<u8>)>
+}
+
+#[wasm_bindgen]
+impl VMBuilder {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self { players: Vec::new() }
+    }
+
+    pub fn with_player(mut self, player_id: PlayerId, champion: Vec<u8>) -> VMBuilder {
+        self.players.push((player_id, champion));
+        self
+    }
+
+    pub fn finish(self) -> VirtualMachine {
+        let mut vm = VirtualMachine::new();
+        vm.load_players(&self.players);
+        vm
+    }
+}
 
 #[wasm_bindgen]
 #[derive(Default)]
@@ -61,6 +84,14 @@ impl VirtualMachine {
             self.players.iter().find(|p| p.id == id)
                 .map(|p| format!("{} ({})", p.name, p.id))
         })
+    }
+
+    pub fn player_count(&self) -> usize {
+        self.players.len()
+    }
+
+    pub fn player_id(&self, at: usize) -> PlayerId {
+        self.players[at].id
     }
 
     pub fn tick(&mut self) -> bool {
@@ -157,8 +188,8 @@ impl VirtualMachine {
 }
 
 impl VirtualMachine {
-    pub fn load_players(&mut self, players: &[(PlayerId, ByteCode)]) {
-        let player_spacing = MEM_SIZE / players.len();
+    pub fn load_players(&mut self, players: &[(PlayerId, Vec<u8>)]) {
+        let player_spacing = MEM_SIZE / ::std::cmp::max(1, players.len());
         for (i, (player_id, program)) in players.iter().enumerate() {
             let header_bytes = &program[..HEADER_SIZE];
 
@@ -187,14 +218,6 @@ impl VirtualMachine {
         starting_process.registers[0] = player_id;
         self.processes.push(starting_process);
     }
-
-    pub fn processes(&self) -> &Vec<Process> {
-        &self.processes
-    }
-
-    // pub fn cells(&self) -> &[u8] {
-    //     self.memory.iter()
-    // }
 }
 
 fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext) {

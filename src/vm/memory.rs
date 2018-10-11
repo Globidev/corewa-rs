@@ -30,6 +30,10 @@ impl Memory {
         &self.0[at]
     }
 
+    pub fn reset(&mut self) {
+        self.0.copy_from_slice(&[Default::default(); MEM_SIZE][..])
+    }
+
     pub fn write(&mut self, at: usize, bytes: &[Cell]) {
         let at = at % MEM_SIZE;
         if at + bytes.len() >= MEM_SIZE {

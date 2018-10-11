@@ -1,40 +1,57 @@
+pub mod language;
 mod spec;
-mod language;
 pub mod vm;
-pub mod ui;
 
 mod utils;
-
 
 extern crate wasm_bindgen;
 
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-extern {
-    fn alert(s: &str);
+pub struct JsCompileError {
+    pub from_row: u32,
+    pub from_col: u32,
+    pub to_row: u32,
+    pub to_col: u32,
+    reason: String
 }
 
 #[wasm_bindgen]
-pub fn vm_from_code(input: &str) -> vm::VirtualMachine {
+impl JsCompileError {
+    pub fn reason(&self) -> String {
+        self.reason.clone()
+    }
+}
+
+#[wasm_bindgen]
+pub fn compile_champion(input: &str) -> Result<Vec<u8>, JsValue> {
     utils::set_panic_hook();
 
     let parsed_champion = language::read_champion(input.as_bytes())
-        .expect("TODO: Read error");
+        .map_err(|e| {
+            match e {
+                language::ReadError::ParseError(e, line) => {
+                    JsValue::from(JsCompileError {
+                        from_row: line as u32,
+                        from_col: 0,
+                        to_row: line as u32,
+                        to_col: 10,
+                        reason: format!("{:?}", e),
+                    })
+                },
+                language::ReadError::AssembleError(e) => {
+                    JsValue::NULL
+                },
+                language::ReadError::IOError(e) => {
+                    JsValue::NULL
+                }
+            }
+        })?;
 
     let mut byte_code = Vec::new();
     language::write_champion(&mut byte_code, &parsed_champion)
         .expect("TODO: Write error");
 
-    let mut vm = vm::VirtualMachine::new();
-
-    let players = [
-        (1, byte_code.as_slice()),
-        (2, byte_code.as_slice()),
-        (3, byte_code.as_slice()),
-        (4, byte_code.as_slice()),
-    ];
-
-    vm.load_players(&players[..]);
-    vm
+    Ok(byte_code)
 }
