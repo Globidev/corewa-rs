@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { state, uiState, ObservableVM } from './state'
+import { ObservableVM } from './state'
 import { observer } from 'mobx-react'
 import { observe } from 'mobx'
 import { VirtualMachine } from './corewar.d'
@@ -10,14 +10,14 @@ const PADDING = 2
 
 interface IVMProps {
   vm: ObservableVM
-  // visible: boolean
+  onNewChampionRequested: (id: number) => void
 }
 
 @observer
 export class VM extends React.Component<IVMProps> {
   canvasRef = React.createRef<HTMLCanvasElement>()
 
-  constructor(props) {
+  constructor(props: IVMProps) {
     super(props)
 
     window.addEventListener('resize', this.resizeCanvas.bind(this), false)
@@ -50,12 +50,21 @@ export class VM extends React.Component<IVMProps> {
     }
   }
 
+  onNewClicked() {
+    const vm = this.props.vm
+    if (vm.players.size < 4) this.props.onNewChampionRequested(vm.nextChampionId())
+  }
+
   render() {
+    const vm = this.props.vm
     return (
       <div id="vm-container">
         <div style={{ display: 'flex' }}>
-          <ControlPanel vm={this.props.vm} />
-          <InfoPanel vm={this.props.vm} />
+          <button onClick={this.onNewClicked.bind(this)} disabled={vm.players.size >= 4}>
+            ➕
+          </button>
+          <ControlPanel vm={vm} />
+          <InfoPanel vm={vm} />
         </div>
         <canvas ref={this.canvasRef} id="canvas" style={{ marginTop: '50px' }} />
       </div>
@@ -64,7 +73,7 @@ export class VM extends React.Component<IVMProps> {
 }
 
 @observer
-class ControlPanel extends React.Component<IVMProps> {
+class ControlPanel extends React.Component<{ vm: ObservableVM }> {
   render() {
     let cyclesInput =
       this.props.vm.cycles === null ? null : (
@@ -107,7 +116,7 @@ function vmInfo(vm: VirtualMachine) {
 }
 
 @observer
-class InfoPanel extends React.Component<IVMProps> {
+class InfoPanel extends React.Component<{ vm: ObservableVM }> {
   render() {
     const info =
       this.props.vm.cycles !== null ? vmInfo(this.props.vm.vm as VirtualMachine) : []
@@ -154,6 +163,11 @@ function drawVm(vm: VirtualMachine, canvas: HTMLCanvasElement) {
     )
   }
 
+  const colors = new Map<number, string>()
+  for (let i = 0; i < vm.player_count(); ++i) {
+    colors.set(vm.player_id(i), PLAYER_COLORS[i])
+  }
+
   for (let i = 0; i < size; ++i) {
     const cell = vm.cell_at(i)
     const x = i % COLUMNS
@@ -162,7 +176,8 @@ function drawVm(vm: VirtualMachine, canvas: HTMLCanvasElement) {
     let byteText = cell.value.toString(16).toUpperCase()
     if (byteText.length < 2) byteText = `0${byteText}`
 
-    let textColor = cell.owner !== undefined ? PLAYER_COLORS[cell.owner - 1] : 'silver'
+    let textColor =
+      cell.owner !== undefined ? (colors.get(cell.owner) as string) : 'silver'
     ctx.fillStyle = textColor
     ctx.fillText(byteText, x * BYTE_WIDTH, (y + 1) * BYTE_HEIGHT, BYTE_WIDTH)
   }

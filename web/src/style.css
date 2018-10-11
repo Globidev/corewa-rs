@@ -22,7 +22,7 @@ body {
 }
 
 #canvas {
-  width: 100vw;
+  width: 80vw;
 }
 
 .info {
@@ -39,40 +39,6 @@ body {
   align-items: stretch;
 }
 
-#vm-container {
-  width: 50%;
-}
-
 .cycle-input {
   max-width: 70px;
 }
-
-/* html,
-body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  font-size: 12px;
-  font-family: Arial, sans-serif;
-}
-#app {
-  left: 10px;
-  top: 10px;
-  right: 10px;
-  bottom: 10px;
-  position: absolute;
-  overflow: hidden;
-  background-color: white;
-}
-.outer {
-  height: 100%;
-  position: relative;
-}
-.inner {
-  left: 0px;
-  top: 30px;
-  right: 0px;
-  bottom: 0px;
-  position: absolute;
-} */

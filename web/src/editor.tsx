@@ -1,15 +1,31 @@
 import { champions } from './champions'
 
 import * as React from 'react'
+import { JsCompileError } from './corewar'
 
 interface IEditorProps {
-  onCodeChanged: (code: string) => void
-  // visible: boolean
+  onCodeChanged: (code: CompiledChampion) => void
+  onClosed: () => void
 }
+
+// Object.keys(champions).forEach(champName => {
+//   try {
+//     wasm_bindgen.compile_champion(champions[champName])
+//   } catch (e) {
+//     console.log(champName, e)
+//   }
+// })
+
+// function randomChampion() {
+//   const keys = Object.keys(champions)
+//   const randomKey = keys[(keys.length * Math.random()) << 0]
+//   return champions[randomKey]
+// }
 
 export class Editor extends React.Component<IEditorProps> {
   domContainer = React.createRef<HTMLDivElement>()
   debounceId: number = 0
+  editor: CodeMirror.Editor | null = null
 
   componentDidMount() {
     const container = this.domContainer.current
@@ -20,34 +36,64 @@ export class Editor extends React.Component<IEditorProps> {
         theme: 'monokai',
         // theme: '3024-night',
         mode: ASM_LANGUAGE_ID,
-        gutters: ['CodeMirror-lint-markers'],
-        lint: true,
-        value: champions.casimir,
+        // gutters: ['CodeMirror-lint-markers'],
+        lint: {
+          editor: this
+        },
+        value: champions.zork,
         keyMap: 'sublime'
       })
 
-      editor.on('change', (_e, _ch) => {
-        clearTimeout(this.debounceId)
-        this.debounceId = window.setTimeout(
-          this.props.onCodeChanged,
-          500,
-          editor.getValue()
-        )
-      })
+      // editor.on('change', (_e, _ch) => {
+      //   clearTimeout(this.debounceId)
+      //   this.debounceId = window.setTimeout(
+      //     this.compile.bind(this),
+      //     500,
+      //     editor.getValue()
+      //   )
+      // })
 
       // ?????
       setTimeout(() => {
         editor.refresh()
       }, 0)
 
-      this.props.onCodeChanged(editor.getValue())
+      // this.compile(editor.getValue())
+
+      this.editor = editor
     }
+  }
+
+  compile(code: string) {
+    let champion = wasm_bindgen.compile_champion(code)
+    this.props.onCodeChanged(champion)
+  }
+
+  componentWillUnmount() {
+    this.props.onClosed()
   }
 
   render() {
     // const visible = this.props.visible
     return (
       <div id="editor-container">
+        <div style={{ display: 'flex' }}>
+          <div>Load model: </div>
+          <select
+            defaultValue="zork"
+            onChange={e => {
+              if (this.editor) this.editor.setValue(champions[e.target.value])
+            }}
+          >
+            {Object.keys(champions).map(ch => {
+              return (
+                <option key={ch} value={ch}>
+                  {ch}
+                </option>
+              )
+            })}
+          </select>
+        </div>
         <div id="editor" ref={this.domContainer} />
       </div>
     )
@@ -75,250 +121,32 @@ const ALL_KEYWORDS = [
 
 const ASM_LANGUAGE_ID = 'corewar-asm'
 
-CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, parserConfig) {
-  'use strict'
-
-  // If an architecture is specified, its initialization function may
-  // populate this array with custom parsing functions which will be
-  // tried in the event that the standard functions do not find a match.
-  var custom = []
-
-  // The symbol used to start a line comment changes based on the target
-  // architecture.
-  // If no architecture is pased in "parserConfig" then only multiline
-  // comments will have syntax support.
-  var lineCommentStartSymbol = ''
-
-  // These directives are architecture independent.
-  // Machine specific directives should go in their respective
-  // architecture initialization function.
-  // Reference:
-  // http://sourceware.org/binutils/docs/as/Pseudo-Ops.html#Pseudo-Ops
-  var directives = {
-    '.abort': 'builtin',
-    '.align': 'builtin',
-    '.altmacro': 'builtin',
-    '.ascii': 'builtin',
-    '.asciz': 'builtin',
-    '.balign': 'builtin',
-    '.balignw': 'builtin',
-    '.balignl': 'builtin',
-    '.bundle_align_mode': 'builtin',
-    '.bundle_lock': 'builtin',
-    '.bundle_unlock': 'builtin',
-    '.byte': 'builtin',
-    '.cfi_startproc': 'builtin',
-    '.comm': 'builtin',
-    '.data': 'builtin',
-    '.def': 'builtin',
-    '.desc': 'builtin',
-    '.dim': 'builtin',
-    '.double': 'builtin',
-    '.eject': 'builtin',
-    '.else': 'builtin',
-    '.elseif': 'builtin',
-    '.end': 'builtin',
-    '.endef': 'builtin',
-    '.endfunc': 'builtin',
-    '.endif': 'builtin',
-    '.equ': 'builtin',
-    '.equiv': 'builtin',
-    '.eqv': 'builtin',
-    '.err': 'builtin',
-    '.error': 'builtin',
-    '.exitm': 'builtin',
-    '.extern': 'builtin',
-    '.fail': 'builtin',
-    '.file': 'builtin',
-    '.fill': 'builtin',
-    '.float': 'builtin',
-    '.func': 'builtin',
-    '.global': 'builtin',
-    '.gnu_attribute': 'builtin',
-    '.hidden': 'builtin',
-    '.hword': 'builtin',
-    '.ident': 'builtin',
-    '.if': 'builtin',
-    '.incbin': 'builtin',
-    '.include': 'builtin',
-    '.int': 'builtin',
-    '.internal': 'builtin',
-    '.irp': 'builtin',
-    '.irpc': 'builtin',
-    '.lcomm': 'builtin',
-    '.lflags': 'builtin',
-    '.line': 'builtin',
-    '.linkonce': 'builtin',
-    '.list': 'builtin',
-    '.ln': 'builtin',
-    '.loc': 'builtin',
-    '.loc_mark_labels': 'builtin',
-    '.local': 'builtin',
-    '.long': 'builtin',
-    '.macro': 'builtin',
-    '.mri': 'builtin',
-    '.noaltmacro': 'builtin',
-    '.nolist': 'builtin',
-    '.octa': 'builtin',
-    '.offset': 'builtin',
-    '.org': 'builtin',
-    '.p2align': 'builtin',
-    '.popsection': 'builtin',
-    '.previous': 'builtin',
-    '.print': 'builtin',
-    '.protected': 'builtin',
-    '.psize': 'builtin',
-    '.purgem': 'builtin',
-    '.pushsection': 'builtin',
-    '.quad': 'builtin',
-    '.reloc': 'builtin',
-    '.rept': 'builtin',
-    '.sbttl': 'builtin',
-    '.scl': 'builtin',
-    '.section': 'builtin',
-    '.set': 'builtin',
-    '.short': 'builtin',
-    '.single': 'builtin',
-    '.size': 'builtin',
-    '.skip': 'builtin',
-    '.sleb128': 'builtin',
-    '.space': 'builtin',
-    '.stab': 'builtin',
-    '.string': 'builtin',
-    '.struct': 'builtin',
-    '.subsection': 'builtin',
-    '.symver': 'builtin',
-    '.tag': 'builtin',
-    '.text': 'builtin',
-    '.title': 'builtin',
-    '.type': 'builtin',
-    '.uleb128': 'builtin',
-    '.val': 'builtin',
-    '.version': 'builtin',
-    '.vtable_entry': 'builtin',
-    '.vtable_inherit': 'builtin',
-    '.warning': 'builtin',
-    '.weak': 'builtin',
-    '.weakref': 'builtin',
-    '.word': 'builtin'
-  }
-
-  var registers: any = {}
-
-  function x86(_parserConfig: any) {
-    lineCommentStartSymbol = '#'
-
-    registers.ax = 'variable'
-    registers.eax = 'variable-2'
-    registers.rax = 'variable-3'
-
-    registers.bx = 'variable'
-    registers.ebx = 'variable-2'
-    registers.rbx = 'variable-3'
-
-    registers.cx = 'variable'
-    registers.ecx = 'variable-2'
-    registers.rcx = 'variable-3'
-
-    registers.dx = 'variable'
-    registers.edx = 'variable-2'
-    registers.rdx = 'variable-3'
-
-    registers.si = 'variable'
-    registers.esi = 'variable-2'
-    registers.rsi = 'variable-3'
-
-    registers.di = 'variable'
-    registers.edi = 'variable-2'
-    registers.rdi = 'variable-3'
-
-    registers.sp = 'variable'
-    registers.esp = 'variable-2'
-    registers.rsp = 'variable-3'
-
-    registers.bp = 'variable'
-    registers.ebp = 'variable-2'
-    registers.rbp = 'variable-3'
-
-    registers.ip = 'variable'
-    registers.eip = 'variable-2'
-    registers.rip = 'variable-3'
-
-    registers.cs = 'keyword'
-    registers.ds = 'keyword'
-    registers.ss = 'keyword'
-    registers.es = 'keyword'
-    registers.fs = 'keyword'
-    registers.gs = 'keyword'
-  }
-
-  function armv6(_parserConfig) {
-    // Reference:
-    // http://infocenter.arm.com/help/topic/com.arm.doc.qrc0001l/QRC0001_UAL.pdf
-    // http://infocenter.arm.com/help/topic/com.arm.doc.ddi0301h/DDI0301H_arm1176jzfs_r0p7_trm.pdf
-    lineCommentStartSymbol = '@'
-    directives.syntax = 'builtin'
-
-    registers.r0 = 'variable'
-    registers.r1 = 'variable'
-    registers.r2 = 'variable'
-    registers.r3 = 'variable'
-    registers.r4 = 'variable'
-    registers.r5 = 'variable'
-    registers.r6 = 'variable'
-    registers.r7 = 'variable'
-    registers.r8 = 'variable'
-    registers.r9 = 'variable'
-    registers.r10 = 'variable'
-    registers.r11 = 'variable'
-    registers.r12 = 'variable'
-
-    registers.sp = 'variable-2'
-    registers.lr = 'variable-2'
-    registers.pc = 'variable-2'
-    registers.r13 = registers.sp
-    registers.r14 = registers.lr
-    registers.r15 = registers.pc
-
-    custom.push(function(ch, stream) {
-      if (ch === '#') {
-        stream.eatWhile(/\w/)
-        return 'number'
+CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
+  code: string,
+  opts: { editor: Editor }
+) {
+  try {
+    opts.editor.compile(code)
+    return []
+  } catch (err) {
+    console.warn(err)
+    const compileError = err as JsCompileError
+    return [
+      {
+        from: CodeMirror.Pos(compileError.from_row - 1, compileError.from_col),
+        to: CodeMirror.Pos(compileError.to_row - 1, compileError.to_col + 500),
+        message: compileError.reason()
       }
-    })
+    ]
   }
+})
 
-  var arch = (parserConfig.architecture || 'x86').toLowerCase()
-  if (arch === 'x86') {
-    x86(parserConfig)
-  } else if (arch === 'arm' || arch === 'armv6') {
-    armv6(parserConfig)
-  }
+CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
+  const lineCommentStartSymbol = '#'
 
-  function nextUntilUnescaped(stream, end) {
-    var escaped = false,
-      next
-    while ((next = stream.next()) != null) {
-      if (next === end && !escaped) {
-        return false
-      }
-      escaped = !escaped && next === '\\'
-    }
-    return escaped
-  }
+  const directives = new Map([['.name', 'builtin'], ['.comment', 'builtin']])
 
-  function clikeComment(stream, state) {
-    var maybeEnd = false,
-      ch
-    while ((ch = stream.next()) != null) {
-      if (ch === '/' && maybeEnd) {
-        state.tokenize = null
-        break
-      }
-      maybeEnd = ch === '*'
-    }
-    return 'comment'
-  }
+  const KEYWORDS = new Set(ALL_KEYWORDS.map(([kw, ..._]) => kw))
 
   return {
     startState: function() {
@@ -336,52 +164,49 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, parserConfig) {
         return null
       }
 
-      var style,
-        cur,
-        ch = stream.next()
+      let ch = stream.next()
 
-      if (ch === '/') {
-        if (stream.eat('*')) {
-          state.tokenize = clikeComment
-          return clikeComment(stream, state)
-        }
-      }
+      if (ch == null) return null
 
       if (ch === lineCommentStartSymbol) {
         stream.skipToEnd()
         return 'comment'
       }
 
+      if (ch === '%') {
+        return 'attribute'
+      }
+
       if (ch === '"') {
-        nextUntilUnescaped(stream, '"')
+        stream.eatWhile(c => c != '"')
         return 'string'
       }
 
       if (ch === '.') {
         stream.eatWhile(/\w/)
-        cur = stream.current().toLowerCase()
-        style = directives[cur]
-        return style || null
+        const cur = stream.current().toLowerCase()
+        return directives.get(cur)
       }
 
-      if (ch === '=') {
+      if (ch === ':') {
         stream.eatWhile(/\w/)
         return 'tag'
       }
 
-      if (ch === '{') {
-        return 'braket'
+      if (ch === 'r') {
+        stream.eatWhile(/\d/)
+        const regNum = parseInt(stream.current().substr(1))
+        if (regNum >= 1 && regNum <= 16) return 'def'
       }
 
-      if (ch === '}') {
-        return 'braket'
+      if (ch === '-') {
+        if (stream.eat(/\d/)) {
+          stream.eatWhile(/\d/)
+          return 'number'
+        }
       }
 
       if (/\d/.test(ch)) {
-        if (ch === '0' && stream.eat('x')) {
-          stream.eatWhile(/[0-9a-fA-F]/)
-          return 'number'
-        }
         stream.eatWhile(/\d/)
         return 'number'
       }
@@ -390,102 +215,17 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, parserConfig) {
         stream.eatWhile(/\w/)
         if (stream.eat(':')) {
           return 'tag'
+        } else {
+          const cur = stream.current()
+          if (KEYWORDS.has(cur)) return 'builtin'
         }
-        cur = stream.current().toLowerCase()
-        style = registers[cur]
-        return style || null
-      }
-
-      for (var i = 0; i < custom.length; i++) {
-        style = custom[i](ch, stream, state)
-        if (style) {
-          return style
-        }
+        return null
       }
     },
 
-    lineComment: lineCommentStartSymbol,
-    blockCommentStart: '/*',
-    blockCommentEnd: '*/'
+    lineComment: lineCommentStartSymbol
   }
 })
-
-// CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(_t: any) {
-//   return [
-//     {
-//       from: CodeMirror.Pos(0, 2),
-//       to: CodeMirror.Pos(3, 10),
-//       message: 'WTF'
-//     }
-//   ]
-// })
-
-// const ASM_TOKEN_PROVIDER: monaco.languages.IMonarchLanguage = {
-//   // Set defaultToken to invalid to see what you do not tokenize yet
-//   // defaultToken: 'invalid',
-
-//   // @ts-ignore
-//   keywords: ALL_KEYWORDS.map(([kw, ..._]) => kw),
-
-//   commands: [
-//     '.name', '.comment'
-//   ],
-
-//   // C# style strings
-//   escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
-
-//   // The main tokenizer for our languages
-//   tokenizer: {
-//     // @ts-ignore
-//     root: [
-//       // labels
-//       [/[a-z0-9A-Z_]+:/, 'regexp'],
-//       [/:[a-z0-9A-Z_]+/, 'regexp'],
-
-//       // keywords and commands
-//       [/[a-z_$][\w$^:]*/, { cases: { '@keywords': 'keyword' } }],
-//       [/\.[a-z]*/, { cases: { '@commands': 'keyword' } }],
-
-//       // whitespace
-//       { include: '@whitespace' },
-
-//       // numbers
-//       [/-?\d+/, 'number'],
-
-//       // delimiter: after number because of .\d floats
-//       [/[,]/, 'delimiter'],
-
-//       // strings
-//       [/"([^"\\]|\\.)*$/, 'string.invalid'],  // non-teminated string
-//       [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }],
-
-//       // characters
-//       [/'[^\\']'/, 'string'],
-//       [/(')(@escapes)(')/, ['string', 'string.escape', 'string']],
-//       [/'/, 'string.invalid']
-//     ],
-
-//     string: [
-//       [/[^\\"]+/, 'string'],
-//       [/@escapes/, 'string.escape'],
-//       [/\\./, 'string.escape.invalid'],
-//       [/"/, { token: 'string.quote', bracket: '@close', next: '@pop' }]
-//     ],
-
-//     whitespace: [
-//       [/[ \t\r\n]+/, 'white'],
-//       [/#.*/, 'comment']
-//     ],
-//   },
-// };
-
-// function setupLanguage() {
-//     monaco.languages.register({ id: ASM_LANGUAGE_ID });
-
-//     monaco.languages.setMonarchTokensProvider(ASM_LANGUAGE_ID, ASM_TOKEN_PROVIDER);
-// }
-
-// setupLanguage()
 
 // const keywordCompletionItems = ALL_KEYWORDS.map(([kw, desc, params]) => ({
 //   label: kw,

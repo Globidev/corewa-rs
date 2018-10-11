@@ -1,11 +1,11 @@
 import * as React from 'react'
 import { render } from 'react-dom'
-import FlexLayout, { TabNode } from 'flexlayout-react'
+import FlexLayout, { Layout, TabNode } from 'flexlayout-react'
 import { observer } from 'mobx-react'
 
 import { Editor } from './editor'
 import { VM } from './vm'
-import { state, uiState } from './state'
+import { state } from './state'
 
 const enum PaneComponent {
   Editor = 'editor',
@@ -31,7 +31,7 @@ var json = {
             component: PaneComponent.Editor,
             config: {
               vmId: initialVmId,
-              championId: 0
+              championId: initialVm.nextChampionId()
             }
           }
         ]
@@ -47,7 +47,7 @@ var json = {
             component: PaneComponent.Editor,
             config: {
               vmId: initialVmId,
-              championId: 1
+              championId: initialVm.nextChampionId()
             }
           }
         ]
@@ -74,47 +74,69 @@ var json = {
 @observer
 class App extends React.Component {
   state = { model: FlexLayout.Model.fromJson(json) }
+  layoutRef = React.createRef<Layout>()
 
-  factory(node) {
+  factory(node: TabNode) {
     const component = node.getComponent()
     const config = node.getConfig()
     switch (component) {
       case PaneComponent.Editor:
-        const vmId = config.vmId
-        const championId = config.championId
         return (
           <Editor
-            onCodeChanged={code => {
-              const vm = state.getVm(vmId)
-              if (vm) vm.setChampionCode(config.championId, code)
+            onCodeChanged={champion => {
+              const vm = state.getVm(config.vmId)
+              if (vm) vm.setChampionCode(config.championId, champion)
+            }}
+            onClosed={() => {
+              const vm = state.getVm(config.vmId)
+              if (vm) vm.removeChampion(config.championId)
             }}
           />
         )
       case PaneComponent.VM:
-        const vm = config.vm
-        return <VM vm={vm} />
+        return (
+          <VM
+            vm={config.vm}
+            onNewChampionRequested={championId =>
+              this.onNewChampionRequested(config.vm.id, championId)
+            }
+          />
+        )
+    }
+    return null
+  }
+
+  onNewChampionRequested(vmId: number, championId: number) {
+    const layout = this.layoutRef.current
+    if (layout) {
+      layout.addTabWithDragAndDropIndirect(
+        'Add panel<br>(Drag to location)',
+        {
+          component: PaneComponent.Editor,
+          name: `Champion ${championId + 1}`,
+          config: { vmId, championId }
+        },
+        () => {}
+      )
     }
   }
 
-  onAdd(event) {
-    this.refs.layout.addTabWithDragAndDropIndirect(
-      'Add panel<br>(Drag to location)',
-      {
-        component: 'text',
-        name: 'added',
-        config: { text: 'i was added' }
-      },
-      null
-    )
-  }
+  // onRenderTab(tab: TabNode, obj) {
+  //   tab.getModel().
+  // }
+
+  // onModelChange(...x) {
+  //   console.log(x)
+  // }
 
   render() {
     return (
       <div className="outer">
-        <button onClick={this.onAdd.bind(this)}>Add</button>
         <div className="inner">
-          <FlexLayout.Layout
-            ref="layout"
+          <Layout
+            // onRenderTab={this.onRenderTab.bind(this)}
+            // onModelChange={this.onModelChange.bind(this)}
+            ref={this.layoutRef}
             model={this.state.model}
             factory={this.factory.bind(this)}
           />

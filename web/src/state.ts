@@ -21,7 +21,22 @@ export class ObservableVM {
 
   animationId: number | undefined = undefined
 
-  champions: Map<number, string> = new Map()
+  @observable
+  players = new Map<number, CompiledChampion>()
+
+  id: number
+
+  championIdPool: number = 0
+
+  constructor(id: number) {
+    this.id = id
+  }
+
+  nextChampionId() {
+    let id = this.championIdPool
+    ++this.championIdPool
+    return id
+  }
 
   @action
   tick(vm: VirtualMachine, n: number) {
@@ -46,25 +61,28 @@ export class ObservableVM {
 
   @action
   compile() {
-    this.pause()
     // console.log('compile')
+    this.pause()
     this.cycles = null // effectively resets the VM observers
-    // this.currentCodes = codes
-    const codes = Array.from(this.champions.values())
+    this.vm = Array.from(this.players.entries())
+      .reduce(
+        (builder, [playerId, bytecode]) => builder.with_player(playerId, bytecode),
+        new wasm_bindgen.VMBuilder()
+      )
+      .finish()
 
-    try {
-      this.vm = wasm_bindgen.vm_from_code(codes)
-      this.cycles = 0
-      // this.vm = observable(new ObservableVM(wasm_bindgen.vm_from_code(codes)))
-    } catch (err) {
-      console.error(err)
-      // this.vm = null
-    }
+    this.cycles = 0
   }
 
   @action
-  setChampionCode(championId: number, code: string) {
-    this.champions.set(championId, code)
+  setChampionCode(championId: number, bytecode: CompiledChampion) {
+    this.players.set(championId, bytecode)
+    this.compile()
+  }
+
+  @action
+  removeChampion(championId: number) {
+    this.players.delete(championId)
     this.compile()
   }
 
@@ -130,9 +148,9 @@ class State {
   @action
   newVm() {
     let vmId = this.nextVmId()
-    let vm = new ObservableVM()
+    let vm = new ObservableVM(vmId)
     this.vms.set(vmId, vm)
-    return [vmId, vm]
+    return <[number, ObservableVM]>[vmId, vm]
   }
 
   nextVmId() {
