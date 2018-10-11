@@ -17,7 +17,8 @@ export class Editor extends React.Component<IEditorProps> {
     if (container) {
       const editor = CodeMirror(container, {
         lineNumbers: true,
-        theme: 'base16-dark',
+        theme: 'monokai',
+        // theme: '3024-night',
         mode: ASM_LANGUAGE_ID,
         gutters: ['CodeMirror-lint-markers'],
         lint: true,
