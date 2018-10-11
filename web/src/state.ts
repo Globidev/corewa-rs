@@ -128,7 +128,7 @@ export class ObservableVM {
     // console.log("nextSpeed")
     this.speed *= 2
 
-    if (this.speed > 16) this.speed = 1
+    if (this.speed > 32) this.speed = 1
   }
 
   @action
