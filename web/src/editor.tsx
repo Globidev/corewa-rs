@@ -31,6 +31,7 @@ export class Editor extends React.Component<IEditorProps> {
     const container = this.domContainer.current
 
     if (container) {
+      // @ts-ignore
       const editor = CodeMirror(container, {
         lineNumbers: true,
         theme: 'monokai',
@@ -38,20 +39,23 @@ export class Editor extends React.Component<IEditorProps> {
         mode: ASM_LANGUAGE_ID,
         // gutters: ['CodeMirror-lint-markers'],
         lint: {
-          editor: this
+          editor: this,
+          lintOnChange: false
         },
         value: champions.zork,
         keyMap: 'sublime'
+        // lintOnChange: false
       })
+      // editor.performLint()
 
-      // editor.on('change', (_e, _ch) => {
-      //   clearTimeout(this.debounceId)
-      //   this.debounceId = window.setTimeout(
-      //     this.compile.bind(this),
-      //     500,
-      //     editor.getValue()
-      //   )
-      // })
+      editor.on('change', (_e, _ch) => {
+        clearTimeout(this.debounceId)
+        this.debounceId = window.setTimeout(
+          editor.performLint.bind(editor),
+          100
+          // editor.getValue()
+        )
+      })
 
       // ?????
       setTimeout(() => {
@@ -74,7 +78,6 @@ export class Editor extends React.Component<IEditorProps> {
   }
 
   render() {
-    // const visible = this.props.visible
     return (
       <div id="editor-container">
         <div style={{ display: 'flex' }}>
@@ -100,25 +103,6 @@ export class Editor extends React.Component<IEditorProps> {
   }
 }
 
-const ALL_KEYWORDS = [
-  ['live', 'alive', '%0'],
-  ['ld', 'load', '%0, r1'],
-  ['st', 'store', 'r1, r2'],
-  ['add', 'addition', 'r1, r2, r3'],
-  ['sub', 'substraction', 'r1, r2, r3'],
-  ['and', 'bit and', '*, *, r1'],
-  ['or', 'bit or', '*, *, r1'],
-  ['xor', 'bit xor', '*, *, r1'],
-  ['zjmp', 'jump if zero', '%0'],
-  ['ldi', 'load index', '*, r1, r2'],
-  ['sti', 'store index', 'r1, *, r2'],
-  ['fork', 'fork', '%0'],
-  ['lld', 'long load', '%0, r1'],
-  ['lldi', 'long load index', '*, r1, r2'],
-  ['lfork', 'long fork', '%0'],
-  ['aff', 'display', 'r1']
-]
-
 const ASM_LANGUAGE_ID = 'corewar-asm'
 
 CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
@@ -141,10 +125,29 @@ CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
   }
 })
 
+const ALL_KEYWORDS = [
+  ['live', 'alive', '%0'],
+  ['ld', 'load', '%0, r1'],
+  ['st', 'store', 'r1, r2'],
+  ['add', 'addition', 'r1, r2, r3'],
+  ['sub', 'substraction', 'r1, r2, r3'],
+  ['and', 'bit and', '*, *, r1'],
+  ['or', 'bit or', '*, *, r1'],
+  ['xor', 'bit xor', '*, *, r1'],
+  ['zjmp', 'jump if zero', '%0'],
+  ['ldi', 'load index', '*, r1, r2'],
+  ['sti', 'store index', 'r1, *, r2'],
+  ['fork', 'fork', '%0'],
+  ['lld', 'long load', '%0, r1'],
+  ['lldi', 'long load index', '*, r1, r2'],
+  ['lfork', 'long fork', '%0'],
+  ['aff', 'display', 'r1']
+]
+
 CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
   const lineCommentStartSymbol = '#'
 
-  const directives = new Map([['.name', 'builtin'], ['.comment', 'builtin']])
+  const directives = new Set(['.name', '.comment'])
 
   const KEYWORDS = new Set(ALL_KEYWORDS.map(([kw, ..._]) => kw))
 
@@ -185,7 +188,7 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
       if (ch === '.') {
         stream.eatWhile(/\w/)
         const cur = stream.current().toLowerCase()
-        return directives.get(cur)
+        if (directives.has(cur)) return 'builtin'
       }
 
       if (ch === ':') {
