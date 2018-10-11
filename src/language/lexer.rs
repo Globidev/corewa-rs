@@ -28,7 +28,7 @@ impl<'a> Iterator for Tokenizer<'a> {
         self.chars.peek()
             .cloned()
             .map(|(idx, chr)| match chr {
-                ':' => self.lex_single(Term::LabelChar, idx),
+                ':' => self.lex_label_use(idx),
                 ',' => self.lex_single(Term::ParamSeparator, idx),
                 '%' => self.lex_single(Term::DirectChar, idx),
 
@@ -65,6 +65,17 @@ impl<'a> Tokenizer<'a> {
                 .unwrap_or(false)
         {
             self.chars.next();
+        }
+    }
+
+    fn lex_label_use(&mut self, idx_start: usize) -> TokenResult {
+        self.chars.next(); // consume
+        match self.chars.peek().cloned() {
+            Some((_, c)) if IDENT_CHARS.contains(c) => {
+                self.skip_while(|&(_, c)| IDENT_CHARS.contains(c));
+                Ok(Term::LabelUse.at(idx_start..self.peek_idx()))
+            }
+            _ => Err(LexerErrorKind::EmptyLabel.at(idx_start))
         }
     }
 
@@ -154,7 +165,15 @@ impl<'a> Tokenizer<'a> {
     {
         self.skip_while(|&(_, c)| IDENT_CHARS.contains(c));
 
-        Ok(Term::Ident.at(idx_start..self.peek_idx()))
+        let term = match self.chars.peek() {
+            Some((_, ':')) => {
+                self.chars.next();
+                Term::LabelDef
+            },
+            _ => Term::Ident
+        };
+
+        Ok(term.at(idx_start..self.peek_idx()))
     }
 
     fn peek_idx(&mut self) -> usize {
@@ -170,7 +189,8 @@ pub enum Term {
     ChampionCommentCmd,
     QuotedString,
     Comment,
-    LabelChar,
+    LabelDef,
+    LabelUse,
     ParamSeparator,
     DirectChar,
     Number,
@@ -189,6 +209,7 @@ enum LexerErrorKind {
     InvalidCommand,
     UnclosedQuotedString,
     NoNumberAfterMinus,
+    EmptyLabel
 }
 
 impl LexerErrorKind {

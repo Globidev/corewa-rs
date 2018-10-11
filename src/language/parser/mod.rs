@@ -31,15 +31,17 @@ pub fn parse_line(input: &str) -> Result<ParsedLine, ParseError> {
             champion_comment(&mut tokens)
                 .map(ParsedLine::ChampionComment)
         },
-        Term::Ident => {
+        Term::LabelDef => {
             label.and(op.optional())
                 .map(|(label, opt_op)| match opt_op {
                     None => ParsedLine::Label(label),
                     Some(op) => ParsedLine::LabelAndOp(label, op)
                 })
-                .or(op.map(ParsedLine::Op))
-                .map_err(expected_either)
                 .parse(&mut tokens)
+        },
+        Term::Ident => {
+            op(&mut tokens)
+                .map(ParsedLine::Op)
         },
         Term::Comment => return Ok(ParsedLine::Empty),
         _             => return Err(ParseError::Unexpected(first_tok)),
@@ -66,15 +68,13 @@ fn champion_comment(input: &mut TokenStream) -> ParseResult<String> {
 }
 
 fn label(input: &mut TokenStream) -> ParseResult<String> {
-    let label_name = input.next(Term::Ident)?;
-    input.next(Term::LabelChar)?;
-
-    Ok(String::from(label_name))
+    input.next(Term::LabelDef)
+        .map(|label_str| String::from(&label_str[..label_str.len() - 1]))
 }
 
 fn label_param(input: &mut TokenStream) -> ParseResult<String> {
-    input.next(Term::LabelChar)?;
-    input.next(Term::Ident).map(String::from)
+    input.next(Term::LabelUse)
+        .map(|label_str| String::from(&label_str[1..]))
 }
 
 fn number(input: &mut TokenStream) -> ParseResult<i64> {
@@ -152,6 +152,11 @@ fn op(input: &mut TokenStream) -> ParseResult<Op> {
     }
 
     let mnemonic = input.next(Term::Ident)?;
+
+    // if mnemonic == "ld" {
+    //     panic!(format!("{:?}", input.input));
+
+    // }
 
     match mnemonic {
         "live"  => parse_op!( Op::Live,  direct                         ),
