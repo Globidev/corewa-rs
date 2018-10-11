@@ -21,40 +21,47 @@ var json = {
     weight: 100,
     children: [
       {
-        type: 'tabset',
-        weight: 50,
-        selected: 0,
+        type: 'row',
+        weight: 30,
         children: [
           {
-            type: 'tab',
-            name: 'champion 1',
-            component: PaneComponent.Editor,
-            config: {
-              vmId: initialVmId,
-              championId: initialVm.nextChampionId()
-            }
+            type: 'tabset',
+            weight: 50,
+            selected: 0,
+            children: [
+              {
+                type: 'tab',
+                name: 'champion 1',
+                component: PaneComponent.Editor,
+                config: {
+                  vmId: initialVmId,
+                  championId: initialVm.nextChampionId()
+                }
+              }
+            ]
+          },
+          {
+            type: 'tabset',
+            weight: 50,
+            selected: 0,
+            location: 'bottom',
+            children: [
+              {
+                type: 'tab',
+                name: 'champion 2',
+                component: PaneComponent.Editor,
+                config: {
+                  vmId: initialVmId,
+                  championId: initialVm.nextChampionId()
+                }
+              }
+            ]
           }
         ]
       },
       {
         type: 'tabset',
-        weight: 50,
-        selected: 0,
-        children: [
-          {
-            type: 'tab',
-            name: 'champion 2',
-            component: PaneComponent.Editor,
-            config: {
-              vmId: initialVmId,
-              championId: initialVm.nextChampionId()
-            }
-          }
-        ]
-      },
-      {
-        type: 'tabset',
-        weight: 50,
+        weight: 70,
         selected: 0,
         children: [
           {
@@ -121,26 +128,41 @@ class App extends React.Component {
     }
   }
 
+  onNewVmRequested() {
+    const layout = this.layoutRef.current
+    if (layout) {
+      const [vmId, vm] = state.newVm()
+      layout.addTabWithDragAndDropIndirect(
+        'Add panel<br>(Drag to location)',
+        {
+          component: PaneComponent.VM,
+          name: `Vm ${vmId + 1}`,
+          config: { vm }
+        },
+        () => {}
+      )
+    }
+  }
+
   // onRenderTab(tab: TabNode, obj) {
-  //   tab.getModel().
+  //   console.log(tab.getName())
   // }
 
-  // onModelChange(...x) {
-  //   console.log(x)
-  // }
+  onModelChange(...x) {
+    console.log(x)
+  }
 
   render() {
     return (
-      <div className="outer">
-        <div className="inner">
-          <Layout
-            // onRenderTab={this.onRenderTab.bind(this)}
-            // onModelChange={this.onModelChange.bind(this)}
-            ref={this.layoutRef}
-            model={this.state.model}
-            factory={this.factory.bind(this)}
-          />
-        </div>
+      <div>
+        <button onClick={this.onNewVmRequested.bind(this)}>New VM</button>
+        <Layout
+          // onRenderTab={this.onRenderTab.bind(this)}
+          onModelChange={this.onModelChange.bind(this)}
+          ref={this.layoutRef}
+          model={this.state.model}
+          factory={this.factory.bind(this)}
+        />
       </div>
     )
   }
