@@ -142,7 +142,7 @@ export class ObservableVM {
 
 class State {
   @observable
-  vms: Map<number, ObservableVM> = new Map()
+  vms = new Map<number, ObservableVM>()
   vmIdPool: number = 0
 
   @action
