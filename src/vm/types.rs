@@ -1,4 +1,4 @@
-use spec::{ParamType, OpType, MAX_PARAMS, REG_COUNT};
+use crate::spec::{ParamType, OpType, MAX_PARAMS, REG_COUNT};
 
 #[derive(Debug)]
 pub struct Player {

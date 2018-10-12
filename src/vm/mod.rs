@@ -11,7 +11,7 @@ use self::types::*;
 use self::execution_context::ExecutionContext;
 use self::process::{Process, ProcessState};
 use std::mem;
-use spec::*;
+use crate::spec::*;
 
 #[wasm_bindgen]
 #[derive(Default)]

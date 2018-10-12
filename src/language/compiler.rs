@@ -1,6 +1,6 @@
 use super::types::*;
 use super::assembler::{Champion, ParsedInstruction};
-use spec::{self, Header};
+use crate::spec::{self, Header};
 
 use std::io::{Write, Seek, SeekFrom, Error as IOError};
 use std::mem;
@@ -29,7 +29,7 @@ pub fn compile_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
 
 fn ocp(op: &Op) -> u8 {
     use self::Op::*;
-    use spec::{REG_PARAM_CODE, DIR_PARAM_CODE, IND_PARAM_CODE};
+    use self::spec::{REG_PARAM_CODE, DIR_PARAM_CODE, IND_PARAM_CODE};
 
     let combine1 = |a|       a << 6;
     let combine2 = |a, b|    a << 6 | b << 4;

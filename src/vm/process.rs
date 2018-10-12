@@ -1,7 +1,7 @@
+use crate::spec::OpType;
 use super::types::{Pid, Registers, PlayerId};
 use super::execution_context::ExecutionContext;
 use super::program_counter::ProgramCounter;
-use spec::OpType;
 
 #[derive(Debug)]
 pub struct Process {

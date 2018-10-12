@@ -1,5 +1,3 @@
-extern crate corewar;
-
 fn main() {
     let champion = corewar::language::read_champion(std::io::stdin())
         .expect("Failed to read champion");

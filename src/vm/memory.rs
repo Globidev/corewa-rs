@@ -2,7 +2,7 @@ use super::types::*;
 
 use wasm_bindgen::prelude::*;
 
-use spec::*;
+use crate::spec::*;
 use std::mem;
 use std::ops::Index;
 

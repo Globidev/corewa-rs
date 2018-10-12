@@ -1,7 +1,7 @@
+use crate::spec::{MEM_SIZE, ParamType};
 use super::types::*;
 use super::execution_context::ExecutionContext;
 use super::process::Process;
-use spec::{MEM_SIZE, ParamType};
 
 pub fn exec_live(instr: &Instruction, ctx: &mut ExecutionContext) {
     let player_id = instr.params[0].value;

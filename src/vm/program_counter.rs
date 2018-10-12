@@ -1,5 +1,6 @@
-use spec::{MEM_SIZE, IDX_MOD};
+use crate::spec::{MEM_SIZE, IDX_MOD};
 use super::types::OffsetType;
+
 use std::convert::From;
 use std::ops::Deref;
 

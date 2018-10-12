@@ -5,6 +5,7 @@ authors = ["Guillaume Depardon <guillaume.depardon@gmail.com>"]
 description = "Virtual arena"
 repository = "https://github.com/Globidev/corewar-rs"
 license = "MIT"
+edition = "2018"
 
 # [[bin]]
 # name = "assembler"
