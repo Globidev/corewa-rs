@@ -9,7 +9,7 @@ pub struct ExecutionContext<'a> {
     pub player_id: PlayerId,
     pub pc: &'a mut ProgramCounter,
     pub registers: &'a mut Registers,
-    pub carry: &'a mut bool,
+    pub zf: &'a mut bool,
     pub last_live_cycle: &'a mut u32,
     pub forks: &'a mut Vec<Process>,
     pub cycle: u32,

@@ -122,7 +122,7 @@ impl VirtualMachine {
                                 player_id: process.player_id,
                                 pc: &mut process.pc,
                                 registers: &mut process.registers,
-                                carry: &mut process.carry,
+                                zf: &mut process.zf,
                                 last_live_cycle: &mut process.last_live_cycle,
                                 forks: &mut forks,
                                 cycle: self.cycles,

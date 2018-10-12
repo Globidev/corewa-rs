@@ -9,7 +9,7 @@ pub struct Process {
     pub player_id: PlayerId,
     pub pc: ProgramCounter,
     pub registers: Registers,
-    pub carry: bool,
+    pub zf: bool,
     pub state: ProcessState,
     pub last_live_cycle: u32,
 }
@@ -27,7 +27,7 @@ impl Process {
             player_id,
             pc,
             registers: Registers::default(),
-            carry: false,
+            zf: false,
             state: ProcessState::Idle,
             last_live_cycle: 0
         }
@@ -39,7 +39,7 @@ impl Process {
             player_id: ctx.player_id,
             pc,
             registers: *ctx.registers,
-            carry: *ctx.carry,
+            zf: *ctx.zf,
             state: ProcessState::Idle,
             last_live_cycle: ctx.cycle
         }

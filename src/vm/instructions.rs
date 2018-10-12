@@ -13,7 +13,7 @@ pub fn exec_live(instr: &Instruction, ctx: &mut ExecutionContext) {
 
 pub fn exec_ld(instr: &Instruction, ctx: &mut ExecutionContext) {
     let value_to_load = ctx.get_param(&instr.params[0], OffsetType::Limited);
-    *ctx.carry = value_to_load == 0;
+    *ctx.zf = value_to_load == 0;
     ctx.registers[instr.params[1].value as usize - 1] = value_to_load;
 }
 
@@ -35,7 +35,7 @@ pub fn exec_add(instr: &Instruction, ctx: &mut ExecutionContext) {
     let lhs = ctx.registers[instr.params[0].value as usize - 1];
     let rhs = ctx.registers[instr.params[1].value as usize - 1];
     let result = lhs + rhs;
-    *ctx.carry = result == 0;
+    *ctx.zf = result == 0;
     ctx.registers[instr.params[2].value as usize - 1] = result;
 }
 
@@ -43,7 +43,7 @@ pub fn exec_sub(instr: &Instruction, ctx: &mut ExecutionContext) {
     let lhs = ctx.registers[instr.params[0].value as usize - 1];
     let rhs = ctx.registers[instr.params[1].value as usize - 1];
     let result = lhs - rhs;
-    *ctx.carry = result == 0;
+    *ctx.zf = result == 0;
     ctx.registers[instr.params[2].value as usize - 1] = result;
 }
 
@@ -51,7 +51,7 @@ pub fn exec_and(instr: &Instruction, ctx: &mut ExecutionContext) {
     let lhs = ctx.get_param(&instr.params[0], OffsetType::Limited);
     let rhs = ctx.get_param(&instr.params[1], OffsetType::Limited);
     let result = lhs & rhs;
-    *ctx.carry = result == 0;
+    *ctx.zf = result == 0;
     ctx.registers[instr.params[2].value as usize - 1] = result;
 }
 
@@ -59,7 +59,7 @@ pub fn exec_or(instr: &Instruction, ctx: &mut ExecutionContext) {
     let lhs = ctx.get_param(&instr.params[0], OffsetType::Limited);
     let rhs = ctx.get_param(&instr.params[1], OffsetType::Limited);
     let result = lhs | rhs;
-    *ctx.carry = result == 0;
+    *ctx.zf = result == 0;
     ctx.registers[instr.params[2].value as usize - 1] = result;
 }
 
@@ -67,12 +67,12 @@ pub fn exec_xor(instr: &Instruction, ctx: &mut ExecutionContext) {
     let lhs = ctx.get_param(&instr.params[0], OffsetType::Limited);
     let rhs = ctx.get_param(&instr.params[1], OffsetType::Limited);
     let result = lhs ^ rhs;
-    *ctx.carry = result == 0;
+    *ctx.zf = result == 0;
     ctx.registers[instr.params[2].value as usize - 1] = result;
 }
 
 pub fn exec_zjmp(instr: &Instruction, ctx: &mut ExecutionContext) {
-    if !*ctx.carry { return }
+    if !*ctx.zf { return }
 
     // Negating the instruction jump
     let offset = instr.params[0].value as isize - instr.byte_size as isize;
@@ -104,7 +104,7 @@ pub fn exec_fork(instr: &Instruction, ctx: &mut ExecutionContext) {
 
 pub fn exec_lld(instr: &Instruction, ctx: &mut ExecutionContext) {
     let value_to_load = ctx.get_param(&instr.params[0], OffsetType::Long);
-    *ctx.carry = value_to_load == 0;
+    *ctx.zf = value_to_load == 0;
     ctx.registers[instr.params[1].value as usize - 1] = value_to_load;
 }
 
@@ -113,7 +113,7 @@ pub fn exec_lldi(instr: &Instruction, ctx: &mut ExecutionContext) {
     let rhs = ctx.get_param(&instr.params[1], OffsetType::Long);
     let addr = ((lhs + rhs) as isize % MEM_SIZE as isize) + MEM_SIZE as isize;
     let value = ctx.memory.read_i32(addr as usize);
-    *ctx.carry = value == 0;
+    *ctx.zf = value == 0;
     ctx.registers[instr.params[2].value as usize - 1] = value;
 }
 
