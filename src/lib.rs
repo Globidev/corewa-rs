@@ -26,29 +26,47 @@ pub fn compile_champion(input: &str) -> Result<Vec<u8>, JsValue> {
     utils::set_panic_hook();
 
     let parsed_champion = language::read_champion(input.as_bytes())
-        .map_err(|e| {
-            match e {
-                language::ReadError::ParseError(e, line) => {
-                    JsValue::from(JsCompileError {
-                        from_row: line as u32,
-                        from_col: 0,
-                        to_row: line as u32,
-                        to_col: 10,
-                        reason: format!("{:?}", e),
-                    })
-                },
-                language::ReadError::AssembleError(e) => {
-                    JsValue::NULL
-                },
-                language::ReadError::IOError(e) => {
-                    JsValue::NULL
-                }
-            }
-        })?;
+        .map_err(|err| JsCompileError::from(err))?;
 
     let mut byte_code = Vec::new();
+
     language::write_champion(&mut byte_code, &parsed_champion)
-        .expect("TODO: Write error");
+        .map_err(|err| JsCompileError::from(err))?;
 
     Ok(byte_code)
+}
+
+impl From<language::ReadError> for JsCompileError {
+    fn from(err: language::ReadError) -> JsCompileError {
+        let (region, reason) = match err {
+            language::ReadError::ParseError(e, line) => {
+                ((line as u32, 0, line as u32, 10), format!("{:?}", e))
+            },
+            language::ReadError::AssembleError(e) => {
+                ((1, 0, 1, 100), format!("Error while assembling champion: {:?}", e))
+            },
+            language::ReadError::IOError(e) => {
+                ((1, 0, 1, 100), format!("Unexpected IO error: {}", e))
+            }
+        };
+
+        let (from_row, from_col, to_row, to_col) = region;
+
+        JsCompileError { from_row, from_col, to_row, to_col, reason }
+    }
+}
+
+impl From<language::WriteError> for JsCompileError {
+    fn from(err: language::WriteError) -> JsCompileError {
+        let reason = match err {
+            language::WriteError::CompileError(e) => {
+                format!("Error while compiling champion: {:?}", e)
+            },
+            language::WriteError::IOError(e) => {
+                format!("Unexpected IO error: {}", e)
+            }
+        };
+
+        JsCompileError { from_row: 1, from_col: 0, to_row: 1, to_col: 100, reason }
+    }
 }

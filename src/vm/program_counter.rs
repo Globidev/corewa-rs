@@ -23,7 +23,7 @@ impl ProgramCounter {
     }
 }
 
-impl std::convert::From<usize> for ProgramCounter {
+impl From<usize> for ProgramCounter {
     fn from(offset: usize) -> Self {
         ProgramCounter(offset)
     }
