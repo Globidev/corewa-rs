@@ -1,8 +1,8 @@
 use crate::spec::ParamType;
-use super::types::*;
 use super::PidPool;
 use super::process::Process;
 use super::program_counter::ProgramCounter;
+use super::types::*;
 
 pub struct ExecutionContext<'a> {
     pub memory: &'a mut super::memory::Memory,

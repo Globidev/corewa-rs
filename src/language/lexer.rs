@@ -10,12 +10,9 @@ pub struct Token {
 
 pub type TokenResult = Result<Token, LexerError>;
 
-use std::iter::Peekable;
-use std::str::CharIndices;
-
 #[derive(Clone)]
 pub struct Tokenizer<'a> {
-    chars: Peekable<CharIndices<'a>>,
+    chars: std::iter::Peekable<std::str::CharIndices<'a>>,
     pub input: &'a str
 }
 

@@ -1,17 +1,16 @@
-use wasm_bindgen::prelude::*;
-
-pub mod types;
-mod process;
 pub mod memory;
-mod instructions;
+pub mod types;
 mod execution_context;
+mod instructions;
+mod process;
 mod program_counter;
 
-use self::types::*;
+use crate::spec::*;
 use self::execution_context::ExecutionContext;
 use self::process::{Process, ProcessState};
-use std::mem;
-use crate::spec::*;
+use self::types::*;
+
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 #[derive(Default)]
@@ -265,6 +264,6 @@ pub struct PidPool(Pid);
 impl PidPool {
     pub fn get(&mut self) -> Pid {
         let next = self.0 + 1;
-        mem::replace(&mut self.0, next)
+        std::mem::replace(&mut self.0, next)
     }
 }

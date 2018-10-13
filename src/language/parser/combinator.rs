@@ -1,5 +1,3 @@
-use std::mem;
-
 pub trait Parser<I>: Sized {
     type Output;
     type Err;
@@ -69,7 +67,7 @@ where
         let saved = input.clone();
 
         p1.parse(input).or_else(|e1| {
-            mem::replace(input, saved);
+            std::mem::replace(input, saved);
             p2.parse(input).map_err(|e2| (e1, e2))
         })
     }
@@ -102,7 +100,7 @@ where
         let saved = input.clone();
 
         self.0.parse(input).map(Some).or_else(|_| {
-            mem::replace(input, saved);
+            std::mem::replace(input, saved);
             Ok(None)
         })
     }

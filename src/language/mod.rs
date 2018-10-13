@@ -1,14 +1,14 @@
-mod types;
-mod lexer;
-mod parser;
 mod assembler;
 mod compiler;
+mod lexer;
+mod parser;
+mod types;
 
-use std::io::{Read, Write, BufRead, BufReader, Cursor, Error as IOError};
-
-use self::parser::{ParseError, parse_line};
 use self::assembler::{ChampionBuilder, Champion, AssembleError, assemble_line};
 use self::compiler::{CompileError, compile_champion};
+use self::parser::{ParseError, parse_line};
+
+use std::io::{Read, Write, BufRead, BufReader, Cursor, Error as IOError};
 
 pub fn read_champion(input: impl Read)
     -> Result<assembler::Champion, ReadError>

@@ -1,8 +1,8 @@
+mod combinator;
+
+use self::combinator::*;
 use super::lexer::{Token, Term, Tokenizer, TokenResult, LexerError};
 use super::types::*;
-
-mod combinator;
-use self::combinator::*;
 
 #[derive(Debug)]
 pub enum ParsedLine {

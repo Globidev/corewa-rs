@@ -1,11 +1,10 @@
-use super::types::*;
+use crate::spec::{self, Header, OpSpec, OpType, DirectSize};
 use super::assembler::{Champion, ParsedInstruction};
-use crate::spec::{self, Header};
-
-use std::io::{Write, Seek, SeekFrom, Error as IOError};
-use std::mem;
+use super::types::*;
 
 use std::collections::HashMap;
+use std::io::{Write, Seek, SeekFrom, Error as IOError};
+use std::mem;
 
 type CompileResult<T> = Result<T, CompileError>;
 
@@ -74,33 +73,29 @@ fn ocp(op: &Op) -> u8 {
     }
 }
 
-struct OpAttributes {
-    code: u8,
-    has_ocp: bool,
-    dir_size: usize
-}
-
-fn op_attribute(op: &Op) -> OpAttributes {
+fn op_spec(op: &Op) -> OpSpec {
     use self::Op::*;
 
-    match op {
-        Live  (..) => OpAttributes { code: 1,  has_ocp: false, dir_size: 4 },
-        Ld    (..) => OpAttributes { code: 2,  has_ocp: true,  dir_size: 4 },
-        St    (..) => OpAttributes { code: 3,  has_ocp: true,  dir_size: 4 },
-        Add   (..) => OpAttributes { code: 4,  has_ocp: true,  dir_size: 4 },
-        Sub   (..) => OpAttributes { code: 5,  has_ocp: true,  dir_size: 4 },
-        And   (..) => OpAttributes { code: 6,  has_ocp: true,  dir_size: 4 },
-        Or    (..) => OpAttributes { code: 7,  has_ocp: true,  dir_size: 4 },
-        Xor   (..) => OpAttributes { code: 8,  has_ocp: true,  dir_size: 4 },
-        Zjmp  (..) => OpAttributes { code: 9,  has_ocp: false, dir_size: 2 },
-        Ldi   (..) => OpAttributes { code: 10, has_ocp: true,  dir_size: 2 },
-        Sti   (..) => OpAttributes { code: 11, has_ocp: true,  dir_size: 2 },
-        Fork  (..) => OpAttributes { code: 12, has_ocp: false, dir_size: 2 },
-        Lld   (..) => OpAttributes { code: 13, has_ocp: true,  dir_size: 4 },
-        Lldi  (..) => OpAttributes { code: 14, has_ocp: true,  dir_size: 2 },
-        Lfork (..) => OpAttributes { code: 15, has_ocp: false, dir_size: 2 },
-        Aff   (..) => OpAttributes { code: 16, has_ocp: true,  dir_size: 4 },
-    }
+    let op_type = match op {
+        Live  (..) => OpType::Live,
+        Ld    (..) => OpType::Ld,
+        St    (..) => OpType::St,
+        Add   (..) => OpType::Add,
+        Sub   (..) => OpType::Sub,
+        And   (..) => OpType::And,
+        Or    (..) => OpType::Or,
+        Xor   (..) => OpType::Xor,
+        Zjmp  (..) => OpType::Zjmp,
+        Ldi   (..) => OpType::Ldi,
+        Sti   (..) => OpType::Sti,
+        Fork  (..) => OpType::Fork,
+        Lld   (..) => OpType::Lld,
+        Lldi  (..) => OpType::Lldi,
+        Lfork (..) => OpType::Lfork,
+        Aff   (..) => OpType::Aff,
+    };
+
+    OpSpec::from(op_type)
 }
 
 struct State<W> {
@@ -161,14 +156,18 @@ let header_data = {
     }
 
     fn write_op(&mut self, op: &Op) -> CompileResult<()> {
-        let OpAttributes { code, has_ocp, dir_size } = op_attribute(op);
+        let OpSpec { code, has_ocp, dir_size, .. } = op_spec(op);
 
         self.current_op_pos = self.size;
 
         if has_ocp { self.write(&[code, ocp(op)])?; }
         else       { self.write(&[code])?; }
 
-        self.write_params(&op, dir_size)
+        let size = match dir_size {
+            DirectSize::TwoBytes => 2,
+            DirectSize::FourBytes => 4,
+        };
+        self.write_params(&op, size)
     }
 
     fn write_params(&mut self, op: &Op, size: usize) -> CompileResult<()> {

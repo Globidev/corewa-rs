@@ -1,9 +1,6 @@
 use crate::spec::{MEM_SIZE, IDX_MOD};
 use super::types::OffsetType;
 
-use std::convert::From;
-use std::ops::Deref;
-
 #[derive(Debug, Default)]
 pub struct ProgramCounter(usize);
 
@@ -26,13 +23,13 @@ impl ProgramCounter {
     }
 }
 
-impl From<usize> for ProgramCounter {
+impl std::convert::From<usize> for ProgramCounter {
     fn from(offset: usize) -> Self {
         ProgramCounter(offset)
     }
 }
 
-impl Deref for ProgramCounter {
+impl std::ops::Deref for ProgramCounter {
     type Target = usize;
 
     fn deref(&self) -> &usize {

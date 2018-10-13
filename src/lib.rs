@@ -1,8 +1,7 @@
 pub mod language;
-mod spec;
 pub mod vm;
-
 mod utils;
+mod spec;
 
 use wasm_bindgen::prelude::*;
 

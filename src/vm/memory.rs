@@ -1,10 +1,9 @@
+use crate::spec::*;
 use super::types::*;
 
-use wasm_bindgen::prelude::*;
-
-use crate::spec::*;
-use std::mem;
 use std::ops::Index;
+
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 #[derive(Default, Clone, Copy)]
@@ -111,7 +110,7 @@ impl Memory {
     }
 
     pub fn write_i32(&mut self, value: i32, owner: PlayerId, at: usize) {
-        let value_as_bytes: [u8; 4] = unsafe { mem::transmute(value.to_be()) };
+        let value_as_bytes: [u8; 4] = unsafe { std::mem::transmute(value.to_be()) };
         let cells: Vec<_> = value_as_bytes.iter()
             .map(|v| Cell { value: *v, owner: Some(owner) })
             .collect();
