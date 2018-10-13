@@ -1,13 +1,18 @@
 /* tslint:disable */
 export function compile_champion(arg0: string): Uint8Array
 
-export class JsCompileError {
+export class Region {
   from_row: number
   from_col: number
   to_row: number
   to_col: number
   free(): void
+}
+export class JsCompileError {
+  free(): void
   reason(): string
+
+  region(): any
 }
 export class VirtualMachine {
   cycles: number
@@ -34,11 +39,6 @@ export class VirtualMachine {
 
   tick(): boolean
 }
-export class Cell {
-  value: number
-  owner: number
-  free(): void
-}
 export class VMBuilder {
   free(): void
   constructor()
@@ -46,4 +46,9 @@ export class VMBuilder {
   with_player(arg0: number, arg1: Uint8Array): VMBuilder
 
   finish(): VirtualMachine
+}
+export class Cell {
+  value: number
+  owner: number
+  free(): void
 }

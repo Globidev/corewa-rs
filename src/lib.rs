@@ -6,11 +6,23 @@ mod spec;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub struct JsCompileError {
+#[derive(Clone)]
+pub struct Region {
     pub from_row: u32,
     pub from_col: u32,
     pub to_row: u32,
     pub to_col: u32,
+}
+
+impl Region {
+    fn new(from_row: u32, from_col: u32, to_row: u32, to_col: u32) -> Self {
+        Self { from_row, from_col, to_row, to_col }
+    }
+}
+
+#[wasm_bindgen]
+pub struct JsCompileError {
+    region: Option<Region>,
     reason: String
 }
 
@@ -18,6 +30,11 @@ pub struct JsCompileError {
 impl JsCompileError {
     pub fn reason(&self) -> String {
         self.reason.clone()
+    }
+
+    pub fn region(&self) -> JsValue {
+        self.region.clone().map(Into::into)
+            .unwrap_or(JsValue::NULL)
     }
 }
 
@@ -40,19 +57,18 @@ impl From<language::ReadError> for JsCompileError {
     fn from(err: language::ReadError) -> JsCompileError {
         let (region, reason) = match err {
             language::ReadError::ParseError(e, line) => {
-                ((line as u32, 0, line as u32, 10), format!("{:?}", e))
+                let line = line as u32;
+                (Some(Region::new(line, 0, line, 10)), format!("{:?}", e))
             },
             language::ReadError::AssembleError(e) => {
-                ((1, 0, 1, 100), format!("Error while assembling champion: {:?}", e))
+                (None, format!("Error while assembling champion: {:?}", e))
             },
             language::ReadError::IOError(e) => {
-                ((1, 0, 1, 100), format!("Unexpected IO error: {}", e))
+                (None, format!("Unexpected IO error: {}", e))
             }
         };
 
-        let (from_row, from_col, to_row, to_col) = region;
-
-        JsCompileError { from_row, from_col, to_row, to_col, reason }
+        JsCompileError { region, reason }
     }
 }
 
@@ -67,6 +83,6 @@ impl From<language::WriteError> for JsCompileError {
             }
         };
 
-        JsCompileError { from_row: 1, from_col: 0, to_row: 1, to_col: 100, reason }
+        JsCompileError { region: None, reason }
     }
 }

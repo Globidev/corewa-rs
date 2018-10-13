@@ -1,7 +1,7 @@
 import { champions } from './champions'
 
 import * as React from 'react'
-import { JsCompileError } from './corewar'
+import { JsCompileError, Region } from './corewar'
 
 interface IEditorProps {
   onCodeChanged: (code: CompiledChampion) => void
@@ -48,6 +48,7 @@ export class Editor extends React.Component<IEditorProps> {
       })
       // editor.performLint()
 
+      // @ts-ignore
       editor.on('change', (_e, _ch) => {
         clearTimeout(this.debounceId)
         this.debounceId = window.setTimeout(
@@ -113,12 +114,23 @@ CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
     opts.editor.compile(code)
     return []
   } catch (err) {
-    console.warn(err)
     const compileError = err as JsCompileError
+    const region = compileError.region() as Region | null
+    let [from_row, from_col, to_row, to_col] = (() => {
+      if (region != null)
+        return [
+          region.from_row - 1,
+          region.from_col,
+          region.to_row - 1,
+          region.to_col + 500
+        ]
+      else return [0, 0, 5000, 5000]
+    })()
+
     return [
       {
-        from: CodeMirror.Pos(compileError.from_row - 1, compileError.from_col),
-        to: CodeMirror.Pos(compileError.to_row - 1, compileError.to_col + 500),
+        from: CodeMirror.Pos(from_row, from_col),
+        to: CodeMirror.Pos(to_row, to_col),
         message: compileError.reason()
       }
     ]

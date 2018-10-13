@@ -44,6 +44,41 @@
     return cachegetUint32Memory
   }
 
+  const stack = []
+
+  const slab = [{ obj: undefined }, { obj: null }, { obj: true }, { obj: false }]
+
+  function getObject(idx) {
+    if ((idx & 1) === 1) {
+      return stack[idx >> 1]
+    } else {
+      const val = slab[idx >> 1]
+
+      return val.obj
+    }
+  }
+
+  let slab_next = slab.length
+
+  function dropRef(idx) {
+    idx = idx >> 1
+    if (idx < 4) return
+    let obj = slab[idx]
+
+    obj.cnt -= 1
+    if (obj.cnt > 0) return
+
+    // If we hit 0 then free up our space in the slab
+    slab[idx] = slab_next
+    slab_next = idx
+  }
+
+  function takeObject(idx) {
+    const ret = getObject(idx)
+    dropRef(idx)
+    return ret
+  }
+
   let cachedTextEncoder = new TextEncoder('utf-8')
 
   function passStringToWasm(arg) {
@@ -88,10 +123,6 @@
     __wbg_error_cc95a3d302735ca3_target(varg0)
   }
 
-  const slab = [{ obj: undefined }, { obj: null }, { obj: true }, { obj: false }]
-
-  let slab_next = slab.length
-
   function addHeapObject(obj) {
     if (slab_next === slab.length) slab.push(slab.length + 1)
     const idx = slab_next
@@ -102,6 +133,67 @@
     slab[idx] = { obj, cnt: 1 }
     return idx << 1
   }
+
+  __exports.__wbg_region_new = function(ptr) {
+    return addHeapObject(Region.__wrap(ptr))
+  }
+
+  function freeRegion(ptr) {
+    wasm.__wbg_region_free(ptr)
+  }
+  /**
+   */
+  class Region {
+    static __wrap(ptr) {
+      const obj = Object.create(Region.prototype)
+      obj.ptr = ptr
+
+      return obj
+    }
+
+    /**
+     * @returns {number}
+     */
+    get from_row() {
+      return wasm.__wbg_get_region_from_row(this.ptr)
+    }
+    set from_row(arg0) {
+      return wasm.__wbg_set_region_from_row(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get from_col() {
+      return wasm.__wbg_get_region_from_col(this.ptr)
+    }
+    set from_col(arg0) {
+      return wasm.__wbg_set_region_from_col(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get to_row() {
+      return wasm.__wbg_get_region_to_row(this.ptr)
+    }
+    set to_row(arg0) {
+      return wasm.__wbg_set_region_to_row(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get to_col() {
+      return wasm.__wbg_get_region_to_col(this.ptr)
+    }
+    set to_col(arg0) {
+      return wasm.__wbg_set_region_to_col(this.ptr, arg0)
+    }
+    free() {
+      const ptr = this.ptr
+      this.ptr = 0
+      freeRegion(ptr)
+    }
+  }
+  __exports.Region = Region
 
   __exports.__wbg_jscompileerror_new = function(ptr) {
     return addHeapObject(JsCompileError.__wrap(ptr))
@@ -120,42 +212,6 @@
       return obj
     }
 
-    /**
-     * @returns {number}
-     */
-    get from_row() {
-      return wasm.__wbg_get_jscompileerror_from_row(this.ptr)
-    }
-    set from_row(arg0) {
-      return wasm.__wbg_set_jscompileerror_from_row(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get from_col() {
-      return wasm.__wbg_get_jscompileerror_from_col(this.ptr)
-    }
-    set from_col(arg0) {
-      return wasm.__wbg_set_jscompileerror_from_col(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get to_row() {
-      return wasm.__wbg_get_jscompileerror_to_row(this.ptr)
-    }
-    set to_row(arg0) {
-      return wasm.__wbg_set_jscompileerror_to_row(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get to_col() {
-      return wasm.__wbg_get_jscompileerror_to_col(this.ptr)
-    }
-    set to_col(arg0) {
-      return wasm.__wbg_set_jscompileerror_to_col(this.ptr, arg0)
-    }
     free() {
       const ptr = this.ptr
       this.ptr = 0
@@ -174,6 +230,12 @@
       const realRet = getStringFromWasm(rustptr, rustlen).slice()
       wasm.__wbindgen_free(rustptr, rustlen * 1)
       return realRet
+    }
+    /**
+     * @returns {any}
+     */
+    region() {
+      return takeObject(wasm.jscompileerror_region(this.ptr))
     }
   }
   __exports.JsCompileError = JsCompileError
@@ -309,6 +371,52 @@
   }
   __exports.VirtualMachine = VirtualMachine
 
+  function freeVMBuilder(ptr) {
+    wasm.__wbg_vmbuilder_free(ptr)
+  }
+  /**
+   */
+  class VMBuilder {
+    static __wrap(ptr) {
+      const obj = Object.create(VMBuilder.prototype)
+      obj.ptr = ptr
+
+      return obj
+    }
+
+    free() {
+      const ptr = this.ptr
+      this.ptr = 0
+      freeVMBuilder(ptr)
+    }
+    /**
+     * @returns {}
+     */
+    constructor() {
+      this.ptr = wasm.vmbuilder_new()
+    }
+    /**
+     * @param {number} arg0
+     * @param {Uint8Array} arg1
+     * @returns {VMBuilder}
+     */
+    with_player(arg0, arg1) {
+      const ptr = this.ptr
+      this.ptr = 0
+      const [ptr1, len1] = passArray8ToWasm(arg1)
+      return VMBuilder.__wrap(wasm.vmbuilder_with_player(ptr, arg0, ptr1, len1))
+    }
+    /**
+     * @returns {VirtualMachine}
+     */
+    finish() {
+      const ptr = this.ptr
+      this.ptr = 0
+      return VirtualMachine.__wrap(wasm.vmbuilder_finish(ptr))
+    }
+  }
+  __exports.VMBuilder = VMBuilder
+
   function isLikeNone(x) {
     return x === undefined || x === null
   }
@@ -371,83 +479,6 @@
     }
   }
   __exports.Cell = Cell
-
-  function freeVMBuilder(ptr) {
-    wasm.__wbg_vmbuilder_free(ptr)
-  }
-  /**
-   */
-  class VMBuilder {
-    static __wrap(ptr) {
-      const obj = Object.create(VMBuilder.prototype)
-      obj.ptr = ptr
-
-      return obj
-    }
-
-    free() {
-      const ptr = this.ptr
-      this.ptr = 0
-      freeVMBuilder(ptr)
-    }
-    /**
-     * @returns {}
-     */
-    constructor() {
-      this.ptr = wasm.vmbuilder_new()
-    }
-    /**
-     * @param {number} arg0
-     * @param {Uint8Array} arg1
-     * @returns {VMBuilder}
-     */
-    with_player(arg0, arg1) {
-      const ptr = this.ptr
-      this.ptr = 0
-      const [ptr1, len1] = passArray8ToWasm(arg1)
-      return VMBuilder.__wrap(wasm.vmbuilder_with_player(ptr, arg0, ptr1, len1))
-    }
-    /**
-     * @returns {VirtualMachine}
-     */
-    finish() {
-      const ptr = this.ptr
-      this.ptr = 0
-      return VirtualMachine.__wrap(wasm.vmbuilder_finish(ptr))
-    }
-  }
-  __exports.VMBuilder = VMBuilder
-
-  const stack = []
-
-  function getObject(idx) {
-    if ((idx & 1) === 1) {
-      return stack[idx >> 1]
-    } else {
-      const val = slab[idx >> 1]
-
-      return val.obj
-    }
-  }
-
-  function dropRef(idx) {
-    idx = idx >> 1
-    if (idx < 4) return
-    let obj = slab[idx]
-
-    obj.cnt -= 1
-    if (obj.cnt > 0) return
-
-    // If we hit 0 then free up our space in the slab
-    slab[idx] = slab_next
-    slab_next = idx
-  }
-
-  function takeObject(idx) {
-    const ret = getObject(idx)
-    dropRef(idx)
-    return ret
-  }
 
   __exports.__wbindgen_rethrow = function(idx) {
     throw takeObject(idx)
