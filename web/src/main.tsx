@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render } from 'react-dom'
-import FlexLayout, { Layout, TabNode } from 'flexlayout-react'
+import FlexLayout, { Layout, TabNode, Model } from 'flexlayout-react'
 import { observer } from 'mobx-react'
 
 import { Editor } from './editor'
@@ -70,7 +70,7 @@ var json = {
             enableClose: false,
             component: PaneComponent.VM,
             config: {
-              vm: initialVm
+              vmId: initialVmId
             }
           }
         ]
@@ -81,7 +81,13 @@ var json = {
 
 @observer
 class App extends React.Component {
-  state = { model: FlexLayout.Model.fromJson(json) }
+  state = {
+    model: (() => {
+      const savedLayout = localStorage.getItem('corewar-layout')
+      const layout = savedLayout ? JSON.parse(savedLayout) : json
+      return FlexLayout.Model.fromJson(layout)
+    })()
+  }
   layoutRef = React.createRef<Layout>()
 
   factory(node: TabNode) {
@@ -105,11 +111,12 @@ class App extends React.Component {
           />
         )
       case PaneComponent.VM:
+        const vmm = state.getVm(config.vmId) as ObservableVM
         return (
           <VM
-            vm={config.vm}
+            vm={vmm}
             onNewChampionRequested={championId =>
-              this.onNewChampionRequested(config.vm.id, championId)
+              this.onNewChampionRequested(vmm.id, championId)
             }
           />
         )
@@ -152,9 +159,9 @@ class App extends React.Component {
   //   console.log(tab.getName())
   // }
 
-  // onModelChange(...x) {
-  //   console.log(x)
-  // }
+  onModelChange(model: Model) {
+    localStorage.setItem('corewar-layout', JSON.stringify(model.toJson()))
+  }
 
   render() {
     return (
@@ -162,7 +169,7 @@ class App extends React.Component {
         <button onClick={this.onNewVmRequested.bind(this)}>New VM</button>
         <Layout
           // onRenderTab={this.onRenderTab.bind(this)}
-          // onModelChange={this.onModelChange.bind(this)}
+          onModelChange={this.onModelChange.bind(this)}
           ref={this.layoutRef}
           model={this.state.model}
           factory={this.factory.bind(this)}
