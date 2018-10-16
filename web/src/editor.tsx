@@ -2,10 +2,14 @@ import { champions } from './champions'
 
 import * as React from 'react'
 import { JsCompileError, Region } from './corewar'
+import { observer } from 'mobx-react'
+import { ObservableVM } from './state'
 
 interface IEditorProps {
   onCodeChanged: (code: CompiledChampion) => void
   onClosed: () => void
+  championColors: ObservableVM['colors']
+  championId: number
 }
 
 // Object.keys(champions).forEach(champName => {
@@ -22,6 +26,7 @@ interface IEditorProps {
 //   return champions[randomKey]
 // }
 
+@observer
 export class Editor extends React.Component<IEditorProps> {
   domContainer = React.createRef<HTMLDivElement>()
   debounceId: number = 0
@@ -51,19 +56,13 @@ export class Editor extends React.Component<IEditorProps> {
       // @ts-ignore
       editor.on('change', (_e, _ch) => {
         clearTimeout(this.debounceId)
-        this.debounceId = window.setTimeout(
-          editor.performLint.bind(editor),
-          100
-          // editor.getValue()
-        )
+        this.debounceId = window.setTimeout(editor.performLint.bind(editor), 100)
       })
 
       // ?????
       setTimeout(() => {
         editor.refresh()
       }, 0)
-
-      // this.compile(editor.getValue())
 
       this.editor = editor
     }
@@ -97,6 +96,13 @@ export class Editor extends React.Component<IEditorProps> {
               )
             })}
           </select>
+          <div
+            style={{
+              width: '20px',
+              height: '20px',
+              backgroundColor: this.props.championColors.get(this.props.championId)
+            }}
+          />
         </div>
         <div id="editor" ref={this.domContainer} />
       </div>

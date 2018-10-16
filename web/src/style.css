@@ -19,6 +19,7 @@ body {
 
 #editor-container {
   height: 100%;
+  overflow: hidden;
 }
 
 #canvas {

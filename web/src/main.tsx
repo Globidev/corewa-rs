@@ -5,7 +5,7 @@ import { observer } from 'mobx-react'
 
 import { Editor } from './editor'
 import { VM } from './vm'
-import { state } from './state'
+import { state, ObservableVM } from './state'
 
 const enum PaneComponent {
   Editor = 'editor',
@@ -67,6 +67,7 @@ var json = {
           {
             type: 'tab',
             name: 'vm 1',
+            enableClose: false,
             component: PaneComponent.VM,
             config: {
               vm: initialVm
@@ -88,6 +89,7 @@ class App extends React.Component {
     const config = node.getConfig()
     switch (component) {
       case PaneComponent.Editor:
+        const vm = state.getVm(config.vmId) as ObservableVM
         return (
           <Editor
             onCodeChanged={champion => {
@@ -98,6 +100,8 @@ class App extends React.Component {
               const vm = state.getVm(config.vmId)
               if (vm) vm.removeChampion(config.championId)
             }}
+            championColors={vm.colors}
+            championId={config.championId}
           />
         )
       case PaneComponent.VM:
@@ -148,9 +152,9 @@ class App extends React.Component {
   //   console.log(tab.getName())
   // }
 
-  onModelChange(...x) {
-    console.log(x)
-  }
+  // onModelChange(...x) {
+  //   console.log(x)
+  // }
 
   render() {
     return (
@@ -158,7 +162,7 @@ class App extends React.Component {
         <button onClick={this.onNewVmRequested.bind(this)}>New VM</button>
         <Layout
           // onRenderTab={this.onRenderTab.bind(this)}
-          onModelChange={this.onModelChange.bind(this)}
+          // onModelChange={this.onModelChange.bind(this)}
           ref={this.layoutRef}
           model={this.state.model}
           factory={this.factory.bind(this)}

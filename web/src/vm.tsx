@@ -25,7 +25,7 @@ export class VM extends React.Component<IVMProps> {
     observe(props.vm, 'cycles', _ => {
       const canvas = this.canvasRef.current
 
-      if (props.vm.vm && canvas) drawVm(props.vm.vm, canvas)
+      if (props.vm.vm && canvas) drawVm(props.vm.vm, canvas, props.vm.colors)
     })
   }
 
@@ -43,7 +43,7 @@ export class VM extends React.Component<IVMProps> {
       if (vm.vm) {
         const height = ROWS
         canvas.height = height * BYTE_HEIGHT
-        drawVm(vm.vm, canvas)
+        drawVm(vm.vm, canvas, vm.colors)
       } else {
         canvas.height = canvas.clientHeight
       }
@@ -60,9 +60,9 @@ export class VM extends React.Component<IVMProps> {
     return (
       <div id="vm-container">
         <div style={{ display: 'flex' }}>
-          <button onClick={this.onNewClicked.bind(this)} disabled={vm.players.size >= 4}>
-            ➕
-          </button>
+          {vm.players.size < 4 ? (
+            <button onClick={this.onNewClicked.bind(this)}>➕</button>
+          ) : null}
           <ControlPanel vm={vm} />
           <InfoPanel vm={vm} />
         </div>
@@ -134,12 +134,14 @@ class InfoPanel extends React.Component<{ vm: ObservableVM }> {
   }
 }
 
-const PLAYER_COLORS = ['#FFA517', '#7614CC', '#14CC57', '#1A2AFF']
-
 const ROWS = 64
 const COLUMNS = 64
 
-function drawVm(vm: VirtualMachine, canvas: HTMLCanvasElement) {
+function drawVm(
+  vm: VirtualMachine,
+  canvas: HTMLCanvasElement,
+  player_colors: Map<number, string>
+) {
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -163,11 +165,6 @@ function drawVm(vm: VirtualMachine, canvas: HTMLCanvasElement) {
     )
   }
 
-  const colors = new Map<number, string>()
-  for (let i = 0; i < vm.player_count(); ++i) {
-    colors.set(vm.player_id(i), PLAYER_COLORS[i])
-  }
-
   for (let i = 0; i < size; ++i) {
     const cell = vm.cell_at(i)
     const x = i % COLUMNS
@@ -177,7 +174,7 @@ function drawVm(vm: VirtualMachine, canvas: HTMLCanvasElement) {
     if (byteText.length < 2) byteText = `0${byteText}`
 
     let textColor =
-      cell.owner !== undefined ? (colors.get(cell.owner) as string) : 'silver'
+      cell.owner !== undefined ? (player_colors.get(cell.owner) as string) : 'silver'
     ctx.fillStyle = textColor
     ctx.fillText(byteText, x * BYTE_WIDTH, (y + 1) * BYTE_HEIGHT, BYTE_WIDTH)
   }

@@ -1,5 +1,8 @@
 import { VirtualMachine } from './corewar.d'
 import { observable, action } from 'mobx'
+import { Color } from 'csstype'
+
+const PLAYER_COLORS = ['#FFA517', '#7649CC', '#14CC57', '#0FD5FF']
 
 export class ObservableVM {
   @observable
@@ -27,6 +30,9 @@ export class ObservableVM {
   id: number
 
   championIdPool: number = 0
+
+  @observable
+  colors = new Map<number, Color>()
 
   constructor(id: number) {
     this.id = id
@@ -70,6 +76,11 @@ export class ObservableVM {
         new wasm_bindgen.VMBuilder()
       )
       .finish()
+
+    this.colors.clear()
+    for (let i = 0; i < this.vm.player_count(); ++i) {
+      this.colors.set(this.vm.player_id(i), PLAYER_COLORS[i])
+    }
 
     this.cycles = 0
   }
