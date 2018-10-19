@@ -81,3 +81,18 @@ pub enum AssembleError {
     MissingName,
     MissingComment,
 }
+
+use std::fmt;
+
+impl fmt::Display for AssembleError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::AssembleError::*;
+
+        match self {
+            NameAlreadySet(previous_name) => write!(f, "Duplicate '.name' directive: the champion was already named '{}'", previous_name),
+            CommentAlreadySet(previous_comment) => write!(f, "Duplicate '.comment' directive: the champion already had a comment '{}'", previous_comment),
+            MissingName => write!(f, "The champion is missing a '.name' directive"),
+            MissingComment => write!(f, "The champion is missing a '.comment' directive"),
+        }
+    }
+}

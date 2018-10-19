@@ -61,7 +61,7 @@ impl From<language::ReadError> for JsCompileError {
                 (Some(Region::new(line, 0, line, 10)), format!("{:?}", e))
             },
             language::ReadError::AssembleError(e) => {
-                (None, format!("Error while assembling champion: {:?}", e))
+                (None, format!("Error while assembling champion: {}", e))
             },
             language::ReadError::IOError(e) => {
                 (None, format!("Unexpected IO error: {}", e))
@@ -76,7 +76,7 @@ impl From<language::WriteError> for JsCompileError {
     fn from(err: language::WriteError) -> JsCompileError {
         let reason = match err {
             language::WriteError::CompileError(e) => {
-                format!("Error while compiling champion: {:?}", e)
+                format!("Error while compiling champion: {}", e)
             },
             language::WriteError::IOError(e) => {
                 format!("Unexpected IO error: {}", e)

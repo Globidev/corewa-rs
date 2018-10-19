@@ -1,4 +1,4 @@
-use crate::spec::{self, Header, OpSpec, OpType, DirectSize};
+use crate::spec::{self, Header, OpSpec, OpType, DirectSize, PROG_NAME_LENGTH, PROG_COMMENT_LENGTH};
 use super::assembler::{Champion, ParsedInstruction};
 use super::types::*;
 
@@ -317,5 +317,21 @@ pub enum CompileError {
 impl From<IOError> for CompileError {
     fn from(err: IOError) -> Self {
         CompileError::IOError(err)
+    }
+}
+
+use std::fmt;
+
+impl fmt::Display for CompileError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::CompileError::*;
+
+        match self {
+            ProgramNameTooLong(size) => write!(f, "The champion's name is too long: {} bytes (maximum allowed is {})", size, PROG_NAME_LENGTH),
+            ProgramCommentTooLong(size) => write!(f, "The champion's comment is too long: {} bytes (maximum allowed is {})", size, PROG_COMMENT_LENGTH),
+            MissingLabel(label) => write!(f, "The label '{}' is missing. It is referenced in a parameter but has never been declared", label),
+            DuplicateLabel(label) => write!(f, "The label '{}' has been declared multiple times. A label can only be declared once", label),
+            IOError(err) => write!(f, "Unexpected IO error: {}", err)
+        }
     }
 }
