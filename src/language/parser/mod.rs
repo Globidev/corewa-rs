@@ -35,8 +35,8 @@ pub fn parse_line(input: &str) -> Result<ParsedLine, ParseError> {
             let label = label(&mut tokens)?;
 
             let parsed = match tokens.peek() {
-                None => ParsedLine::Label(label),
-                _    => ParsedLine::LabelAndOp(label, op(&mut tokens)?)
+                None | Some(Ok(Token { term: Term::Comment, .. })) => ParsedLine::Label(label),
+                _ => ParsedLine::LabelAndOp(label, op(&mut tokens)?)
             };
 
             Ok(parsed)
