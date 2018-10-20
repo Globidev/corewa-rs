@@ -32,12 +32,14 @@ pub fn parse_line(input: &str) -> Result<ParsedLine, ParseError> {
                 .map(ParsedLine::ChampionComment)
         },
         Term::LabelDef => {
-            label.and(op.optional())
-                .map(|(label, opt_op)| match opt_op {
-                    None => ParsedLine::Label(label),
-                    Some(op) => ParsedLine::LabelAndOp(label, op)
-                })
-                .parse(&mut tokens)
+            let label = label(&mut tokens)?;
+
+            let parsed = match tokens.peek() {
+                None => ParsedLine::Label(label),
+                _    => ParsedLine::LabelAndOp(label, op(&mut tokens)?)
+            };
+
+            Ok(parsed)
         },
         Term::Ident => {
             op(&mut tokens)
@@ -78,22 +80,27 @@ fn label_param(input: &mut TokenStream) -> ParseResult<String> {
 }
 
 fn number(input: &mut TokenStream) -> ParseResult<i64> {
-    let number_as_str = input.next(Term::Number)?;
-    number_as_str.parse().map_err(ParseError::ParseIntError)
+    let (tok, number_as_str) = input.next_with_token(Term::Number)?;
+    number_as_str.parse()
+        .map_err(|e| ParseError::ParseIntError(e, tok))
 }
 
 fn register(input: &mut TokenStream) -> ParseResult<Register> {
-    let reg_str = input.next(Term::Ident)?;
+    let (tok, reg_str) = input.next_with_token(Term::Ident)?;
     let mut chars = reg_str.chars();
 
-    let first_char = chars.next().ok_or(ParseError::MissingRegisterPrefix)?;
-    let reg_num: i64 = chars.as_str().parse()
-        .map_err(ParseError::ParseIntError)?;
+    let first_char = {
+        let tok = tok.clone();
+        chars.next()
+            .ok_or_else(|| ParseError::MissingRegisterPrefix(tok))?
+    };
+    let reg_num_result = chars.as_str().parse();
 
-    match (first_char, reg_num) {
-        ('r', x) if 1 <= x && x <= 16 => Ok(Register(reg_num as u8)),
-        ('r', x) => Err(ParseError::InvalidRegisterCount(x)),
-        (c,   _) => Err(ParseError::InvalidRegisterPrefix(c)),
+    match (first_char, reg_num_result) {
+        ('r', Ok(x)) if 1 <= x && x <= 16 => Ok(Register(x as u8)),
+        ('r', Ok(x)) => Err(ParseError::InvalidRegisterCount(x, tok)),
+        ('r', Err(e)) => Err(ParseError::ParseIntError(e, tok)),
+        (c,   _) => Err(ParseError::InvalidRegisterPrefix(c, tok)),
     }
 }
 
@@ -151,7 +158,7 @@ fn op(input: &mut TokenStream) -> ParseResult<Op> {
         };
     }
 
-    let mnemonic = input.next(Term::Ident)?;
+    let (tok, mnemonic) = input.next_with_token(Term::Ident)?;
 
     match mnemonic {
         "live"  => parse_op!( Op::Live,  direct                         ),
@@ -171,7 +178,7 @@ fn op(input: &mut TokenStream) -> ParseResult<Op> {
         "lfork" => parse_op!( Op::Lfork, direct                         ),
         "aff"   => parse_op!( Op::Aff,   register                       ),
 
-        _ => Err(ParseError::InvalidOpMnemonic(String::from(mnemonic)))
+        _ => Err(ParseError::InvalidOpMnemonic(String::from(mnemonic), tok))
     }
 }
 
@@ -194,6 +201,11 @@ impl<'a> TokenStream<'a> {
     }
 
     fn next(&mut self, term: Term) -> ParseResult<&'a str> {
+        self.next_with_token(term)
+            .map(|(_, s)| s)
+    }
+
+    fn next_with_token(&mut self, term: Term) -> ParseResult<(Token, &'a str)> {
         let token_result = self.tokens
             .next()
             .ok_or_else(|| ParseError::ExpectedButGotEof(term.clone()))?;
@@ -201,7 +213,7 @@ impl<'a> TokenStream<'a> {
         let token = token_result.map_err(ParseError::LexerError)?;
 
         if token.term == term {
-            Ok(&self.input[token.range])
+            Ok((token.clone(), &self.input[token.range]))
         } else {
             Err(ParseError::ExpectedButGot(term, token))
         }
@@ -216,13 +228,95 @@ pub enum ParseError {
     ExpectedButGot(Term, Token),
     ExpectedButGotEof(Term),
     ExpectedOneOf(Vec<ParseError>),
-    InvalidRegisterCount(i64),
-    InvalidRegisterPrefix(char),
-    MissingRegisterPrefix,
-    ParseIntError(::std::num::ParseIntError),
-    InvalidOpMnemonic(String),
+    InvalidRegisterCount(i64, Token),
+    InvalidRegisterPrefix(char, Token),
+    MissingRegisterPrefix(Token),
+    ParseIntError(::std::num::ParseIntError, Token),
+    InvalidOpMnemonic(String, Token),
 }
 
 fn expected_either((e1, e2): (ParseError, ParseError)) -> ParseError {
     ParseError::ExpectedOneOf(vec![e1, e2])
+}
+
+use std::fmt;
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::ParseError::*;
+        use std::collections::HashSet;
+
+        fn flatten_errors(errs: &Vec<ParseError>) -> Vec<&ParseError> {
+            errs.iter()
+                .flat_map(|err| match err {
+                    ExpectedOneOf(sub_errors) => flatten_errors(sub_errors),
+                    _ => vec![err]
+                })
+                .collect()
+        }
+
+        match self {
+            RemainingInput(token) => write!(f, "Extra token remaining: '{}'", token.term),
+            LexerError(err) => write!(f, "{}", err.kind),
+            Unexpected(token) => write!(f, "Unexpected initial token: '{}'", token.term),
+            ExpectedButGot(term, token) => write!(f, "Expected '{}' but got '{}'", term, token.term),
+            ExpectedButGotEof(term) => write!(f, "Expected '{}' before the end of the line", term),
+            ExpectedOneOf(errors) => {
+                let unique_error_strings = flatten_errors(errors)
+                    .into_iter()
+                    .map(|err| format!("{}", err))
+                    .collect::<HashSet<_>>();
+
+                match unique_error_strings.len() {
+                    0 => unreachable!("ExpectedOneOf has been given an empty sequence"),
+                    1 => write!(f, "{}", unique_error_strings.into_iter().next().unwrap()),
+                    _ => {
+                        let line_separated_erros = unique_error_strings
+                            .into_iter()
+                            .map(|s| format!("\n- {}", s))
+                            .collect::<String>();
+                        write!(f, "Either:{}", line_separated_erros)
+                    }
+                }
+            },
+            InvalidRegisterCount(n, _) => write!(f, "'{}' is not a valid register number. It must be between 1 and 16", n),
+            InvalidRegisterPrefix(prefix, _) => write!(f, "Register prefix should be 'r' and not '{}'", prefix),
+            MissingRegisterPrefix(_) => write!(f, "Register prefix 'r' is missing"),
+            ParseIntError(err, _) => write!(f, "Invalid register number: {}", err),
+            InvalidOpMnemonic(mnemonic, _) => write!(f, "'{}' is not a valid operation", mnemonic)
+        }
+    }
+}
+
+pub fn error_range(err: &ParseError) -> (usize, Option<usize>) {
+    use self::ParseError::*;
+
+    match err {
+        RemainingInput(token) => (token.range.start, Some(token.range.end)),
+        LexerError(err) => (err.at.start, Some(err.at.end)),
+        Unexpected(token) => (token.range.start, Some(token.range.end)),
+        ExpectedButGot(_, token) => (token.range.start, Some(token.range.end)),
+        ExpectedButGotEof(_) => (0, None),
+        ExpectedOneOf(errors) => {
+            let ranges = errors.iter()
+                .map(error_range)
+                .collect::<Vec<_>>();
+
+            let min_start = ranges.iter()
+                .map(|(start, _)| *start)
+                .min()
+                .expect("ExpectedOneOf has been given an empty sequence");
+
+            let max_end = ranges.iter()
+                .flat_map(|(_, opt_end)| *opt_end)
+                .max();
+
+            (min_start, max_end)
+        }
+        InvalidRegisterCount(_, token) => (token.range.start, Some(token.range.end)),
+        InvalidRegisterPrefix(_, token) => (token.range.start, Some(token.range.end)),
+        MissingRegisterPrefix(token) => (token.range.start, Some(token.range.end)),
+        ParseIntError(_, token) => (token.range.start, Some(token.range.end)),
+        InvalidOpMnemonic(_, token) => (token.range.start, Some(token.range.end))
+    }
 }

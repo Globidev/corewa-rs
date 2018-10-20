@@ -8,6 +8,8 @@ use self::assembler::{ChampionBuilder, Champion, AssembleError, assemble_line};
 use self::compiler::{CompileError, compile_champion};
 use self::parser::{ParseError, parse_line};
 
+pub use self::parser::error_range;
+
 use std::io::{Read, Write, BufRead, BufReader, Cursor, Error as IOError};
 
 pub fn read_champion(input: impl Read)

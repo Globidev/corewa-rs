@@ -13,19 +13,11 @@ pub trait Parser<I>: Sized {
     fn or<C>(self, other: C) -> Or<Self, C> {
         Or(self, other)
     }
-    fn and<C>(self, other: C) -> And<Self, C> {
-        And(self, other)
-    }
-    fn optional(self) -> Optional<Self> {
-        Optional(self)
-    }
 }
 
 pub struct Map<P, F>(P, F);
 pub struct MapErr<P, F>(P, F);
 pub struct Or<P1, P2>(P1, P2);
-pub struct And<P1, P2>(P1, P2);
-pub struct Optional<P>(P);
 
 impl<I, E, T, U, P, F> Parser<I> for Map<P, F>
 where
@@ -69,39 +61,6 @@ where
         p1.parse(input).or_else(|e1| {
             std::mem::replace(input, saved);
             p2.parse(input).map_err(|e2| (e1, e2))
-        })
-    }
-}
-
-impl<I, E, T1, T2, P1, P2> Parser<I> for And<P1, P2>
-where
-    P1: Parser<I, Output = T1, Err = E>,
-    P2: Parser<I, Output = T2, Err = E>,
-{
-    type Output = (T1, T2);
-    type Err = E;
-
-    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
-        let r1 = self.0.parse(input)?;
-        let r2 = self.1.parse(input)?;
-        Ok((r1, r2))
-    }
-}
-
-impl<I, E, T, P> Parser<I> for Optional<P>
-where
-    P: Parser<I, Output = T, Err = E>,
-    I: Clone,
-{
-    type Output = Option<T>;
-    type Err = E;
-
-    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
-        let saved = input.clone();
-
-        self.0.parse(input).map(Some).or_else(|_| {
-            std::mem::replace(input, saved);
-            Ok(None)
         })
     }
 }
