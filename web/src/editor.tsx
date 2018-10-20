@@ -124,12 +124,7 @@ CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
     const region = compileError.region() as Region | null
     let [from_row, from_col, to_row, to_col] = (() => {
       if (region != null)
-        return [
-          region.from_row - 1,
-          region.from_col,
-          region.to_row - 1,
-          region.to_col + 500
-        ]
+        return [region.from_row - 1, region.from_col, region.to_row - 1, region.to_col]
       else return [0, 0, 5000, 5000]
     })()
 

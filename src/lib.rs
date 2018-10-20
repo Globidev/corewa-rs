@@ -58,7 +58,12 @@ impl From<language::ReadError> for JsCompileError {
         let (region, reason) = match err {
             language::ReadError::ParseError(e, line) => {
                 let line = line as u32;
-                (Some(Region::new(line, 0, line, 10)), format!("{:?}", e))
+                let (col_start, opt_col_end) = language::error_range(&e);
+                let region = Region::new(
+                    line, col_start as u32,
+                    line, opt_col_end.unwrap_or(20000) as u32
+                );
+                (Some(region), format!("{}", e))
             },
             language::ReadError::AssembleError(e) => {
                 (None, format!("Error while assembling champion: {}", e))
