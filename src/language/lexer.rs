@@ -29,7 +29,7 @@ impl<'a> Iterator for Tokenizer<'a> {
                 ',' => self.lex_single(Term::ParamSeparator, idx),
                 '%' => self.lex_single(Term::DirectChar, idx),
 
-                '.' => self.lex_command(idx),
+                '.' => self.lex_directive(idx),
                 '"' => self.lex_quoted_string(idx),
                 '#' => self.lex_comment(idx),
                 '-' => self.lex_negative_number(idx),
@@ -39,7 +39,7 @@ impl<'a> Iterator for Tokenizer<'a> {
 
                 _ => {
                     self.chars.next();
-                    Err(LexerErrorKind::NoMatch.at(idx))
+                    Err(LexerErrorKind::NoMatch.at(idx..idx+1))
                 }
             })
     }
@@ -72,7 +72,7 @@ impl<'a> Tokenizer<'a> {
                 self.skip_while(|&(_, c)| IDENT_CHARS.contains(c));
                 Ok(Term::LabelUse.at(idx_start..self.peek_idx()))
             }
-            _ => Err(LexerErrorKind::EmptyLabel.at(idx_start))
+            _ => Err(LexerErrorKind::EmptyLabel.at(idx_start..idx_start+1))
         }
     }
 
@@ -82,22 +82,22 @@ impl<'a> Tokenizer<'a> {
         Ok(term.at(idx_start..self.peek_idx()))
     }
 
-    fn lex_command(&mut self, idx_start: usize)
+    fn lex_directive(&mut self, idx_start: usize)
         -> TokenResult
     {
-        const COMMANDS: [(&str, Term); 2] = [
+        const DIRECTIVES: [(&str, Term); 2] = [
             (".name",    Term::ChampionNameCmd),
             (".comment", Term::ChampionCommentCmd),
         ];
 
         let current_str = &self.input[idx_start..];
-        let command = COMMANDS.iter()
+        let directive = DIRECTIVES.iter()
             .find(|&(cmd, _)| current_str.starts_with(cmd));
 
-        match command {
+        match directive {
             None => {
-                self.chars.next(); // consume .
-                Err(LexerErrorKind::InvalidCommand.at(idx_start))
+                self.skip_while(|&(_, c)| c.is_whitespace());
+                Err(LexerErrorKind::InvalidDirective.at(idx_start..self.peek_idx()))
             },
             Some((cmd, term)) => {
                 let next = self.chars.by_ref().nth(cmd.len());
@@ -110,7 +110,7 @@ impl<'a> Tokenizer<'a> {
                     None => {
                         Ok(term.at(idx_start..self.input.len()))
                     },
-                    _ => Err(LexerErrorKind::InvalidCommand.at(idx_start))
+                    _ => Err(LexerErrorKind::InvalidDirective.at(idx_start..idx_start+cmd.len()))
                 }
             }
         }
@@ -124,7 +124,7 @@ impl<'a> Tokenizer<'a> {
 
         let token_result = self.chars.peek()
             .map(|(idx_end, _)| Term::QuotedString.at(idx_start+1..*idx_end))
-            .ok_or_else(|| LexerErrorKind::UnclosedQuotedString.at(idx_start));
+            .ok_or_else(|| LexerErrorKind::UnclosedQuotedString.at(idx_start..self.peek_idx()));
 
         self.chars.next(); // skip the end quote
         token_result
@@ -145,7 +145,7 @@ impl<'a> Tokenizer<'a> {
 
         match self.chars.next() {
             Some((_, c)) if c.is_digit(10) => self.lex_number(idx_start),
-            _ => Err(LexerErrorKind::NoNumberAfterMinus.at(idx_start))
+            _ => Err(LexerErrorKind::NoNumberAfterMinus.at(idx_start..idx_start+1))
         }
     }
 
@@ -196,21 +196,21 @@ pub enum Term {
 
 #[derive(Debug, Clone)]
 pub struct LexerError {
-    kind: LexerErrorKind,
-    at: usize
+    pub kind: LexerErrorKind,
+    pub at: InputRange
 }
 
 #[derive(Debug, Clone)]
-enum LexerErrorKind {
+pub enum LexerErrorKind {
     NoMatch,
-    InvalidCommand,
+    InvalidDirective,
     UnclosedQuotedString,
     NoNumberAfterMinus,
     EmptyLabel
 }
 
 impl LexerErrorKind {
-    fn at(self, at: usize) -> LexerError {
+    fn at(self, at: InputRange) -> LexerError {
         LexerError { kind: self, at }
     }
 }
@@ -218,5 +218,40 @@ impl LexerErrorKind {
 impl Term {
     fn at(self, range: InputRange) -> Token {
         Token { term: self, range }
+    }
+}
+
+use std::fmt;
+
+impl fmt::Display for Term {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::Term::*;
+
+        match self {
+            ChampionNameCmd => write!(f, "Name directive"),
+            ChampionCommentCmd => write!(f, "Comment directive"),
+            QuotedString => write!(f, "Quoted string"),
+            Comment => write!(f, "Comment"),
+            LabelDef => write!(f, "Label declaration"),
+            LabelUse => write!(f, "Label reference"),
+            ParamSeparator => write!(f, "Parameter separator"),
+            DirectChar => write!(f, "Direct character"),
+            Number => write!(f, "Number"),
+            Ident => write!(f, "Identifier"),
+        }
+    }
+}
+
+impl fmt::Display for LexerErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::LexerErrorKind::*;
+
+        match self {
+            NoMatch => write!(f, "No token matched"),
+            InvalidDirective => write!(f, "Unknown directive"),
+            UnclosedQuotedString => write!(f, "Missing end quote for string"),
+            NoNumberAfterMinus => write!(f, "Missing number after minus sign"),
+            EmptyLabel => write!(f, "Missing label name"),
+        }
     }
 }
