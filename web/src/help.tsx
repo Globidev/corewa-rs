@@ -5,6 +5,8 @@ import documentation from './documentation.md'
 import { observable } from 'mobx'
 import { observer } from 'mobx-react'
 
+Showdown.setOption('tables', true)
+
 @observer
 export class Help extends React.Component {
   mdBuilder = new Showdown.Converter()
