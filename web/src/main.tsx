@@ -6,10 +6,12 @@ import { observer } from 'mobx-react'
 import { Editor } from './editor'
 import { VM } from './vm'
 import { state, ObservableVM } from './state'
+import { Help } from './help'
 
 const enum PaneComponent {
   Editor = 'editor',
-  VM = 'vm'
+  VM = 'vm',
+  Help = 'help'
 }
 
 const [initialVmId, initialVm] = state.newVm()
@@ -118,8 +120,11 @@ class App extends React.Component {
             onNewChampionRequested={championId =>
               this.onNewChampionRequested(vmm.id, championId)
             }
+            onHelpRequested={this.onHelpRequested.bind(this)}
           />
         )
+      case PaneComponent.Help:
+        return <Help />
     }
     return null
   }
@@ -133,6 +138,20 @@ class App extends React.Component {
           component: PaneComponent.Editor,
           name: `Champion ${championId + 1}`,
           config: { vmId, championId }
+        },
+        () => {}
+      )
+    }
+  }
+
+  onHelpRequested() {
+    const layout = this.layoutRef.current
+    if (layout) {
+      layout.addTabWithDragAndDropIndirect(
+        'Add panel<br>(Drag to location)',
+        {
+          component: PaneComponent.Help,
+          name: `Documentation`
         },
         () => {}
       )
