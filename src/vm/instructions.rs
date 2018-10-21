@@ -82,8 +82,8 @@ pub fn exec_zjmp(instr: &Instruction, ctx: &mut ExecutionContext) {
 pub fn exec_ldi(instr: &Instruction, ctx: &mut ExecutionContext) {
     let lhs = ctx.get_param(&instr.params[0], OffsetType::Limited);
     let rhs = ctx.get_param(&instr.params[1], OffsetType::Limited);
-    let addr = ((lhs + rhs) as isize % MEM_SIZE as isize) + MEM_SIZE as isize;
-    let value = ctx.memory.read_i32(addr as usize);
+    let addr = (lhs + rhs) as isize;
+    let value = ctx.memory.read_i32(ctx.pc.offset(addr, OffsetType::Limited));
     ctx.registers[instr.params[2].value as usize - 1] = value;
 }
 
@@ -111,8 +111,8 @@ pub fn exec_lld(instr: &Instruction, ctx: &mut ExecutionContext) {
 pub fn exec_lldi(instr: &Instruction, ctx: &mut ExecutionContext) {
     let lhs = ctx.get_param(&instr.params[0], OffsetType::Long);
     let rhs = ctx.get_param(&instr.params[1], OffsetType::Long);
-    let addr = ((lhs + rhs) as isize % MEM_SIZE as isize) + MEM_SIZE as isize;
-    let value = ctx.memory.read_i32(addr as usize);
+    let addr = (lhs + rhs) as isize;
+    let value = ctx.memory.read_i32(ctx.pc.offset(addr, OffsetType::Long));
     *ctx.zf = value == 0;
     ctx.registers[instr.params[2].value as usize - 1] = value;
 }
