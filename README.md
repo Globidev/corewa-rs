@@ -186,9 +186,9 @@ Instructions are encoded as a *packed* sequence of the following elements:
  - `opcode` on **1** byte
  - `ocp` on **1** byte (only if the instruction requires an octal code point)
  - parameters on a number of bytes depending on their types:
-   - `Register`s on **1** byte, the value being the register number
-   - `Direct` values on either **2** or **4** bytes depending on the instruction (see the instruction table in the earlier chapters)
-   - `Indirect` values on **2** bytes
+     - `Register`s on **1** byte, the value being the register number
+     - `Direct` values on either **2** or **4** bytes depending on the instruction (see the instruction table in the earlier chapters)
+     - `Indirect` values on **2** bytes
 
 the `ocp` of an instruction is computed as the 0-right-padded bit concatenation of each parameter type's code point value:
  - **1** for `Register`s 
