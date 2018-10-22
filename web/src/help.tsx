@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as Showdown from 'showdown'
 // @ts-ignore
-import documentation from './documentation.md'
+import documentation from '../README.md'
 import { observable } from 'mobx'
 import { observer } from 'mobx-react'
 
