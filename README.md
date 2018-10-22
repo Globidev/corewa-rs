@@ -23,7 +23,7 @@ Processes can be in either one of two states:
  - `Idle`: in which case they're waiting to decode an instruction. This is the default state of newly spawned processes.
  - `Executing` an instruction: in which case they're waiting for a sufficient amount of CPU time to execute said instruction
 
-When an `Idle` process is given a cycle worth of CPU time, it will attempt to decode part of the instruction pointed by its `pc`. Each instruction has an **opcode** and can be executed in a certain amount of cycles `n`. If the opcode pointed by the process' `pc` is valid, said process will enter the `Executing` state. If the opcode is invalid however, the process' will stay `Idle` and its `pc` will be moved to the next byte in memory.  
+When an `Idle` process is given a cycle worth of CPU time, it will attempt to decode part of the instruction pointed by its `pc`. Each instruction has an **opcode** and can be executed in a certain amount of cycles `n`. If the opcode pointed by the process `pc` is valid, said process will enter the `Executing` state. If the opcode is invalid however, the process' will stay `Idle` and its `pc` will be moved to the next byte in memory.  
 When an `Executing` process is given its `n`th cycle of CPU time, it will attempt to decode the rest of the instruction located at its current `pc`. If the instruction is valid, it will be executed and the process' `pc` will be moved by an amount of bytes equal to the size of the instruction decoded. If the instruction is invalid however, the process will go back to an `Idle` state and its `pc` will be moved to the next byte in memory.
 
 After a given number of cycles, the VM performs a **live-check**. During this operation, every process that didn't report as being alive at least once between now and the last live-check is **killed**.  
@@ -32,7 +32,7 @@ During a live-check, if the total number of live reports among all the processes
 
 The match ends when a live-check kills the last process alive. The winner is the last player who has been reported alive. 
 
-⚠ Champions' processes can report any player to be alive, not exclusively their champion's player. See the `live` instruction for more information.
+⚠ Processes can report any player to be alive, not exclusively their champion's player. See the `live` instruction for more information.
 
 ## The instructions
 The VM supports 16 instructions.  
@@ -44,7 +44,7 @@ Parameters can be one of three types:
 
 ⚠ For most instructions that perform addressing, the *reach* will be limited, in which case the `pc` offset will be wrapped within a `[-512, 512]` ring using a modulo operation. The only three instructions that have unlimited reach are referred to as **long** instructions.
 
-Every instruction has an `opcode` and executes in a certain number of cycles.  
+Every instruction has a `mnemonic`, an `opcode` and executes in a certain number of cycles.  
 Some instructions can take different types of parameters and therefore need an additional **o**ctal **c**ode **p**oint (`ocp`) when encoded (more details in the encoding section).  
 Some instructions have 16bit `Direct` values instead of 32bit.
 
@@ -100,13 +100,13 @@ Computes the binary *or* of the values specified by the first two parameters and
 Computes the binary *xor* of the values specified by the first two parameters and stores the result in the register specified bu the third parameter. The computed value affects `zf`.
 
 #### zjmp
-Moves the process' `pc` by an offset determined by the direct value of the first parameter **only** if the process' `zf` is `1`.
+Moves the process' `pc` by an offset equal to the direct value of the first parameter **only** if the process' `zf` is `1`.
 
 #### ldi
 Adds the values specified by the first two parameters and use the result as an offset to address memory and load a 32bit value into the register specified by the third parameter.
 
 #### sti
-Adds the values specified by the 2nd and the 3rd parameters and use the result as an offset to address memory and store the value of the register specified by the first parameter at that memory location.
+Adds the values specified by the 2nd and the 3rd parameters and uses the result as an offset to address memory and store the value of the register specified by the first parameter at that memory location.
 
 #### fork
 *Fork*s this process. This effectively creates a new process that inherits the current process' registers and `zf`. The spawned process will have its `pc` set to his parent's `pc` offseted by the direct value specified by the first parameter. 
@@ -115,13 +115,13 @@ Adds the values specified by the 2nd and the 3rd parameters and use the result a
 The **long** version of **ld**.
 
 #### lldi
-The **long** version of **ldi**. Neither the parameter values or the computed address will have its reach limited. Contrary to **ldi**, the value loaded from memory will affect `zf`.
+The **long** version of **ldi**. Neither the parameter values nor the computed address will have their reach limited. Contrary to **ldi**, the value loaded from memory will affect `zf`.
 
 #### lfork
 The **long** version of **fork**
 
 #### aff (not yet implemented, subject to change)
-Makes this process' champion talk by displaying a character whose value is determined by the register specified by the first parameter. This instruction is useful if you want to ridicule your opponents.
+Makes this process' champion talk by displaying a character whose value is equal to the register specified by the first parameter. This instruction is useful if you want to ridicule your opponents.
 
 
 ## Writing champions
@@ -134,7 +134,7 @@ A champion's program consist of:
  - A sequence of instructions
 
 The champion's name and description are set using the `.name` and `.comment` directives respectively.  
-Instructions and directives are each placed on a single line, empty lines are allowed, token spacing works with any number of whitespace and you can start line comments by using the `#` character  
+Instructions and directives are each placed on a single line, empty lines are allowed, token spacing works with any number of whitespaces and you can start line comments by using the `#` character  
 To create a champion called "John Cena", you could for instance start your program by writing:
 ```
 .name    "John Cena"          # Champion's name
@@ -152,7 +152,7 @@ xor  42, %1337, r12    # r12 = mem[pc+42] ^ 1337
 ```
 
 Instructions can be optionally preceded by **labels**.  
-Labels are references to locations in your code. They can be used in parameters to help with offset computing and code readability.  
+Labels are references to locations in your code. They can be used in parameters to help with offset computation and code readability.  
 A label is declared as a colon (`:`) **suffixed** alphanumeric identifier, and referenced with its identifier **prefixed** by a colon.  
 An infinite live loop could look like:
 ```
@@ -165,10 +165,10 @@ When compiling this program, `%:loop` will be treated as `%-13` (the `live` and 
 ### Bytecode generation
 Compiling a program to bytecode is pretty straightforward.  
 Compiled champions are made of two parts:
- - a `Header` containing the champion's name and description.
+ - a `header` containing the champion's name and description.
  - a `code section` containing each encoded instruction, in sequence.
 
-Only the `code section` will be loaded into the arena as the `Header` is just there
+Only the `code section` will be loaded into the arena as the `header` is just there
 to validate champions and provide metadata.
 
 #### Header content
@@ -191,9 +191,9 @@ Instructions are encoded as a *packed* sequence of the following elements:
      - `Indirect` values on **2** bytes
 
 the `ocp` of an instruction is computed as the 0-right-padded bit concatenation of each parameter type's code point value:
- - **1** for `Register`s 
- - **2** for `Direct`s
- - **3** for `Indirect`s
+ - **1** for `register`s 
+ - **2** for `direct`s
+ - **3** for `indirect`s
 
 For example:
 ```
