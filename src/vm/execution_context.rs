@@ -33,12 +33,12 @@ impl<'a> ExecutionContext<'a> {
     }
 
     pub fn get_reg(&self, param: &Param) -> i32 {
-        // assert_eq!(param.kind, ParamType::Register);
+        debug_assert_eq!(param.kind, ParamType::Register);
         self.registers[param.value as usize - 1]
     }
 
     pub fn set_reg(&mut self, param: &Param, value: i32) {
-        // assert_eq!(param.kind, ParamType::Register);
+        debug_assert_eq!(param.kind, ParamType::Register);
         self.registers[param.value as usize - 1] = value;
     }
 }

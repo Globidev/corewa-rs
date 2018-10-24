@@ -56,7 +56,7 @@ pub enum OpType {
     Lfork, Aff,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ParamType {
     Register, Direct, Indirect
 }
