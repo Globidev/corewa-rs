@@ -1,4 +1,4 @@
-use crate::spec::{MEM_SIZE, ParamType};
+use crate::spec::ParamType;
 use super::execution_context::ExecutionContext;
 use super::process::Process;
 use super::types::*;
@@ -12,63 +12,82 @@ pub fn exec_live(instr: &Instruction, ctx: &mut ExecutionContext) {
 }
 
 pub fn exec_ld(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let value_to_load = ctx.get_param(&instr.params[0], OffsetType::Limited);
+    let [src_p, dst_p, _] = &instr.params;
+
+    let value_to_load = ctx.get_param(src_p, OffsetType::Limited);
+    ctx.set_reg(dst_p, value_to_load);
+
     *ctx.zf = value_to_load == 0;
-    ctx.registers[instr.params[1].value as usize - 1] = value_to_load;
 }
 
 pub fn exec_st(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let value_to_store = ctx.get_param(&instr.params[0], OffsetType::Limited);
-    let dest_param = &instr.params[1];
-    match dest_param.kind {
-        ParamType::Register => ctx.registers[dest_param.value as usize - 1] = value_to_store,
+    let [src_p, dst_p, _] = &instr.params;
+
+    let value_to_store = ctx.get_reg(src_p);
+    match dst_p.kind {
+        ParamType::Register => ctx.set_reg(dst_p, value_to_store),
         ParamType::Indirect => ctx.memory.write_i32(
             value_to_store,
             ctx.player_id,
-            ctx.pc.offset(dest_param.value as isize, OffsetType::Limited),
+            ctx.pc.offset(dst_p.value as isize, OffsetType::Limited),
         ),
         _ => unreachable!("St Param #2 invariant broken")
     }
 }
 
 pub fn exec_add(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let lhs = ctx.registers[instr.params[0].value as usize - 1];
-    let rhs = ctx.registers[instr.params[1].value as usize - 1];
+    let [lhs_p, rhs_p, dst_p] = &instr.params;
+
+    let lhs = ctx.get_reg(lhs_p);
+    let rhs = ctx.get_reg(rhs_p);
     let result = lhs + rhs;
+    ctx.set_reg(dst_p, result);
+
     *ctx.zf = result == 0;
-    ctx.registers[instr.params[2].value as usize - 1] = result;
 }
 
 pub fn exec_sub(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let lhs = ctx.registers[instr.params[0].value as usize - 1];
-    let rhs = ctx.registers[instr.params[1].value as usize - 1];
+    let [lhs_p, rhs_p, dst_p] = &instr.params;
+
+    let lhs = ctx.get_reg(lhs_p);
+    let rhs = ctx.get_reg(rhs_p);
     let result = lhs - rhs;
+    ctx.set_reg(dst_p, result);
+
     *ctx.zf = result == 0;
-    ctx.registers[instr.params[2].value as usize - 1] = result;
 }
 
 pub fn exec_and(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let lhs = ctx.get_param(&instr.params[0], OffsetType::Limited);
-    let rhs = ctx.get_param(&instr.params[1], OffsetType::Limited);
+    let [lhs_p, rhs_p, dst_p] = &instr.params;
+
+    let lhs = ctx.get_param(lhs_p, OffsetType::Limited);
+    let rhs = ctx.get_param(rhs_p, OffsetType::Limited);
     let result = lhs & rhs;
+    ctx.set_reg(dst_p, result);
+
     *ctx.zf = result == 0;
-    ctx.registers[instr.params[2].value as usize - 1] = result;
 }
 
 pub fn exec_or(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let lhs = ctx.get_param(&instr.params[0], OffsetType::Limited);
-    let rhs = ctx.get_param(&instr.params[1], OffsetType::Limited);
+    let [lhs_p, rhs_p, dst_p] = &instr.params;
+
+    let lhs = ctx.get_param(lhs_p, OffsetType::Limited);
+    let rhs = ctx.get_param(rhs_p, OffsetType::Limited);
     let result = lhs | rhs;
+    ctx.set_reg(dst_p, result);
+
     *ctx.zf = result == 0;
-    ctx.registers[instr.params[2].value as usize - 1] = result;
 }
 
 pub fn exec_xor(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let lhs = ctx.get_param(&instr.params[0], OffsetType::Limited);
-    let rhs = ctx.get_param(&instr.params[1], OffsetType::Limited);
+    let [lhs_p, rhs_p, dst_p] = &instr.params;
+
+    let lhs = ctx.get_param(lhs_p, OffsetType::Limited);
+    let rhs = ctx.get_param(rhs_p, OffsetType::Limited);
     let result = lhs ^ rhs;
+    ctx.set_reg(dst_p, result);
+
     *ctx.zf = result == 0;
-    ctx.registers[instr.params[2].value as usize - 1] = result;
 }
 
 pub fn exec_zjmp(instr: &Instruction, ctx: &mut ExecutionContext) {
@@ -80,17 +99,21 @@ pub fn exec_zjmp(instr: &Instruction, ctx: &mut ExecutionContext) {
 }
 
 pub fn exec_ldi(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let lhs = ctx.get_param(&instr.params[0], OffsetType::Limited);
-    let rhs = ctx.get_param(&instr.params[1], OffsetType::Limited);
+    let [lhs_p, rhs_p, dst_p] = &instr.params;
+
+    let lhs = ctx.get_param(lhs_p, OffsetType::Limited);
+    let rhs = ctx.get_param(rhs_p, OffsetType::Limited);
     let addr = (lhs + rhs) as isize;
     let value = ctx.memory.read_i32(ctx.pc.offset(addr, OffsetType::Limited));
-    ctx.registers[instr.params[2].value as usize - 1] = value;
+    ctx.set_reg(dst_p, value)
 }
 
 pub fn exec_sti(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let value = ctx.registers[instr.params[0].value as usize - 1];
-    let lhs = ctx.get_param(&instr.params[1], OffsetType::Limited);
-    let rhs = ctx.get_param(&instr.params[2], OffsetType::Limited);
+    let [src_p, lhs_p, rhs_p] = &instr.params;
+
+    let value = ctx.get_reg(src_p);
+    let lhs = ctx.get_param(lhs_p, OffsetType::Limited);
+    let rhs = ctx.get_param(rhs_p, OffsetType::Limited);
     let offset = lhs + rhs;
     ctx.memory.write_i32(value, ctx.player_id, ctx.pc.offset(offset as isize, OffsetType::Limited));
 }
@@ -103,18 +126,24 @@ pub fn exec_fork(instr: &Instruction, ctx: &mut ExecutionContext) {
 }
 
 pub fn exec_lld(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let value_to_load = ctx.get_param(&instr.params[0], OffsetType::Long);
+    let [src_p, dst_p, _] = &instr.params;
+
+    let value_to_load = ctx.get_param(src_p, OffsetType::Long);
+    ctx.set_reg(dst_p, value_to_load);
+
     *ctx.zf = value_to_load == 0;
-    ctx.registers[instr.params[1].value as usize - 1] = value_to_load;
 }
 
 pub fn exec_lldi(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let lhs = ctx.get_param(&instr.params[0], OffsetType::Long);
-    let rhs = ctx.get_param(&instr.params[1], OffsetType::Long);
+    let [lhs_p, rhs_p, dst_p] = &instr.params;
+
+    let lhs = ctx.get_param(lhs_p, OffsetType::Long);
+    let rhs = ctx.get_param(rhs_p, OffsetType::Long);
     let addr = (lhs + rhs) as isize;
     let value = ctx.memory.read_i32(ctx.pc.offset(addr, OffsetType::Long));
+    ctx.set_reg(dst_p, value);
+
     *ctx.zf = value == 0;
-    ctx.registers[instr.params[2].value as usize - 1] = value;
 }
 
 pub fn exec_lfork(instr: &Instruction, ctx: &mut ExecutionContext) {
