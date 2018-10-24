@@ -1,40 +1,77 @@
 # corewar-rs
 
-Corewar is a programming game involving between 2 and 4 players.  
-Each player writes a **champion** (a program) that will fight to the death against the other players' champions inside a **virtual arena** (a virtual machine).  
-The last champion alive in the arena wins the game for its player.
+`Corewar` is a programming game for 2-4 players.  
+
+ - Each player writes an assembly program (**champion**). 
+ - Champions compete against each other in a virtual machine (**arena**) for resources.
+ - The last champion running (**alive**) in the arena wins the game for its player.
 
 [Demo](https://glo.bi/corewar/)
 
+
 ## The arena
-The matches are played by a **V**irtual **M**achine with a circular memory buffer of **4096** bytes.  
-Each player is assigned a unique **identifier**. Their champions are loaded in the memory at the start of the match. They are placed at equally spaced offsets.  
-Each champion is assigned a starting **process**. Processes are composed of:
 
- - A **p**rogram **c**ounter (`pc`) that moves around the arena and point to specific memory locations
- - 16 registers that can each hold a 32bit value, labelled from `r1` to `r16`
- - A **z**ero **f**lag (`zf`) whose state depends on the result of some operations
+The matches are played by a **V**irtual **M**achine featuring
+  - circular memory buffer of **4096** bytes.  
+  - processor with 
+    - 16 * 32bit-registers (r1-r16)
+    - A **z**ero **f**lag (`zf`) whose state depends on the result of some operations
+    - assembly language: 16 instructions (and, or, xor, live, ...)
+  - A list of currently alive processes 
+    - represented by a pointer (**p**rogram **c**ounter (`pc`)) to the next instruction to execute
+    - each process has its own register values independent from other processes
+  
+## Match start
 
-The starting process of a champion has its `pc` set to the first byte of the champion's bytecode, its `zf` set to `0`, and all of its registers zeroed except `r1` that will contain the champion's player identifier.
+Each player is assigned a unique **identifier**. 
+Champion bytecodes are loaded in the VM memory equidistant from each other
 
-A unit of time inside the arena is called a **cycle**. Every cycle, the virtual machine goes through all of the processes sequentially in the reverse order that they were spawned (the last spawned process is processed first) and gives them a fixed amount of CPU time. 
+Each champion is instanciated once (**process** creation, new `pc` allocated).
+The starting process of a champion has 
+  - its `pc` (next instruction to execute) set to the first byte of the champion's bytecode
+  - its `zf` register set to `0`
+  - its `r1` register set to its player identifier.
+  - all of its other registers zeroed
+
+## Win condition / Loss condition
+
+Champions must be reported as alive periodically.
+To to so, one of their processes must execute the `live` instruction with their `identifier` as parameter.
+VM periodically perform a **live-check** : 
+   - champions that were **not** reported being alive since previous **live-check** are removed: all of their processes are kileld.
+   - processes that did **not** executed `live` sice previous **live-check** are killed.
+
+The number of cycles before a live-check is determined by a `check interval` value which is initialized to `1536`.  
+During a live-check, interval will be decreased by `50` if either 
+  - number of live reports among all the processes is `>= 21`
+  - 10 consecutive live-checks happened where number of live reports `< 21`
+
+The match ends when all champions are killed. 
+The winner is the last player who has been reported alive. 
+
+⚠ Processes can report any player to be alive, not exclusively their champion's player. 
+See the `live` instruction for more information. ⚠
+
+## Game simulation
+
+The simulation is turn-based.
+A run is called a **cycle**. 
+Every cycle, the VM goes through all of the processes from last created to first created.
+for each process, VM resume execution for a fixed amount of time, then continues to the next process.
+Each instruction takes a different time to execute. 
+Execution happends at the end of the execution time.
+When the VM resumes execution of a process, it resume current instruction execution, then continue executing more instructions until time allocated is over.
 
 Processes can be in either one of two states:
- - `Idle`: in which case they're waiting to decode an instruction. This is the default state of newly spawned processes.
+ - `Idle` (waiting to decode an instruction) default state of newly spawned processes.
  - `Executing` an instruction: in which case they're waiting for a sufficient amount of CPU time to execute said instruction
 
-When an `Idle` process is given a cycle worth of CPU time, it will attempt to decode part of the instruction pointed by its `pc`. Each instruction has an **opcode** and can be executed in a certain amount of cycles `n`. If the opcode pointed by the process `pc` is valid, said process will enter the `Executing` state. If the opcode is invalid however, the process' will stay `Idle` and its `pc` will be moved to the next byte in memory.  
+When an `Idle` process is given a 
+worth of CPU time, it will attempt to decode part of the instruction pointed by its `pc`. Each instruction has an **opcode** and can be executed in a certain amount of cycles `n`. If the opcode pointed by the process `pc` is valid, said process will enter the `Executing` state. If the opcode is invalid however, the process' will stay `Idle` and its `pc` will be moved to the next byte in memory.  
 When an `Executing` process is given its `n`th cycle of CPU time, it will attempt to decode the rest of the instruction located at its current `pc`. If the instruction is valid, it will be executed and the process' `pc` will be moved by an amount of bytes equal to the size of the instruction decoded. If the instruction is invalid however, the process will go back to an `Idle` state and its `pc` will be moved to the next byte in memory.
 
-After a given number of cycles, the VM performs a **live-check**. During this operation, every process that didn't report as being alive at least once between now and the last live-check is **killed**.  
-The number of cycles before a live-check is determined by a `check interval` value which is initialized to `1536`.  
-During a live-check, if the total number of live reports among all the processes is at least `21`, then the `check interval` will be decreased by `50`, otherwise the live-check is said to have *passed* and the interval is untouched. However, if `10` consecutive live-checks *pass*, then the interval will be decreased by `50` again.
+## Assembly Instructions
 
-The match ends when a live-check kills the last process alive. The winner is the last player who has been reported alive. 
-
-⚠ Processes can report any player to be alive, not exclusively their champion's player. See the `live` instruction for more information.
-
-## The instructions
 The VM supports 16 instructions.  
 Instructions take between **1** and **3** parameters.  
 Parameters can be one of three types:
@@ -49,6 +86,8 @@ Some instructions can take different types of parameters and therefore need an a
 Some instructions have 16bit `Direct` values instead of 32bit.
 
 The table below summarizes all those characterics for every instruction:
+
+**R** = `Register`| **D** = `Direct` | **I** = `Indirect`
 
 | mnemonic | opcode  | cycles | param 1 | param 2 | param 3 |  ocp  | Direct size |
 | -------- | ------- | ------ | ------- | ------- | ------- | ----- | ----------- |
@@ -68,18 +107,21 @@ The table below summarizes all those characterics for every instruction:
 | lldi     | 14      | 50     | RDI     | RD      | R       | ✔    | 16          |
 | lfork    | 15      | 1000   | D       |         |         | ❌    | 16          |
 | aff      | 16      | 2      | R       |         |         | ✔    | 32          |
+   
 
-📝 **R** = `Register` **D** = `Direct` **I** = `Indirect`
-
-Some instructions can affect the zero flag `zf` by either reading or computing a value. If the value is zero, `zf` is set to `1`, otherwise it is set to `0`.
+Some instructions can affect the zero flag `zf` by either reading or computing a value. 
+If the value is zero, `zf` is set to `1`, otherwise it is set to `0`.
 
 Detailed behaviors for every instruction:
 
 #### live
-Reports this process as being alive **and** reports the player whose identifier is the first parameter of the instruction as being alive.
+Reports this process as being alive 
+Reports the `$1-D player` as being alive.
 
 #### ld
-*Load*s the value of the first parameter in the register specified by the second parameter. The value loaded affects `zf`.
+
+*Load*s the `$1-DI vlue` in the `$2-R register`.
+The value loaded affects `zf`.
 
 #### st
 *Store*s the value of the register specified by the first parameter at the location specified by the second parameter (either a register or a memory location).
@@ -125,9 +167,11 @@ Makes this process' champion talk by displaying a character whose value is equal
 
 
 ## Writing champions
+
 Champions consist of bytecode generated from compiling programs written in the VM's assembly language.
 
 ### The assembly language
+
 A champion's program consist of:
  - A name
  - A description
@@ -163,6 +207,7 @@ loop: live %1         # Stay alive
 When compiling this program, `%:loop` will be treated as `%-13` (the `live` and the `and` instructions are respectively 5 and 8 bytes long when encoded here)
 
 ### Bytecode generation
+
 Compiling a program to bytecode is pretty straightforward.  
 Compiled champions are made of two parts:
  - a `header` containing the champion's name and description.
@@ -172,6 +217,7 @@ Only the `code section` will be loaded into the arena as the `header` is just th
 to validate champions and provide metadata.
 
 #### Header content
+
 Headers contain 4 fields:
  - a 32bit magic number with the value `0x00EA_83F3`
  - an array of 128 + 1 bytes containing the 0-right-padded champion's name
@@ -181,6 +227,7 @@ Headers contain 4 fields:
 The header is *packed* and its total size will always be `2186` bytes
 
 #### Code section
+
 The code section is a *packed* array of bytes containing the bytes for every instruction.  
 Instructions are encoded as a *packed* sequence of the following elements:
  - `opcode` on **1** byte
