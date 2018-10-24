@@ -52,7 +52,7 @@ pub enum DirectSize {
 
 #[derive(Debug, Clone, Copy)]
 pub enum OpType {
-    Live, Ld, St, Add, Sub, And, Or, Xor, Zjmp, Ldi, Sti, Fork, Lld, Lldi,
+    Live = 1, Ld, St, Add, Sub, And, Or, Xor, Zjmp, Ldi, Sti, Fork, Lld, Lldi,
     Lfork, Aff,
 }
 
@@ -70,23 +70,25 @@ impl From<OpType> for OpSpec {
         use self::OpType::*;
         use self::DirectSize::*;
 
+        let code = op_type as u8;
+
         match op_type {
-            Live =>  Self { code:1,  cycles: 10,   param_count: 1, param_masks: [T_DIR,             0,                 0          ], has_ocp: false, dir_size: FourBytes },
-            Ld =>    Self { code:2,  cycles: 5,    param_count: 2, param_masks: [T_DIR|T_IND,       T_REG,             0          ], has_ocp: true,  dir_size: FourBytes },
-            St =>    Self { code:3,  cycles: 5,    param_count: 2, param_masks: [T_REG,             T_REG|T_IND,       0          ], has_ocp: true,  dir_size: FourBytes },
-            Add =>   Self { code:4,  cycles: 10,   param_count: 3, param_masks: [T_REG,             T_REG,             T_REG      ], has_ocp: true,  dir_size: FourBytes },
-            Sub =>   Self { code:5,  cycles: 10,   param_count: 3, param_masks: [T_REG,             T_REG,             T_REG      ], has_ocp: true,  dir_size: FourBytes },
-            And =>   Self { code:6,  cycles: 6,    param_count: 3, param_masks: [T_REG|T_DIR|T_IND, T_REG|T_DIR|T_IND, T_REG      ], has_ocp: true,  dir_size: FourBytes },
-            Or =>    Self { code:7,  cycles: 6,    param_count: 3, param_masks: [T_REG|T_DIR|T_IND, T_REG|T_DIR|T_IND, T_REG      ], has_ocp: true,  dir_size: FourBytes },
-            Xor =>   Self { code:8,  cycles: 6,    param_count: 3, param_masks: [T_REG|T_DIR|T_IND, T_REG|T_DIR|T_IND, T_REG      ], has_ocp: true,  dir_size: FourBytes },
-            Zjmp =>  Self { code:9,  cycles: 20,   param_count: 1, param_masks: [T_DIR,             0,                 0          ], has_ocp: false, dir_size: TwoBytes },
-            Ldi =>   Self { code:10, cycles: 25,   param_count: 3, param_masks: [T_REG|T_DIR|T_IND, T_REG|T_DIR,       T_REG      ], has_ocp: true,  dir_size: TwoBytes },
-            Sti =>   Self { code:11, cycles: 25,   param_count: 3, param_masks: [T_REG,             T_REG|T_DIR|T_IND, T_REG|T_DIR], has_ocp: true,  dir_size: TwoBytes },
-            Fork =>  Self { code:12, cycles: 800,  param_count: 1, param_masks: [T_DIR,             0,                 0          ], has_ocp: false, dir_size: TwoBytes },
-            Lld =>   Self { code:13, cycles: 10,   param_count: 2, param_masks: [T_DIR|T_IND,       T_REG,             0          ], has_ocp: true,  dir_size: FourBytes },
-            Lldi =>  Self { code:14, cycles: 50,   param_count: 3, param_masks: [T_REG|T_DIR|T_IND, T_REG|T_DIR,       T_REG      ], has_ocp: true,  dir_size: TwoBytes },
-            Lfork => Self { code:15, cycles: 1000, param_count: 1, param_masks: [T_DIR,             0,                 0          ], has_ocp: false, dir_size: TwoBytes },
-            Aff =>   Self { code:16, cycles: 2,    param_count: 1, param_masks: [T_REG,             0,                 0          ], has_ocp: true,  dir_size: FourBytes },
+            Live =>  Self { code,  cycles: 10,   param_count: 1, param_masks: [T_DIR,             0,                 0          ], has_ocp: false, dir_size: FourBytes },
+            Ld =>    Self { code,  cycles: 5,    param_count: 2, param_masks: [T_DIR|T_IND,       T_REG,             0          ], has_ocp: true,  dir_size: FourBytes },
+            St =>    Self { code,  cycles: 5,    param_count: 2, param_masks: [T_REG,             T_REG|T_IND,       0          ], has_ocp: true,  dir_size: FourBytes },
+            Add =>   Self { code,  cycles: 10,   param_count: 3, param_masks: [T_REG,             T_REG,             T_REG      ], has_ocp: true,  dir_size: FourBytes },
+            Sub =>   Self { code,  cycles: 10,   param_count: 3, param_masks: [T_REG,             T_REG,             T_REG      ], has_ocp: true,  dir_size: FourBytes },
+            And =>   Self { code,  cycles: 6,    param_count: 3, param_masks: [T_REG|T_DIR|T_IND, T_REG|T_DIR|T_IND, T_REG      ], has_ocp: true,  dir_size: FourBytes },
+            Or =>    Self { code,  cycles: 6,    param_count: 3, param_masks: [T_REG|T_DIR|T_IND, T_REG|T_DIR|T_IND, T_REG      ], has_ocp: true,  dir_size: FourBytes },
+            Xor =>   Self { code,  cycles: 6,    param_count: 3, param_masks: [T_REG|T_DIR|T_IND, T_REG|T_DIR|T_IND, T_REG      ], has_ocp: true,  dir_size: FourBytes },
+            Zjmp =>  Self { code,  cycles: 20,   param_count: 1, param_masks: [T_DIR,             0,                 0          ], has_ocp: false, dir_size: TwoBytes },
+            Ldi =>   Self { code,  cycles: 25,   param_count: 3, param_masks: [T_REG|T_DIR|T_IND, T_REG|T_DIR,       T_REG      ], has_ocp: true,  dir_size: TwoBytes },
+            Sti =>   Self { code,  cycles: 25,   param_count: 3, param_masks: [T_REG,             T_REG|T_DIR|T_IND, T_REG|T_DIR], has_ocp: true,  dir_size: TwoBytes },
+            Fork =>  Self { code,  cycles: 800,  param_count: 1, param_masks: [T_DIR,             0,                 0          ], has_ocp: false, dir_size: TwoBytes },
+            Lld =>   Self { code,  cycles: 10,   param_count: 2, param_masks: [T_DIR|T_IND,       T_REG,             0          ], has_ocp: true,  dir_size: FourBytes },
+            Lldi =>  Self { code,  cycles: 50,   param_count: 3, param_masks: [T_REG|T_DIR|T_IND, T_REG|T_DIR,       T_REG      ], has_ocp: true,  dir_size: TwoBytes },
+            Lfork => Self { code,  cycles: 1000, param_count: 1, param_masks: [T_DIR,             0,                 0          ], has_ocp: false, dir_size: TwoBytes },
+            Aff =>   Self { code,  cycles: 2,    param_count: 1, param_masks: [T_REG,             0,                 0          ], has_ocp: true,  dir_size: FourBytes },
         }
     }
 }

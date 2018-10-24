@@ -180,29 +180,10 @@ fn read_type_and_bit(param_code: u8) -> Option<(ParamType, u8)> {
 }
 
 fn op_from_code(code: u8) -> Option<OpType> {
-    use self::OpType::*;
-
-    let op = match code {
-        1 =>  Live,
-        2 =>  Ld,
-        3 =>  St,
-        4 =>  Add,
-        5 =>  Sub,
-        6 =>  And,
-        7 =>  Or,
-        8 =>  Xor,
-        9 =>  Zjmp,
-        10 => Ldi,
-        11 => Sti,
-        12 => Fork,
-        13 => Lld,
-        14 => Lldi,
-        15 => Lfork,
-        16 => Aff,
-        _ => return None
-    };
-
-    Some(op)
+    match code {
+        1...16 => Some(unsafe { std::mem::transmute(code) }),
+        _      => None
+    }
 }
 
 impl Index<usize> for Memory {
