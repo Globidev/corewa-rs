@@ -57,12 +57,18 @@ pub struct VirtualMachine {
 
 #[wasm_bindgen]
 impl VirtualMachine {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Self {
-            cycles_to_die: CYCLE_TO_DIE,
-            ..Default::default()
-        }
+    pub fn process_pcs(&self) -> Vec<u32> {
+        let mut v = vec![0; MEM_SIZE];
+        self.processes.iter().for_each(|p| v[*p.pc] += 1);
+        v
+    }
+
+    pub fn cell_values(&self) -> *const u8 {
+        self.memory.cell_values()
+    }
+
+    pub fn cell_owners(&self) -> *const PlayerId {
+        self.memory.cell_owners()
     }
 
     pub fn size(&self) -> usize {
@@ -71,14 +77,6 @@ impl VirtualMachine {
 
     pub fn process_count(&self) -> usize {
         self.processes.len()
-    }
-
-    pub fn process_pc(&self, at: usize) -> usize {
-        *self.processes[at].pc
-    }
-
-    pub fn cell_at(&self, at: usize) -> memory::Cell {
-        *self.memory.at(at)
     }
 
     pub fn winner(&self) -> Option<String> {
@@ -97,8 +95,9 @@ impl VirtualMachine {
     }
 
     pub fn tick(&mut self) -> bool {
-        let mut forks = Vec::new();
         use self::decoder::{decode_op, decode_instr};
+
+        let mut forks = Vec::with_capacity(8192);
         let mut lives = linked_hash_set::LinkedHashSet::new();
 
         for process in self.processes.iter_mut().rev() {
@@ -189,6 +188,13 @@ impl VirtualMachine {
 }
 
 impl VirtualMachine {
+    pub fn new() -> Self {
+        Self {
+            cycles_to_die: CYCLE_TO_DIE,
+            ..Default::default()
+        }
+    }
+
     pub fn load_players(&mut self, players: &[(PlayerId, Vec<u8>)]) {
         let player_spacing = MEM_SIZE / ::std::cmp::max(1, players.len());
         for (i, (player_id, program)) in players.iter().enumerate() {
