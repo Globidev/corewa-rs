@@ -1,6 +1,6 @@
 pub mod memory;
 pub mod types;
-mod decoder;
+pub mod decoder;
 mod execution_context;
 mod instructions;
 mod process;
@@ -10,6 +10,7 @@ mod wrapping_array;
 use crate::spec::*;
 use self::execution_context::ExecutionContext;
 use self::process::{Process, ProcessState};
+use self::memory::Memory;
 use self::types::*;
 
 use wasm_bindgen::prelude::*;
@@ -43,7 +44,7 @@ impl VMBuilder {
 #[derive(Default)]
 pub struct VirtualMachine {
     players: Vec<Player>,
-    memory: memory::Memory,
+    memory: Memory,
     processes: Vec<Process>,
     pid_pool: PidPool,
     last_live_id: Option<PlayerId>,
@@ -193,6 +194,10 @@ impl VirtualMachine {
             cycles_to_die: CYCLE_TO_DIE,
             ..Default::default()
         }
+    }
+
+    pub fn memory(&self) -> &Memory {
+        &self.memory
     }
 
     pub fn load_players(&mut self, players: &[(PlayerId, Vec<u8>)]) {
