@@ -1,9 +1,11 @@
 pub mod memory;
 pub mod types;
+mod decoder;
 mod execution_context;
 mod instructions;
 mod process;
 mod program_counter;
+mod wrapping_array;
 
 use crate::spec::*;
 use self::execution_context::ExecutionContext;
@@ -96,12 +98,13 @@ impl VirtualMachine {
 
     pub fn tick(&mut self) -> bool {
         let mut forks = Vec::new();
+        use self::decoder::{decode_op, decode_instr};
         let mut lives = linked_hash_set::LinkedHashSet::new();
 
         for process in self.processes.iter_mut().rev() {
             // Attempt to read instructions
             if let ProcessState::Idle = process.state {
-                match self.memory.read_op(*process.pc) {
+                match decode_op(&self.memory, *process.pc) {
                     Ok(op) => {
                         let cycle_left = OpSpec::from(op).cycles;
                         process.state = ProcessState::Executing { cycle_left, op };
@@ -113,7 +116,7 @@ impl VirtualMachine {
 
             match process.state {
                 ProcessState::Executing { cycle_left: 1, op } => {
-                    let instr_result = self.memory.read_instr(op, *process.pc);
+                    let instr_result = decode_instr(&self.memory, op, *process.pc);
                     match instr_result {
                         Ok(instr) => {
                             let execution_context = ExecutionContext {
@@ -207,10 +210,7 @@ impl VirtualMachine {
     }
 
     fn load_champion(&mut self, champion: ByteCode, player_id: PlayerId, at: usize) {
-        self.memory.write(at, &champion.iter()
-            .map(|v| memory::Cell { value: *v, owner: Some(player_id) })
-            .collect::<Vec<_>>()
-        );
+        self.memory.write(at, champion, player_id);
 
         let mut starting_process = Process::new(self.pid_pool.get(), player_id, at.into());
         starting_process.registers[0] = player_id;
