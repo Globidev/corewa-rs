@@ -33,7 +33,8 @@ impl JsCompileError {
     }
 
     pub fn region(&self) -> JsValue {
-        self.region.clone().map(Into::into)
+        self.region.clone()
+            .map(JsValue::from)
             .unwrap_or(JsValue::NULL)
     }
 }
