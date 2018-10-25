@@ -96,7 +96,7 @@ impl VirtualMachine {
 
     pub fn tick(&mut self) -> bool {
         let mut forks = Vec::new();
-        let mut lives = Vec::new();
+        let mut lives = linked_hash_set::LinkedHashSet::new();
 
         for process in self.processes.iter_mut().rev() {
             // Attempt to read instructions

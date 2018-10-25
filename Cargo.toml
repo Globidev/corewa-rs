@@ -18,6 +18,7 @@ crate-type = ["cdylib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
+linked_hash_set = "0.1"
 cfg-if = "0.1"
 wasm-bindgen = "0.2"
 

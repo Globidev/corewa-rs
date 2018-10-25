@@ -4,11 +4,11 @@ use super::process::Process;
 use super::types::*;
 
 pub fn exec_live(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let player_id = instr.params[0].value;
+    let [player_id_p, _, _] = &instr.params;
 
     *ctx.live_count += 1;
     *ctx.last_live_cycle = ctx.cycle;
-    ctx.live_ids.push(player_id);
+    ctx.live_ids.insert(player_id_p.value);
 }
 
 pub fn exec_ld(instr: &Instruction, ctx: &mut ExecutionContext) {
