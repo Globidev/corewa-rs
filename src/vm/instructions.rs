@@ -91,11 +91,13 @@ pub fn exec_xor(instr: &Instruction, ctx: &mut ExecutionContext) {
 }
 
 pub fn exec_zjmp(instr: &Instruction, ctx: &mut ExecutionContext) {
-    if !*ctx.zf { return }
+    let [offset_p, _, _] = &instr.params;
 
+    if !*ctx.zf { return }
     // Negating the instruction jump
-    let offset = instr.params[0].value as isize - instr.byte_size as isize;
-    ctx.pc.advance(offset)
+    let offset = offset_p.value as isize - instr.byte_size as isize;
+    let limited_offset = ctx.pc.offset(offset, OffsetType::Limited);
+    *ctx.pc = limited_offset.into();
 }
 
 pub fn exec_ldi(instr: &Instruction, ctx: &mut ExecutionContext) {
@@ -119,8 +121,9 @@ pub fn exec_sti(instr: &Instruction, ctx: &mut ExecutionContext) {
 }
 
 pub fn exec_fork(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let forked_pc = ctx.pc.offset(instr.params[0].value as isize, OffsetType::Limited);
+    let [offset_p, _, _] = &instr.params;
 
+    let forked_pc = ctx.pc.offset(offset_p.value as isize, OffsetType::Limited);
     let child_process = Process::fork(ctx.pid_pool.get(), forked_pc.into(), ctx);
     ctx.forks.push(child_process);
 }
@@ -147,8 +150,9 @@ pub fn exec_lldi(instr: &Instruction, ctx: &mut ExecutionContext) {
 }
 
 pub fn exec_lfork(instr: &Instruction, ctx: &mut ExecutionContext) {
-    let forked_pc = ctx.pc.offset(instr.params[0].value as isize, OffsetType::Long);
+    let [offset_p, _, _] = &instr.params;
 
+    let forked_pc = ctx.pc.offset(offset_p.value as isize, OffsetType::Long);
     let child_process = Process::fork(ctx.pid_pool.get(), forked_pc.into(), ctx);
     ctx.forks.push(child_process);
 }
