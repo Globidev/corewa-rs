@@ -41,7 +41,7 @@ impl Process {
             registers: *ctx.registers,
             zf: *ctx.zf,
             state: ProcessState::Idle,
-            last_live_cycle: ctx.cycle
+            last_live_cycle: 0
         }
     }
 }
