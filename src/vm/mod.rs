@@ -68,6 +68,10 @@ impl VirtualMachine {
         self.memory.cell_values()
     }
 
+    pub fn cell_ages(&self) -> *const u16 {
+        self.memory.cell_ages()
+    }
+
     pub fn cell_owners(&self) -> *const PlayerId {
         self.memory.cell_owners()
     }
@@ -152,6 +156,7 @@ impl VirtualMachine {
         }
 
         self.cycles += 1;
+        self.memory.tick();
 
         self.processes.append(&mut forks);
         let last_valid_live = lives.iter().rfind(|id|

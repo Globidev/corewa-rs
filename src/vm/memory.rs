@@ -4,6 +4,7 @@ use super::wrapping_array::WrappingArray;
 
 pub struct Memory {
     values: WrappingArray<u8>,
+    ages: WrappingArray<u16>,
     owners: WrappingArray<PlayerId>
 }
 
@@ -11,6 +12,7 @@ impl Default for Memory {
     fn default() -> Self {
         Self {
             values: WrappingArray::with_size(MEM_SIZE),
+            ages: WrappingArray::repeat(MEM_SIZE, 1024),
             owners: WrappingArray::repeat(MEM_SIZE, -1)
         }
     }
@@ -25,13 +27,24 @@ impl Memory {
         self.values.as_ptr()
     }
 
+    pub fn cell_ages(&self) -> *const u16 {
+        self.ages.as_ptr()
+    }
+
     pub fn cell_owners(&self) -> *const PlayerId {
         self.owners.as_ptr()
+    }
+
+    pub fn tick(&mut self) {
+        for age in self.ages.iter_mut() {
+            *age = age.saturating_sub(1)
+        }
     }
 
     pub fn write(&mut self, at: usize, bytes: &[u8], owner: PlayerId) {
         for (i, byte) in bytes.iter().enumerate() {
             self.values[at + i] = *byte;
+            self.ages[at + i] = 1024;
             self.owners[at + i] = owner
         }
     }
@@ -51,10 +64,7 @@ impl Memory {
     pub fn write_i32(&mut self, value: i32, owner: PlayerId, at: usize) {
         let value_as_bytes: [u8; 4] = unsafe { std::mem::transmute(value.to_be()) };
 
-        for (i, byte) in value_as_bytes.iter().enumerate() {
-            self.values[at + i] = *byte;
-            self.owners[at + i] = owner;
-        }
+        self.write(at, &value_as_bytes, owner)
     }
 }
 
