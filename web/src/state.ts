@@ -145,9 +145,17 @@ export class ObservableVM {
   @action
   setCycle(cycle: number) {
     // console.log("setCycle")
-    this.stop()
-
-    if (this.vm) this.tick(this.vm, cycle)
+    this.pause()
+    if (this.vm) {
+      if (this.vm.cycles <= cycle) {
+        this.tick(this.vm, cycle - this.vm.cycles)
+      } else {
+        this.vm = null
+        this.cycles = null
+        this.compile()
+        if (this.vm) this.tick(this.vm, cycle)
+      }
+    }
   }
 }
 
