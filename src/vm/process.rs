@@ -14,7 +14,7 @@ pub struct Process {
     pub last_live_cycle: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ProcessState {
     Idle,
     Executing { op: OpType, cycle_left: u32 }

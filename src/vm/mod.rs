@@ -1,9 +1,9 @@
-pub mod memory;
-pub mod types;
 pub mod decoder;
+pub mod memory;
+pub mod process;
+pub mod types;
 mod execution_context;
 mod instructions;
-mod process;
 mod program_counter;
 mod wrapping_array;
 
@@ -198,6 +198,10 @@ impl VirtualMachine {
 
     pub fn memory(&self) -> &Memory {
         &self.memory
+    }
+
+    pub fn processes(&self) -> &Vec<Process> {
+        &self.processes
     }
 
     pub fn load_players(&mut self, players: &[(PlayerId, Vec<u8>)]) {

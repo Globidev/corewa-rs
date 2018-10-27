@@ -22,6 +22,10 @@ impl<T: Default + Clone> WrappingArray<T> {
     pub fn as_ptr(&self) -> *const T {
         self.0.as_ptr()
     }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.0.iter_mut()
+    }
 }
 
 use std::ops::{Index, IndexMut};
