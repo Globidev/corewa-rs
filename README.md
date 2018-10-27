@@ -1,4 +1,4 @@
-# corewar-rs
+# corewa-rs
 
 Corewar is a programming game involving between 2 and 4 players.  
  - Each player writes an assembly program that is compiled to bytecode referred to as a **champion**
@@ -61,7 +61,7 @@ The winner is the last player who has been reported alive.
 
 ⚠ Processes can report any player to be alive, not exclusively their champion's player. See the `live` instruction for more information.
 
-## The instructions
+## Instruction set
 The VM supports 16 instructions.  
 Instructions take between **1** and **3** parameters.  
 Parameters can be one of three types:
