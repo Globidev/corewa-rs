@@ -38,12 +38,33 @@ export class ObservableVM {
     this.id = id
   }
 
-  nextChampionId() {
-    let id = this.championIdPool
-    ++this.championIdPool
+  randomChampionId() {
+    let id = undefined
+
+    do {
+      const randomIds = new Int32Array(8)
+      crypto.getRandomValues(randomIds)
+      id = randomIds.find(n => n != 0 && !this.players.has(n))
+    } while (id === undefined)
+
     return id
   }
 
+  playerName(id: number) {
+    return this.vm ? this.vm.player_name(id) : null
+  }
+
+  playerSize(id: number) {
+    return this.vm ? this.vm.player_size(id) : null
+  }
+
+  playerProcesses(id: number) {
+    return this.vm ? this.vm.player_processes(id) : null
+  }
+
+  playerLastLive(id: number) {
+    return this.vm ? this.vm.player_last_live(id) : null
+  }
   @action
   tick(vm: VirtualMachine, n: number) {
     for (let i = 0; i < n; ++i)

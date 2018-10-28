@@ -15,6 +15,8 @@ use self::types::*;
 
 use wasm_bindgen::prelude::*;
 
+use std::collections::HashMap;
+
 #[wasm_bindgen]
 #[derive(Default)]
 pub struct VMBuilder {
@@ -47,7 +49,7 @@ pub struct VirtualMachine {
     memory: Memory,
     processes: Vec<Process>,
     pid_pool: PidPool,
-    last_live_id: Option<PlayerId>,
+    last_lives: HashMap<PlayerId, u32>,
 
     pub cycles: u32,
     pub last_live_check: u32,
@@ -85,10 +87,11 @@ impl VirtualMachine {
     }
 
     pub fn winner(&self) -> Option<String> {
-        self.last_live_id.and_then(|id| {
-            self.players.iter().find(|p| p.id == id)
-                .map(|p| format!("{} ({})", p.name, p.id))
-        })
+        self.last_lives.iter().max_by_key(|(_, last)| *last)
+            .and_then(|(id, _)| {
+                self.players.iter().find(|p| p.id == *id)
+                    .map(|p| format!("{} ({})", p.name, p.id))
+            })
     }
 
     pub fn player_count(&self) -> usize {
@@ -97,6 +100,27 @@ impl VirtualMachine {
 
     pub fn player_id(&self, at: usize) -> PlayerId {
         self.players[at].id
+    }
+
+    pub fn player_name(&self, id: PlayerId) -> String {
+        self.players.iter().find(|p| p.id == id)
+            .map(|p| p.name.clone())
+            .unwrap()
+    }
+
+    pub fn player_size(&self, id: PlayerId) -> usize {
+        self.players.iter().find(|p| p.id == id)
+            .map(|p| p.size)
+            .unwrap()
+    }
+
+    pub fn player_processes(&self, id: PlayerId) -> usize {
+        self.processes.iter().filter(|p| p.player_id == id)
+            .count()
+    }
+
+    pub fn player_last_live(&self, id: PlayerId) -> u32 {
+        *self.last_lives.get(&id).unwrap_or(&0)
     }
 
     pub fn tick(&mut self) -> bool {
@@ -155,16 +179,19 @@ impl VirtualMachine {
             };
         }
 
-        self.cycles += 1;
         self.memory.tick();
 
         self.processes.append(&mut forks);
-        let last_valid_live = lives.iter().rfind(|id|
-            self.players.iter().any(|p| p.id == **id)
-        );
-        if let Some(live_id) = last_valid_live {
-            self.last_live_id = Some(*live_id)
-        }
+
+        let cycle = self.cycles;
+        let last_lives = &mut self.last_lives;
+        self.players.iter().for_each(|p| {
+            if lives.contains(&p.id) {
+                last_lives.insert(p.id, cycle);
+            }
+        });
+
+        self.cycles += 1;
 
         let last_live_check = self.last_live_check;
         let should_live_check = self.cycles - last_live_check >= self.cycles_to_die;
@@ -220,7 +247,8 @@ impl VirtualMachine {
                 self.players.push(Player {
                     id: *player_id,
                     name: from_nul_bytes(&(*header_ptr).prog_name),
-                    comment: from_nul_bytes(&(*header_ptr).prog_comment)
+                    comment: from_nul_bytes(&(*header_ptr).prog_comment),
+                    size: program.len() - HEADER_SIZE
                 });
             };
 

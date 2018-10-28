@@ -5,6 +5,7 @@ pub struct Player {
     pub id: PlayerId,
     pub name: String,
     pub comment: String,
+    pub size: usize
 }
 
 #[derive(Debug)]
