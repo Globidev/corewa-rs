@@ -13,7 +13,7 @@ impl Default for Memory {
         Self {
             values: WrappingArray::with_size(MEM_SIZE),
             ages: WrappingArray::repeat(MEM_SIZE, 1024),
-            owners: WrappingArray::repeat(MEM_SIZE, -1)
+            owners: WrappingArray::with_size(MEM_SIZE)
         }
     }
 }
