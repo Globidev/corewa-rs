@@ -6,6 +6,14 @@ use crate::spec::*;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
+pub fn processes_at(vm: &VirtualMachine, at: usize) -> ProcessCollection {
+    let processes = vm.processes().iter().filter(|p| *p.pc == at)
+        .map(ProcessInfo::from_process)
+        .collect();
+    ProcessCollection { processes }
+}
+
+#[wasm_bindgen]
 #[derive(Clone)]
 pub struct ProcessInfo {
     pub pid: Pid,
@@ -28,6 +36,7 @@ pub struct ExecutingState {
 pub struct ProcessCollection {
     processes: Vec<ProcessInfo>
 }
+
 impl ProcessInfo {
     pub fn from_process(process: &Process) -> Self {
         Self {
@@ -75,12 +84,4 @@ impl ProcessCollection {
     pub fn at(&self, idx: usize) -> ProcessInfo {
         self.processes[idx].clone()
     }
-}
-
-#[wasm_bindgen]
-pub fn processes_at(vm: &VirtualMachine, at: usize) -> ProcessCollection {
-    let processes = vm.processes().iter().filter(|p| *p.pc == at)
-        .map(ProcessInfo::from_process)
-        .collect();
-    ProcessCollection { processes }
 }
