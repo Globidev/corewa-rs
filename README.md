@@ -69,32 +69,32 @@ Parameters can be one of three types:
  - `Direct`: an immediate numeric value
  - `Indirect`: a pointer offset to a location in memory. the offset is be applied to the executing process' `pc` and the result is used to address a 32bit value in memory.
 
-⚠ For most instructions that perform addressing, the *reach* is limited, in which case the `pc` offset will be wrapped within a `[-512, 512]` ring using a modulo operation. The only three instructions that have unlimited reach are referred to as **long** instructions.
+⚠ For most instructions that perform addressing, the *reach* is limited, in which case the `pc` offset will be wrapped within a `(-512, 512)` ring using a modulo operation. The only three instructions that have unlimited reach are referred to as **long** instructions.
 
 Every instruction has an `opcode` and executes in a certain number of cycles.  
-Some instructions can take different types of parameters and therefore need an additional **o**ctal **c**ode **p**oint (`ocp`) when encoded (more details in the encoding section).  
+Some instructions can take different types of parameters and therefore need an additional **p**arameter **c**ode **b**yte (`pcb`) when encoded (more details in the encoding section).  
 Some instructions have 16bit `Direct` values instead of 32bit.
 
 The table below summarizes all those characterics for every instruction:
 
-| mnemonic | opcode 🔢 | cycles ⏱ | param 1 | param 2 | param 3 |  ocp  | Direct size |
-| -------- | --------- | -------- | ------- | ------- | ------- | ----- | ----------- |
-| live     | 1         | 10       | D       |         |         | ❌    | 32          |
-| ld       | 2         | 5        | DI      | R       |         | ✔    | 32          |
-| st       | 3         | 5        | R       | RI      |         | ✔    | 32          |
-| add      | 4         | 10       | R       | R       | R       | ✔    | 32          |
-| sub      | 5         | 10       | R       | R       | R       | ✔    | 32          |
-| and      | 6         | 6        | RDI     | RDI     | R       | ✔    | 32          |
-| or       | 7         | 6        | RDI     | RDI     | R       | ✔    | 32          |
-| xor      | 8         | 6        | RDI     | RDI     | R       | ✔    | 32          |
-| zjmp     | 9         | 20       | D       |         |         | ❌    | 16          |
-| ldi      | 10        | 25       | RDI     | RD      | R       | ✔    | 16          |
-| sti      | 11        | 25       | R       | RDI     | RD      | ✔    | 16          |
-| fork     | 12        | 800      | D       |         |         | ❌    | 16          |
-| lld      | 13        | 10       | DI      | R       |         | ✔    | 32          |
-| lldi     | 14        | 50       | RDI     | RD      | R       | ✔    | 16          |
-| lfork    | 15        | 1000     | D       |         |         | ❌    | 16          |
-| aff      | 16        | 2        | R       |         |         | ✔    | 32          |
+| mnemonic | opcode | cycles ⏱ | param 1 | param 2 | param 3 |  pcb  | Direct size |
+| -------- | ------ | -------- | ------- | ------- | ------- | ----- | ----------- |
+| live     | 1      | 10       | D       |         |         | ❌    | 32          |
+| ld       | 2      | 5        | DI      | R       |         | ✔    | 32          |
+| st       | 3      | 5        | R       | RI      |         | ✔    | 32          |
+| add      | 4      | 10       | R       | R       | R       | ✔    | 32          |
+| sub      | 5      | 10       | R       | R       | R       | ✔    | 32          |
+| and      | 6      | 6        | RDI     | RDI     | R       | ✔    | 32          |
+| or       | 7      | 6        | RDI     | RDI     | R       | ✔    | 32          |
+| xor      | 8      | 6        | RDI     | RDI     | R       | ✔    | 32          |
+| zjmp     | 9      | 20       | D       |         |         | ❌    | 16          |
+| ldi      | 10     | 25       | RDI     | RD      | R       | ✔    | 16          |
+| sti      | 11     | 25       | R       | RDI     | RD      | ✔    | 16          |
+| fork     | 12     | 800      | D       |         |         | ❌    | 16          |
+| lld      | 13     | 10       | DI      | R       |         | ✔    | 32          |
+| lldi     | 14     | 50       | RDI     | RD      | R       | ✔    | 16          |
+| lfork    | 15     | 1000     | D       |         |         | ❌    | 16          |
+| aff      | 16     | 2        | R       |         |         | ✔    | 32          |
 
 📝 **R** = `Register` **D** = `Direct` **I** = `Indirect`
 
@@ -103,83 +103,83 @@ Some instructions can affect the zero flag `zf` by either reading or computing a
 Detailed behaviors for every instruction:
 <hr/>
 
-`live` *id* | 🔢1 ⏱10
+`live` *id* | ⏱10
 
 Reports this process **and** the player #`id` as being alive.
 <hr/>
 
-`ld` *src, dst* | 🔢2 ⏱5
+`ld` *src, dst* | ⏱5
 
 *Load*s `src` in the register `dst`. `src`'s value affects `zf`.
 <hr/>
 
-`st` *src, dst* | 🔢3 ⏱5
+`st` *src, dst* | ⏱5
 
 *Store*s `src`'s register value in `dst` (either a register or a memory location).
 <hr/>
 
-`add` *lhs, rhs, dst* | 🔢4 ⏱10
+`add` *lhs, rhs, dst* | ⏱10
 
 Computes `lhs + rhs` and stores the result in the register `dst`. The result affects `zf`.
 <hr/>
 
-`sub` *lhs, rhs, dst* | 🔢5 ⏱10
+`sub` *lhs, rhs, dst* | ⏱10
 
 Computes `lhs - rhs` and stores the result in the register `dst`. The result affects `zf`.
 <hr/>
 
-`and` *lhs, rhs, dst* | 🔢6 ⏱6
+`and` *lhs, rhs, dst* | ⏱6
 
 Computes `lhs & rhs` and stores the result in the register `dst`. The result affects `zf`.
 <hr/>
 
-`or` *lhs, rhs, dst* | 🔢7 ⏱6
+`or` *lhs, rhs, dst* | ⏱6
 
 Computes `lhs | rhs` and stores the result in the register `dst`. The result affects `zf`.
 <hr/>
 
-`xor` *lhs, rhs, dst* | 🔢8 ⏱6
+`xor` *lhs, rhs, dst* | ⏱6
 
 Computes `lhs ^ rhs` and stores the result in the register `dst`. The result affects `zf`.
 <hr/>
 
-`zjmp` *offset* | 🔢9 ⏱20
+`zjmp` *offset* | ⏱20
 
 Moves the process' `pc` by `offset` **only** if the process' `zf` is set to `1`.
 <hr/>
 
-`ldi` *lhs, rhs, dst* | 🔢10 ⏱25
+`ldi` *lhs, rhs, dst* | ⏱25
 
 Computes `lhs + rhs` and uses the result as an offset to address memory and load a 32bit value into the register `dst`.
 <hr/>
 
-`sti` *src, lhs, rhs* | 🔢11 ⏱25
+`sti` *src, lhs, rhs* | ⏱25
 
 Computes `lhs + rhs` and uses the result as an offset to address memory and store the value of the register `src` at that memory location.
 <hr/>
 
-`fork` *offset* | 🔢12 ⏱800
+`fork` *offset* | ⏱800
 
 *Fork*s this process. This effectively creates a new process that inherits the current process' registers and `zf`. The spawned process has its `pc` set to his parent's `pc` offseted by `offset`.
 <hr/>
 
-`lld` *src, dst* | 🔢13 ⏱10
+`lld` *src, dst* | ⏱10
 
 
 The **long** version of **ld**.
 <hr/>
 
-`lldi` *lhs, rhs, dst* | 🔢14 ⏱50
+`lldi` *lhs, rhs, dst* | ⏱50
 
 The **long** version of **ldi**. Neither the parameter values nor the computed address will have their reach limited. Contrary to **ldi**, the value loaded from memory affects `zf`.
 <hr/>
 
-`lfork` *offset* | 🔢15 ⏱1000
+`lfork` *offset* | ⏱1000
 
 The **long** version of **fork**
 <hr/>
 
-`aff` *chr* | 🔢16 ⏱2 (not yet implemented, subject to change)
+`aff` *chr* | ⏱2 (not yet implemented, subject to change)
 
 Makes this process' champion talk by displaying `chr`'s value. This instruction is useful if you want to ridicule your opponents.
 <hr/>
@@ -244,13 +244,13 @@ The header is *packed* and its total size is always `2186` bytes
 The code section is a *packed* array of bytes containing the bytes for every instruction.  
 Instructions are encoded as a *packed* sequence of the following elements:
  - `opcode` on **1** byte
- - `ocp` on **1** byte (only if the instruction requires an octal code point)
+ - `pcb` on **1** byte (only if the instruction requires a parameter code point)
  - parameters on a number of bytes depending on their types:
      - `Register`s on **1** byte, the value being the register number
      - `Direct` values on either **2** or **4** bytes depending on the instruction (see the instruction table in the earlier chapters)
      - `Indirect` values on **2** bytes
 
-the `ocp` of an instruction is computed as the 0-right-padded bit concatenation of each parameter type's code point value:
+the `pcb` of an instruction is computed as the 0-right-padded bit concatenation of each parameter type's code point value:
  - **1** for `register`s 
  - **2** for `direct`s
  - **3** for `indirect`s
@@ -261,14 +261,14 @@ xor     42,    %1337,    r12
 #    indirect  direct  register
 #       3        2        1
 #      0b11     0b10     0b01
-#      ocp = 0b11100100
+#      pcb = 0b11100100
 #         == 0xE4 == 0d228
 
 st      r1,      -5
 #    register  indirect
 #       1         3
 #      0b01      0b11
-#      ocp = 0b01110000
+#      pcb = 0b01110000
 #         == 0x70 == 0d112
 ```
 
@@ -276,7 +276,7 @@ More examples of full instruction encoding:
 ```
 xor  42, %1337, r12
 # opcode = 0x08 (see table)
-# ocp = 0xE4 (see above)
+# pcb = 0xE4 (see above)
 # param1 = 0x00 0x2A (indirect 42 on 2 bytes)
 # param2 = 0x00 0x00 0x05 0x39 (direct 1337 on 4 bytes)
 # param3 = 0x0C (register 12 on 1 byte)
@@ -284,13 +284,13 @@ xor  42, %1337, r12
 
 live  %8
 # opcode = 0x01 (see table)
-# ocp = ø (see table)
+# pcb = ø (see table)
 # param1 = 0x00 0x00 0x00 0x08 (direct 8 on 4 bytes)
 # Full instruction = 0x01 0x00 0x00 0x00 0x08 (5 bytes)
 
 sti  r6, 22, %70
 # opcode = 0x0B
-# ocp = 0x78 (try to compute it yourself 🙂)
+# pcb = 0x78 (try to compute it yourself 🙂)
 # param1 = 0x06
 # param2 = 0x00 0x16
 # param3 = 0x00 0x46 (sti has 16bit directs)
