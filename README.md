@@ -67,9 +67,9 @@ Instructions take between **1** and **3** parameters.
 Parameters can be one of three types:
  - `Register`: one of the 16 registers available
  - `Direct`: an immediate numeric value
- - `Indirect`: a pointer offset to a location in memory. the offset is be applied to the executing process' `pc` and the result is used to address a 32bit value in memory.
+ - `Indirect`: a pointer offset to a location in memory. the offset is applied to the executing process' `pc` and the result is used to address a 32bit value in memory.
 
-⚠ For most instructions that perform addressing, the *reach* is limited, in which case the `pc` offset will be wrapped within a `(-512, 512)` ring using a modulo operation. The only three instructions that have unlimited reach are referred to as **long** instructions.
+⚠ For most instructions that perform addressing, the *reach* is limited, in which case the `pc` offset is wrapped within a `(-512, 512)` ring using a modulo operation. The only three instructions that have unlimited reach are referred to as **long** instructions.
 
 Every instruction has an `opcode` and executes in a certain number of cycles.  
 Some instructions can take different types of parameters and therefore need an additional **p**arameter **c**ode **b**yte (`pcb`) when encoded (more details in the encoding section).  
@@ -78,23 +78,23 @@ Some instructions have 16bit `Direct` values instead of 32bit.
 The table below summarizes all those characterics for every instruction:
 
 | mnemonic | opcode | cycles ⏱ | param 1 | param 2 | param 3 |  pcb  | Direct size |
-| -------- | ------ | -------- | ------- | ------- | ------- | ----- | ----------- |
-| live     | 1      | 10       | D       |         |         | ❌    | 32          |
-| ld       | 2      | 5        | DI      | R       |         | ✔    | 32          |
-| st       | 3      | 5        | R       | RI      |         | ✔    | 32          |
-| add      | 4      | 10       | R       | R       | R       | ✔    | 32          |
-| sub      | 5      | 10       | R       | R       | R       | ✔    | 32          |
-| and      | 6      | 6        | RDI     | RDI     | R       | ✔    | 32          |
-| or       | 7      | 6        | RDI     | RDI     | R       | ✔    | 32          |
-| xor      | 8      | 6        | RDI     | RDI     | R       | ✔    | 32          |
-| zjmp     | 9      | 20       | D       |         |         | ❌    | 16          |
-| ldi      | 10     | 25       | RDI     | RD      | R       | ✔    | 16          |
-| sti      | 11     | 25       | R       | RDI     | RD      | ✔    | 16          |
-| fork     | 12     | 800      | D       |         |         | ❌    | 16          |
-| lld      | 13     | 10       | DI      | R       |         | ✔    | 32          |
-| lldi     | 14     | 50       | RDI     | RD      | R       | ✔    | 16          |
-| lfork    | 15     | 1000     | D       |         |         | ❌    | 16          |
-| aff      | 16     | 2        | R       |         |         | ✔    | 32          |
+| -------- | ------ | --------- | ------- | ------- | ------- | ----- | ----------- |
+| live     | 1      | 10        | D       |         |         | ❌    | 32          |
+| ld       | 2      | 5         | DI      | R       |         | ✔    | 32          |
+| st       | 3      | 5         | R       | RI      |         | ✔    | 32          |
+| add      | 4      | 10        | R       | R       | R       | ✔    | 32          |
+| sub      | 5      | 10        | R       | R       | R       | ✔    | 32          |
+| and      | 6      | 6         | RDI     | RDI     | R       | ✔    | 32          |
+| or       | 7      | 6         | RDI     | RDI     | R       | ✔    | 32          |
+| xor      | 8      | 6         | RDI     | RDI     | R       | ✔    | 32          |
+| zjmp     | 9      | 20        | D       |         |         | ❌    | 16          |
+| ldi      | 10     | 25        | RDI     | RD      | R       | ✔    | 16          |
+| sti      | 11     | 25        | R       | RDI     | RD      | ✔    | 16          |
+| fork     | 12     | 800       | D       |         |         | ❌    | 16          |
+| lld      | 13     | 10        | DI      | R       |         | ✔    | 32          |
+| lldi     | 14     | 50        | RDI     | RD      | R       | ✔    | 16          |
+| lfork    | 15     | 1000      | D       |         |         | ❌    | 16          |
+| aff      | 16     | 2         | R       |         |         | ✔    | 32          |
 
 📝 **R** = `Register` **D** = `Direct` **I** = `Indirect`
 
@@ -221,7 +221,7 @@ loop: live %1         # Stay alive
       and  r1, %0, r1 # Set zf = 1 to make sure the next zjmp takes effect
       zjmp %:loop     # Jump back to the start of the loop
 ```
-When compiling this program, `%:loop` will be treated as `%-13` (the `live` and the `and` instructions are respectively 5 and 8 bytes long when encoded here)
+When compiling this program, `%:loop` is treated as `%-13` (the `live` and the `and` instructions are respectively 5 and 8 bytes long when encoded here)
 
 ### Bytecode generation
 Compiled champions are made of two parts:
