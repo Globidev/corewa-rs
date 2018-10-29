@@ -74,7 +74,7 @@ impl Index<usize> for Memory {
     type Output = u8;
 
     fn index(&self, index: usize) -> &u8 {
-        self.values.index(index % MEM_SIZE)
+        self.values.index(index)
     }
 }
 
