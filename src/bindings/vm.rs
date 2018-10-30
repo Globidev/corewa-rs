@@ -38,6 +38,10 @@ impl VirtualMachine {
         self.0.tick()
     }
 
+    pub fn process_count(&self) -> usize {
+        self.0.processes.len()
+    }
+
     pub fn player_count(&self) -> usize {
         self.0.players.len()
     }
