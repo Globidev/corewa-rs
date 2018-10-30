@@ -38,6 +38,11 @@ pub struct VirtualMachine {
     //   - Processes (or process count) per champion ?
 }
 
+fn track_pc(from: usize, to: usize, count_tracker: &mut [u32; MEM_SIZE]) {
+    count_tracker[from] -= 1;
+    count_tracker[to] += 1;
+}
+
 impl VirtualMachine {
     pub fn new() -> Self {
         Self {
@@ -78,7 +83,8 @@ impl VirtualMachine {
 
             match process.state {
                 ProcessState::Executing { cycle_left: 1, op } => {
-                    match decode_instr(&self.memory, op, *process.pc) {
+                    let pc_start = *process.pc;
+                    match decode_instr(&self.memory, op, pc_start) {
                         Ok(instr) => {
                             let execution_context = ExecutionContext {
                                 memory: &mut self.memory,
@@ -94,9 +100,12 @@ impl VirtualMachine {
                                 live_ids: &mut lives
                             };
                             execute_instr(&instr, execution_context);
+                            track_pc(pc_start, *process.pc, &mut self.process_count_per_cells);
                         },
                         Err(_e) => {
-                            process.pc.advance(1)
+                            let pc_start = *process.pc;
+                            process.pc.advance(1);
+                            track_pc(pc_start, *process.pc, &mut self.process_count_per_cells);
                         }
                     };
                     process.state = ProcessState::Idle;
@@ -107,12 +116,16 @@ impl VirtualMachine {
                 },
 
                 ProcessState::Idle => {
-                    process.pc.advance(1)
+                    let pc_start = *process.pc;
+                    process.pc.advance(1);
+                    track_pc(pc_start, *process.pc, &mut self.process_count_per_cells);
                 }
             };
         }
 
         self.memory.tick();
+
+        forks.iter().for_each(|p| self.process_count_per_cells[*p.pc] += 1);
 
         self.processes.append(&mut forks);
 
@@ -129,9 +142,10 @@ impl VirtualMachine {
         let last_live_check = self.last_live_check;
         let should_live_check = self.cycles - last_live_check >= self.check_interval;
         if should_live_check {
-            self.processes.retain(|process|
-                process.last_live_cycle > last_live_check
-            );
+            let process_count_per_cells = &mut self.process_count_per_cells;
+            self.processes.drain_filter(|process|
+                process.last_live_cycle <= last_live_check
+            ).for_each(|p| process_count_per_cells[*p.pc] -= 1);
 
             if self.live_count_since_last_check >= NBR_LIVE {
                 self.check_interval = self.check_interval.saturating_sub(CYCLE_DELTA);
@@ -177,6 +191,7 @@ impl VirtualMachine {
         let mut starting_process = Process::new(self.pid_pool.get(), player_id, at.into());
         starting_process.registers[0] = player_id;
         self.processes.push(starting_process);
+        self.process_count_per_cells[at] += 1;
     }
 }
 
