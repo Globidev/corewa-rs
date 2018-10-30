@@ -26,7 +26,7 @@ pub const MEM_SIZE: usize = 4096;
 pub const IDX_MOD: usize = MEM_SIZE / 8;
 pub const CHAMP_MAX_SIZE: usize = MEM_SIZE / 6;
 
-pub const CYCLE_TO_DIE: u32 = 1536;
+pub const CHECK_INTERVAL: u32 = 1536;
 pub const CYCLE_DELTA: u32 = 50;
 pub const NBR_LIVE: u32 = 21;
 pub const MAX_CHECKS: u32 = 10;

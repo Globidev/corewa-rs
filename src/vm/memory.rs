@@ -23,15 +23,15 @@ impl Memory {
         MEM_SIZE
     }
 
-    pub fn cell_values(&self) -> *const u8 {
+    pub fn values_ptr(&self) -> *const u8 {
         self.values.as_ptr()
     }
 
-    pub fn cell_ages(&self) -> *const u16 {
+    pub fn ages_ptr(&self) -> *const u16 {
         self.ages.as_ptr()
     }
 
-    pub fn cell_owners(&self) -> *const PlayerId {
+    pub fn owners_ptr(&self) -> *const PlayerId {
         self.owners.as_ptr()
     }
 

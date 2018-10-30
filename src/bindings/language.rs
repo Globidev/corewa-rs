@@ -6,13 +6,15 @@ use wasm_bindgen::prelude::*;
 pub fn compile_champion(input: &str) -> Result<Vec<u8>, JsValue> {
     super::utils::set_panic_hook();
 
-    let parsed_champion = language::read_champion(input.as_bytes())
-        .map_err(CompileError::from)?;
+    compile_champion_impl(input)
+        .map_err(JsValue::from)
+}
+
+fn compile_champion_impl(input: &str) -> Result<Vec<u8>, CompileError> {
+    let parsed_champion = language::read_champion(input.as_bytes())?;
 
     let mut byte_code = Vec::new();
-
-    language::write_champion(&mut byte_code, &parsed_champion)
-        .map_err(CompileError::from)?;
+    language::write_champion(&mut byte_code, &parsed_champion)?;
 
     Ok(byte_code)
 }
@@ -24,6 +26,12 @@ pub struct Region {
     pub from_col: u32,
     pub to_row: u32,
     pub to_col: u32,
+}
+
+impl Region {
+    fn new(from_row: u32, from_col: u32, to_row: u32, to_col: u32) -> Self {
+        Self { from_row, from_col, to_row, to_col }
+    }
 }
 
 #[wasm_bindgen]
@@ -42,12 +50,6 @@ impl CompileError {
         self.region.clone()
             .map(JsValue::from)
             .unwrap_or(JsValue::NULL)
-    }
-}
-
-impl Region {
-    fn new(from_row: u32, from_col: u32, to_row: u32, to_col: u32) -> Self {
-        Self { from_row, from_col, to_row, to_col }
     }
 }
 

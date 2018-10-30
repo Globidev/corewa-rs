@@ -9,16 +9,16 @@ pub trait Decodable: Index<usize, Output = u8> {
 }
 
 pub fn decode_op(source: &impl Decodable, idx: usize)
-    -> Result<OpType, DecodeError>
+    -> Result<OpType, InvalidOpCode>
 {
     let op_code = source[idx];
 
     op_from_code(op_code)
-        .ok_or_else(|| DecodeError::InvalidOpCode(op_code))
+        .ok_or_else(|| InvalidOpCode(op_code))
 }
 
 pub fn decode_instr(source: &impl Decodable, op: OpType, idx: usize)
-    -> Result<Instruction, DecodeError>
+    -> Result<Instruction, InstrDecodeError>
 {
     let op_spec = OpSpec::from(op);
 
@@ -47,7 +47,7 @@ pub fn decode_instr(source: &impl Decodable, op: OpType, idx: usize)
 }
 
 fn decode_param(source: &impl Decodable, kind: ParamType, idx: usize, dir_size: &DirectSize)
-    -> Result<(Param, usize), DecodeError>
+    -> Result<(Param, usize), InstrDecodeError>
 {
     use self::ParamType::*;
 
@@ -56,7 +56,7 @@ fn decode_param(source: &impl Decodable, kind: ParamType, idx: usize, dir_size: 
             let reg = source[idx];
             match reg as usize {
                 1 ... REG_COUNT => (i32::from(reg), 1),
-                _ => return Err(DecodeError::InvalidRegNumber(reg))
+                _ => return Err(InstrDecodeError::InvalidRegNumber(reg))
             }
         },
         (Direct, DirectSize::FourBytes) => (source.read_i32(idx), 4),
@@ -92,12 +92,12 @@ fn params_from_unambiguous_masks(masks: [u8; MAX_PARAMS]) -> ParamTypes {
 }
 
 fn read_ocp_params(ocp: u8, op_spec: &OpSpec)
-    -> Result<ParamTypes, DecodeError>
+    -> Result<ParamTypes, InstrDecodeError>
 {
     let unused_mask = (1 << ((4 - op_spec.param_count) * 2)) - 1;
 
     if ocp & unused_mask != 0 {
-        return Err(DecodeError::InvalidOCP(ocp))
+        return Err(InstrDecodeError::InvalidOCP(ocp))
     }
 
     let mut param_types = ParamTypes::default();
@@ -108,9 +108,9 @@ fn read_ocp_params(ocp: u8, op_spec: &OpSpec)
     {
         let shifted_bits = ocp >> (6 - 2 * i);
         let (param_type, bit) = read_type_and_bit(shifted_bits & 0b0000_0011)
-            .ok_or_else(|| DecodeError::InvalidOCP(ocp))?;
+            .ok_or_else(|| InstrDecodeError::InvalidOCP(ocp))?;
         if param_mask & bit != bit {
-            return Err(DecodeError::InvalidOCP(ocp))
+            return Err(InstrDecodeError::InvalidOCP(ocp))
         }
         *param_type_out = param_type;
     }
@@ -135,8 +135,29 @@ fn op_from_code(code: u8) -> Option<OpType> {
 }
 
 #[derive(Debug)]
-pub enum DecodeError {
-    InvalidOpCode(u8),
+pub struct InvalidOpCode(u8);
+
+#[derive(Debug)]
+pub enum InstrDecodeError {
     InvalidOCP(u8),
     InvalidRegNumber(u8),
+}
+
+use std::fmt;
+
+impl fmt::Display for InstrDecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::InstrDecodeError::*;
+
+        match self {
+            InvalidOCP(byte) => write!(f, "Invalid PCB: {}", byte),
+            InvalidRegNumber(byte) => write!(f, "Invalid register: {}", byte),
+        }
+    }
+}
+
+impl fmt::Display for InvalidOpCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Invalid OP code: {}", self.0)
+    }
 }

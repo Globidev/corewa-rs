@@ -1,17 +1,8 @@
 use crate::vm::process::{Process, ProcessState};
 use crate::vm::types::*;
-use crate::vm::VirtualMachine;
 use crate::spec::*;
 
 use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-pub fn processes_at(vm: &VirtualMachine, at: usize) -> ProcessCollection {
-    let processes = vm.processes().iter().filter(|p| *p.pc == at)
-        .map(ProcessInfo::from_process)
-        .collect();
-    ProcessCollection { processes }
-}
 
 #[wasm_bindgen]
 #[derive(Clone)]
@@ -83,5 +74,16 @@ impl ProcessCollection {
 
     pub fn at(&self, idx: usize) -> ProcessInfo {
         self.processes[idx].clone()
+    }
+}
+
+impl<T: Iterator<Item = &Process>> From<T> for ProcessCollection {
+    fn from(processes: T) -> Self {
+        // Careful with many processes: might want to limit them in the future
+        let processes = processes
+            .map(ProcessInfo::from_process)
+            .collect();
+
+        Self { processes }
     }
 }

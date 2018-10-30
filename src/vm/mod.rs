@@ -2,6 +2,7 @@ pub mod decoder;
 pub mod memory;
 pub mod process;
 pub mod types;
+
 mod execution_context;
 mod instructions;
 mod program_counter;
@@ -13,92 +14,54 @@ use self::process::{Process, ProcessState};
 use self::memory::Memory;
 use self::types::*;
 
-use wasm_bindgen::prelude::*;
-
 use std::collections::HashMap;
 
-#[wasm_bindgen]
-#[derive(Default)]
+// #[derive(Default)]
 pub struct VirtualMachine {
-    players: Vec<Player>,
-    memory: Memory,
-    processes: Vec<Process>,
-    pid_pool: PidPool,
-    last_lives: HashMap<PlayerId, u32>,
+    pub players: Vec<Player>,
+
+    pub memory: Memory,
+    pub processes: Vec<Process>,
+    pub pid_pool: PidPool,
+
+    pub last_lives: HashMap<PlayerId, u32>,
 
     pub cycles: u32,
     pub last_live_check: u32,
-    pub cycles_to_die: u32,
+    pub check_interval: u32,
     pub live_count_since_last_check: u32,
     pub checks_without_cycle_decrement: u32,
+
+    // TODO:
+    //   - Processes (or process count) per memory cell
+    pub process_count_per_cells: [u32; MEM_SIZE],
+    //   - Processes (or process count) per champion ?
 }
 
-#[wasm_bindgen]
 impl VirtualMachine {
-    pub fn process_pcs(&self) -> Vec<u32> {
-        let mut v = vec![0; MEM_SIZE];
-        self.processes.iter().for_each(|p| v[*p.pc] += 1);
-        v
+    pub fn new() -> Self {
+        Self {
+            players: Vec::with_capacity(MAX_PLAYERS),
+
+            memory: Memory::default(),
+            processes: Vec::with_capacity(65536),
+            pid_pool: PidPool::default(),
+
+            last_lives: HashMap::with_capacity(MAX_PLAYERS),
+
+            cycles: 0,
+            last_live_check: 0,
+            check_interval: CHECK_INTERVAL,
+            live_count_since_last_check: 0,
+            checks_without_cycle_decrement: 0,
+
+            process_count_per_cells: [0; MEM_SIZE]
+        }
     }
 
-    pub fn cell_values(&self) -> *const u8 {
-        self.memory.cell_values()
-    }
+    pub fn tick(&mut self) {
+        if self.processes.is_empty() { return }
 
-    pub fn cell_ages(&self) -> *const u16 {
-        self.memory.cell_ages()
-    }
-
-    pub fn cell_owners(&self) -> *const PlayerId {
-        self.memory.cell_owners()
-    }
-
-    pub fn size(&self) -> usize {
-        self.memory.size()
-    }
-
-    pub fn process_count(&self) -> usize {
-        self.processes.len()
-    }
-
-    pub fn winner(&self) -> Option<String> {
-        self.last_lives.iter().max_by_key(|(_, last)| *last)
-            .and_then(|(id, _)| {
-                self.players.iter().find(|p| p.id == *id)
-                    .map(|p| format!("{} ({})", p.name, p.id))
-            })
-    }
-
-    pub fn player_count(&self) -> usize {
-        self.players.len()
-    }
-
-    pub fn player_id(&self, at: usize) -> PlayerId {
-        self.players[at].id
-    }
-
-    pub fn player_name(&self, id: PlayerId) -> String {
-        self.players.iter().find(|p| p.id == id)
-            .map(|p| p.name.clone())
-            .unwrap()
-    }
-
-    pub fn player_size(&self, id: PlayerId) -> usize {
-        self.players.iter().find(|p| p.id == id)
-            .map(|p| p.size)
-            .unwrap()
-    }
-
-    pub fn player_processes(&self, id: PlayerId) -> usize {
-        self.processes.iter().filter(|p| p.player_id == id)
-            .count()
-    }
-
-    pub fn player_last_live(&self, id: PlayerId) -> u32 {
-        *self.last_lives.get(&id).unwrap_or(&0)
-    }
-
-    pub fn tick(&mut self) -> bool {
         use self::decoder::{decode_op, decode_instr};
 
         let mut forks = Vec::with_capacity(8192);
@@ -107,20 +70,15 @@ impl VirtualMachine {
         for process in self.processes.iter_mut().rev() {
             // Attempt to read instructions
             if let ProcessState::Idle = process.state {
-                match decode_op(&self.memory, *process.pc) {
-                    Ok(op) => {
-                        let cycle_left = OpSpec::from(op).cycles;
-                        process.state = ProcessState::Executing { cycle_left, op };
-                    },
-                    Err(e) => {
-                    }
+                if let Ok(op) = decode_op(&self.memory, *process.pc) {
+                    let cycle_left = OpSpec::from(op).cycles;
+                    process.state = ProcessState::Executing { cycle_left, op };
                 }
             }
 
             match process.state {
                 ProcessState::Executing { cycle_left: 1, op } => {
-                    let instr_result = decode_instr(&self.memory, op, *process.pc);
-                    match instr_result {
+                    match decode_instr(&self.memory, op, *process.pc) {
                         Ok(instr) => {
                             let execution_context = ExecutionContext {
                                 memory: &mut self.memory,
@@ -137,7 +95,7 @@ impl VirtualMachine {
                             };
                             execute_instr(&instr, execution_context);
                         },
-                        Err(e) => {
+                        Err(_e) => {
                             process.pc.advance(1)
                         }
                     };
@@ -169,46 +127,27 @@ impl VirtualMachine {
         self.cycles += 1;
 
         let last_live_check = self.last_live_check;
-        let should_live_check = self.cycles - last_live_check >= self.cycles_to_die;
+        let should_live_check = self.cycles - last_live_check >= self.check_interval;
         if should_live_check {
             self.processes.retain(|process|
                 process.last_live_cycle > last_live_check
             );
 
             if self.live_count_since_last_check >= NBR_LIVE {
-                self.cycles_to_die = self.cycles_to_die.saturating_sub(CYCLE_DELTA);
+                self.check_interval = self.check_interval.saturating_sub(CYCLE_DELTA);
                 self.checks_without_cycle_decrement = 0;
             } else {
                 self.checks_without_cycle_decrement += 1;
             }
 
             if self.checks_without_cycle_decrement >= MAX_CHECKS {
-                self.cycles_to_die = self.cycles_to_die.saturating_sub(CYCLE_DELTA);
+                self.check_interval = self.check_interval.saturating_sub(CYCLE_DELTA);
                 self.checks_without_cycle_decrement = 0;
             }
 
             self.live_count_since_last_check = 0;
             self.last_live_check = self.cycles;
         }
-
-        self.process_count() == 0
-    }
-}
-
-impl VirtualMachine {
-    pub fn new() -> Self {
-        Self {
-            cycles_to_die: CYCLE_TO_DIE,
-            ..Default::default()
-        }
-    }
-
-    pub fn memory(&self) -> &Memory {
-        &self.memory
-    }
-
-    pub fn processes(&self) -> &Vec<Process> {
-        &self.processes
     }
 
     pub fn load_players(&mut self, players: &[(PlayerId, Vec<u8>)]) {
@@ -232,7 +171,7 @@ impl VirtualMachine {
         }
     }
 
-    fn load_champion(&mut self, champion: ByteCode, player_id: PlayerId, at: usize) {
+    fn load_champion(&mut self, champion: &[u8], player_id: PlayerId, at: usize) {
         self.memory.write(at, champion, player_id);
 
         let mut starting_process = Process::new(self.pid_pool.get(), player_id, at.into());
