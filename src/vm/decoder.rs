@@ -150,7 +150,7 @@ impl fmt::Display for InstrDecodeError {
         use self::InstrDecodeError::*;
 
         match self {
-            InvalidOCP(byte) => write!(f, "Invalid PCB: {}", byte),
+            InvalidOCP(byte) => write!(f, "Invalid PCB: 0x{:X}", byte),
             InvalidRegNumber(byte) => write!(f, "Invalid register: {}", byte),
         }
     }
@@ -158,6 +158,6 @@ impl fmt::Display for InstrDecodeError {
 
 impl fmt::Display for InvalidOpCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Invalid OP code: {}", self.0)
+        write!(f, "Invalid OP code: 0x{:X}", self.0)
     }
 }

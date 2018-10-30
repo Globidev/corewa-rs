@@ -101,9 +101,9 @@ impl fmt::Display for OpType {
 impl fmt::Display for Param {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
-            ParamType::Direct => write!(f, "r{}", self.value),
+            ParamType::Direct => write!(f, "%{}", self.value),
             ParamType::Indirect => write!(f, "{}", self.value),
-            ParamType::Register => write!(f, "%{}", self.value),
+            ParamType::Register => write!(f, "r{}", self.value),
         }
     }
 }
