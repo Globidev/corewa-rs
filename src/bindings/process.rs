@@ -77,9 +77,9 @@ impl ProcessCollection {
     }
 }
 
-impl<T: Iterator<Item = &Process>> From<T> for ProcessCollection {
+impl<'a, T: Iterator<Item = &'a Process>> From<T> for ProcessCollection {
     fn from(processes: T) -> Self {
-        // Careful with many processes: might want to limit them in the future
+        // TODO: Careful with many processes, might want to limit them
         let processes = processes
             .map(ProcessInfo::from_process)
             .collect();
