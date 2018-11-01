@@ -232,11 +232,11 @@ class MatchResultDisplay extends React.Component<{
     const joinedSpans = [nameSpans[0]]
     let i = 1
     for (; i < nameSpans.length - 1; ++i) {
-      joinedSpans.push(<span>, </span>)
+      joinedSpans.push(<span key={`s${i}`}>, </span>)
       joinedSpans.push(nameSpans[i])
     }
     if (i < nameSpans.length) {
-      joinedSpans.push(<span> and </span>)
+      joinedSpans.push(<span key={`s${i}`}> and </span>)
       joinedSpans.push(nameSpans[i])
     }
 
