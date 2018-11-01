@@ -51,6 +51,19 @@ export class VirtualMachine {
     return this.playersById.get(id) as Player
   }
 
+  changePlayerId(oldId: number, newId: number) {
+    if (newId == 0 || this.playersById.has(newId)) return
+
+    let player = this.playersById.get(oldId)
+    if (player === undefined) return
+
+    player.id = newId
+    const players = Array.from(this.playersById.values())
+
+    this.playersById = new Map(players.map(p => [p.id, p] as [number, Player]))
+    this.compile()
+  }
+
   @action
   tick(vm: VMEngine, n: number) {
     for (let i = 0; i < n; ++i) {

@@ -343,7 +343,24 @@ class ContenderPanel extends React.Component<{
             return (
               <details key={i} style={{ color: toCssColor(player.color) }}>
                 <summary>{playerInfo.champion_name()}</summary>
-                {titledInfo('Player ID', player.id)}
+                {/* {titledInfo('Player ID', player.id)} */}
+                <div className="pad-top" style={{ display: 'flex' }}>
+                  <div className="pad-left" style={{ minWidth: '80px' }}>
+                    Player ID
+                  </div>
+                  <div
+                    className="code"
+                    onClick={() => {
+                      const newIdAsString = prompt('New id', player.id.toString())
+                      if (newIdAsString) {
+                        const newId = parseInt(newIdAsString)
+                        vm.changePlayerId(player.id, newId)
+                      }
+                    }}
+                  >
+                    {player.id}
+                  </div>
+                </div>
                 {titledInfo('Size', playerInfo.champion_size)}
                 {titledInfo('Coverage', `${((coverage / 4096) * 100).toFixed(2)} %`)}
                 {titledInfo('Processes', championInfo.process_count)}
