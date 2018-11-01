@@ -158,6 +158,12 @@ const DEFAULT_LAYOUT = {
             enableClose: false,
             component: PaneComponent.VM,
             config: {}
+          },
+          {
+            type: 'tab',
+            name: 'Documentation',
+            component: PaneComponent.Help,
+            config: {}
           }
         ]
       }
