@@ -103,7 +103,7 @@ export class VirtualMachine {
     const now = performance.now()
     const dt = now - this.lastFrameTime
     this.lastFrameTime = now
-    const delta = Math.max(0, 1000 / 60 - dt)
+    const delta = Math.max(0, 1000 / TARGET_UPS - dt)
     if (this.playing) {
       this.animationId = window.setTimeout(() => this.renderLoop(vm), delta)
     }
@@ -202,3 +202,4 @@ export type Player = {
 export type MatchResult = PlayerInfo[]
 
 const MAX_SPEED = 32
+const TARGET_UPS = 60
