@@ -65,8 +65,11 @@ export class VirtualMachine {
 
   updateMatchResult(vm: VMEngine) {
     const info = Array.from(this.playersById.keys()).map(
-      (playerId, idx) =>
-        [vm.player_info(idx), vm.champion_info(playerId)] as [PlayerInfo, ChampionInfo]
+      playerId =>
+        [vm.player_info(playerId), vm.champion_info(playerId)] as [
+          PlayerInfo,
+          ChampionInfo
+        ]
     )
 
     const latestLive = Math.max(
