@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { VirtualMachine, Player, MatchResult } from './virtual_machine'
-import { VirtualMachine as VMEngine } from './corewar'
+import { VirtualMachine as VMEngine, PlayerInfo } from './corewar'
 import { observer } from 'mobx-react'
 import { observe, observable } from 'mobx'
 import { DecodeResult, ProcessCollection, ExecutingState } from './corewar.d'
@@ -336,7 +336,8 @@ class ContenderPanel extends React.Component<{
         <div>{vm.playersById.size} contenders:</div>
         {Array.from(vm.playersById.values()).map((player, i) => {
           if (vm.cycles !== null && vm.engine) {
-            let playerInfo = vm.engine.player_info(i)
+            let playerInfo = vm.engine.player_info(player.id) as PlayerInfo | null
+            if (playerInfo === null) return null
             let championInfo = vm.engine.champion_info(player.id)
             const coverage = this.props.coverages.get(player.id) || 0
             return (
