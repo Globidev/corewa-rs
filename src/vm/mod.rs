@@ -32,10 +32,8 @@ pub struct VirtualMachine {
     pub live_count_since_last_check: u32,
     pub checks_without_cycle_decrement: u32,
 
-    // TODO:
-    //   - Processes (or process count) per memory cell
     pub process_count_per_cells: [u32; MEM_SIZE],
-    //   - Processes (or process count) per champion ?
+    pub process_count_by_player_id: HashMap<PlayerId, u32>
 }
 
 fn track_pc(from: usize, to: usize, count_tracker: &mut [u32; MEM_SIZE]) {
@@ -60,7 +58,8 @@ impl VirtualMachine {
             live_count_since_last_check: 0,
             checks_without_cycle_decrement: 0,
 
-            process_count_per_cells: [0; MEM_SIZE]
+            process_count_per_cells: [0; MEM_SIZE],
+            process_count_by_player_id: HashMap::with_capacity(MAX_PLAYERS),
         }
     }
 
@@ -125,7 +124,11 @@ impl VirtualMachine {
 
         self.memory.tick();
 
-        forks.iter().for_each(|p| self.process_count_per_cells[*p.pc] += 1);
+        forks.iter().for_each(|p| {
+            self.process_count_per_cells[*p.pc] += 1;
+            self.process_count_by_player_id.entry(p.player_id)
+                .and_modify(|count| *count += 1);
+        });
 
         self.processes.append(&mut forks);
 
@@ -143,9 +146,14 @@ impl VirtualMachine {
         let should_live_check = self.cycles - last_live_check >= self.check_interval;
         if should_live_check {
             let process_count_per_cells = &mut self.process_count_per_cells;
+            let process_count_by_player_id = &mut self.process_count_by_player_id;
             self.processes.drain_filter(|process|
                 process.last_live_cycle <= last_live_check
-            ).for_each(|p| process_count_per_cells[*p.pc] -= 1);
+            ).for_each(|p| {
+                process_count_per_cells[*p.pc] -= 1;
+                process_count_by_player_id.entry(p.player_id)
+                    .and_modify(|count| *count -= 1);
+            });
 
             if self.live_count_since_last_check >= NBR_LIVE {
                 self.check_interval = self.check_interval.saturating_sub(CYCLE_DELTA);
@@ -191,7 +199,9 @@ impl VirtualMachine {
         let mut starting_process = Process::new(self.pid_pool.get(), player_id, at.into());
         starting_process.registers[0] = player_id;
         self.processes.push(starting_process);
+        self.last_lives.insert(player_id, 0);
         self.process_count_per_cells[at] += 1;
+        self.process_count_by_player_id.insert(player_id, 1);
     }
 }
 

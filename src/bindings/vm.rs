@@ -34,8 +34,9 @@ impl VirtualMachine {
         self.0.checks_without_cycle_decrement
     }
 
-    pub fn tick(&mut self) {
-        self.0.tick()
+    pub fn tick(&mut self) -> bool {
+        self.0.tick();
+        self.0.processes.is_empty()
     }
 
     pub fn process_count(&self) -> usize {
@@ -50,11 +51,9 @@ impl VirtualMachine {
         PlayerInfo::from_player(&self.0.players[idx])
     }
 
-    pub fn champion_info(&self, idx: usize) -> ChampionInfo {
-        let player_id = self.0.players[idx].id;
-
+    pub fn champion_info(&self, player_id: PlayerId) -> ChampionInfo {
         ChampionInfo {
-            process_count: 0, // TODO
+            process_count: self.0.process_count_by_player_id[&player_id],
             last_live: self.0.last_lives[&player_id],
         }
     }
