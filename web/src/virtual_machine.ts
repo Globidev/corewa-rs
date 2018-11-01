@@ -69,6 +69,7 @@ export class VirtualMachine {
     for (let i = 0; i < n; ++i) {
       if (vm.tick()) {
         this.updateMatchResult(vm)
+        this.pause()
         break
       }
     }
