@@ -184,9 +184,7 @@ class Cell {
   }
 
   update(value: number, owner: number, age: number, pcCount: number, color: number) {
-    let byteText = value.toString(16).toUpperCase()
-    if (byteText.length < 2) byteText = `0${byteText}`
-
+    const byteText = HEX_STRINGS[value]
     const pcAlpha = pcCount !== 0 ? 0.5 + (pcCount - 1) * 0.05 : 0
     const ageAlpha = owner !== 0 ? 0.35 * (age / MAX_CELL_AGE) : 0
 
@@ -197,3 +195,11 @@ class Cell {
     this.ageSprite.alpha = ageAlpha
   }
 }
+
+const HEX_STRINGS = Array(256)
+  .fill(0)
+  .map((_, value) => {
+    let byteText = value.toString(16).toUpperCase()
+    if (byteText.length < 2) byteText = `0${byteText}`
+    return byteText
+  })
