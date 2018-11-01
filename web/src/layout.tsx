@@ -18,6 +18,15 @@ interface ICorewarLayoutProps {
 
 export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
   layoutRef = React.createRef<Flex.Layout>()
+  model: Flex.Model
+
+  constructor(props: ICorewarLayoutProps) {
+    super(props)
+
+    const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY)
+    const layout = savedLayout ? JSON.parse(savedLayout) : DEFAULT_LAYOUT
+    this.model = Flex.Model.fromJson(layout)
+  }
 
   factory(node: Flex.TabNode) {
     const vm = this.props.vm
@@ -31,8 +40,11 @@ export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
         config.playerId = player.id
         return (
           <Editor
-            onCodeChanged={code => {
-              player.champion = code
+            config={config}
+            onCodeChanged={(code, champion) => {
+              config.code = code
+              this.onModelChange(this.model)
+              player.champion = champion
               vm.compile()
             }}
             onClosed={() => vm.removePlayer(player.id)}
@@ -62,8 +74,7 @@ export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
   }
 
   onModelChange(model: Flex.Model) {
-    console.log(model.toJson())
-    // localStorage.setItem('corewar-layout', JSON.stringify(model.toJson()))
+    localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(model.toJson()))
   }
 
   onNewPlayerRequested() {
@@ -96,17 +107,18 @@ export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
   }
 
   render() {
-    const model = Flex.Model.fromJson(DEFAULT_LAYOUT)
     return (
       <Flex.Layout
         ref={this.layoutRef}
-        model={model}
+        model={this.model}
         factory={this.factory.bind(this)}
         onModelChange={this.onModelChange.bind(this)}
       />
     )
   }
 }
+
+const LAYOUT_STORAGE_KEY = 'layout'
 
 const DEFAULT_LAYOUT = {
   global: {},

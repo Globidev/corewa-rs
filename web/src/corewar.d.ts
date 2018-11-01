@@ -1,14 +1,11 @@
 /* tslint:disable */
 export function compile_champion(arg0: string): Uint8Array
 
-export class PlayerInfo {
+export class ExecutingState {
   free(): void
-  id: number
-  champion_size: number
+  cycle_left: number
 
-  champion_name(): string
-
-  champion_comment(): string
+  op(): string
 }
 export class DecodeResult {
   free(): void
@@ -17,33 +14,17 @@ export class DecodeResult {
 
   to_string(): string
 }
-export class ProcessCollection {
+export class ProcessInfo {
   free(): void
+  pid: number
+  player_id: number
+  pc: number
+  zf: boolean
+  last_live_cycle: number
 
-  len(): number
+  executing(): any
 
-  at(arg0: number): ProcessInfo
-}
-export class Memory {
-  free(): void
-  values_ptr: number
-  ages_ptr: number
-  owners_ptr: number
-  pc_count_ptr: number
-}
-export class CompileError {
-  free(): void
-
-  reason(): string
-
-  region(): any
-}
-export class Region {
-  free(): void
-  from_row: number
-  from_col: number
-  to_row: number
-  to_col: number
+  registers(): Int32Array
 }
 export class VirtualMachine {
   free(): void
@@ -64,7 +45,7 @@ export class VirtualMachine {
 
   player_count(): number
 
-  player_info(arg0: number): PlayerInfo
+  player_info(arg0: number): any
 
   champion_info(arg0: number): ChampionInfo
 
@@ -74,16 +55,19 @@ export class VirtualMachine {
 
   memory(): Memory
 }
-export class ExecutingState {
+export class Region {
   free(): void
-  cycle_left: number
-
-  op(): string
+  from_row: number
+  from_col: number
+  to_row: number
+  to_col: number
 }
-export class ChampionInfo {
+export class ProcessCollection {
   free(): void
-  process_count: number
-  last_live: number
+
+  len(): number
+
+  at(arg0: number): ProcessInfo
 }
 export class VMBuilder {
   free(): void
@@ -94,15 +78,31 @@ export class VMBuilder {
 
   finish(): VirtualMachine
 }
-export class ProcessInfo {
+export class CompileError {
   free(): void
-  pid: number
-  player_id: number
-  pc: number
-  zf: boolean
-  last_live_cycle: number
 
-  executing(): any
+  reason(): string
 
-  registers(): Int32Array
+  region(): any
+}
+export class Memory {
+  free(): void
+  values_ptr: number
+  ages_ptr: number
+  owners_ptr: number
+  pc_count_ptr: number
+}
+export class PlayerInfo {
+  free(): void
+  id: number
+  champion_size: number
+
+  champion_name(): string
+
+  champion_comment(): string
+}
+export class ChampionInfo {
+  free(): void
+  process_count: number
+  last_live: number
 }

@@ -5,7 +5,8 @@ import { CompileError, Region } from './corewar'
 import { observer } from 'mobx-react'
 
 interface IEditorProps {
-  onCodeChanged: (code: CompiledChampion | null) => void
+  config: any
+  onCodeChanged: (code: string, champion: CompiledChampion | null) => void
   onClosed: () => void
 }
 
@@ -31,6 +32,7 @@ export class Editor extends React.Component<IEditorProps> {
 
   componentDidMount() {
     const container = this.domContainer.current
+    const initialText = this.props.config.code || null
 
     if (container) {
       // @ts-ignore
@@ -39,12 +41,12 @@ export class Editor extends React.Component<IEditorProps> {
         theme: 'monokai',
         // theme: '3024-night',
         mode: ASM_LANGUAGE_ID,
-        // gutters: ['CodeMirror-lint-markers'],
+        // gutters: ['CodeMirror-lint-markeinitialChampionrs'],
         lint: {
           editor: this,
           lintOnChange: false
         },
-        value: champions[this.initialChampion],
+        value: initialText !== null ? initialText : champions[this.initialChampion],
         keyMap: 'sublime'
         // lintOnChange: false
       })
@@ -67,7 +69,7 @@ export class Editor extends React.Component<IEditorProps> {
 
   compile(code: string) {
     let champion = wasm_bindgen.compile_champion(code)
-    this.props.onCodeChanged(champion)
+    this.props.onCodeChanged(code, champion)
   }
 
   componentWillUnmount() {
@@ -80,9 +82,14 @@ export class Editor extends React.Component<IEditorProps> {
         <div style={{ display: 'flex' }}>
           <div>Load model: </div>
           <select
-            defaultValue={this.initialChampion}
+            defaultValue={
+              this.props.config.code !== undefined ? 'Custom' : this.initialChampion
+            }
             onChange={e => {
-              if (this.editor) this.editor.setValue(champions[e.target.value])
+              if (this.editor)
+                this.editor.setValue(
+                  champions[e.target.value] || this.props.config.code || ''
+                )
             }}
           >
             {Object.keys(champions).map(ch => {
@@ -92,6 +99,7 @@ export class Editor extends React.Component<IEditorProps> {
                 </option>
               )
             })}
+            <option value="Custom">Custom</option>
           </select>
         </div>
         <div className="editor" ref={this.domContainer} />
@@ -110,7 +118,7 @@ CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
     opts.editor.compile(code)
     return []
   } catch (err) {
-    opts.editor.props.onCodeChanged(null)
+    opts.editor.props.onCodeChanged(code, null)
     const compileError = err as CompileError
     const region = compileError.region() as Region | null
     let [from_row, from_col, to_row, to_col] = (() => {
