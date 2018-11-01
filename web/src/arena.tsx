@@ -111,7 +111,7 @@ export class Arena extends React.Component<IArenaProps> {
       const pcCount = pcCounts[i]
 
       let player = ctx.playersById.get(cellOwner)
-      let color = player !== undefined ? player.color : 0xffffff30
+      let color = player !== undefined ? player.color : 0x404040
 
       this.cells[i].update(cellValue, cellOwner, cellAge, pcCount, color)
     }
@@ -162,6 +162,7 @@ class Cell {
     })
     text.x = MARGIN + x * (BYTE_WIDTH + X_SPACING)
     text.y = MARGIN + y * (BYTE_HEIGHT + Y_SPACING)
+    text.style.fill = 0xffffff
     text.interactive = true
 
     const pcSprite = new PIXI.Sprite(PIXI.Texture.WHITE)
@@ -189,7 +190,7 @@ class Cell {
     const ageAlpha = owner !== 0 ? 0.35 * (age / MAX_CELL_AGE) : 0
 
     this.valueText.text = byteText
-    this.valueText.style.fill = color
+    this.valueText.tint = color
     this.pcSprite.alpha = pcAlpha
     this.ageSprite.tint = color
     this.ageSprite.alpha = ageAlpha
