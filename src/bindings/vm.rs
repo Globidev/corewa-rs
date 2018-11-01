@@ -47,14 +47,18 @@ impl VirtualMachine {
         self.0.players.len()
     }
 
-    pub fn player_info(&self, idx: usize) -> PlayerInfo {
-        PlayerInfo::from_player(&self.0.players[idx])
+    pub fn player_info(&self, player_id: PlayerId) -> JsValue {
+        self.0.players.iter().find(|p| p.id == player_id)
+            .map(PlayerInfo::from_player)
+            .map(JsValue::from)
+            .unwrap_or(JsValue::NULL)
+        // PlayerInfo::from_player(&self.0.players[idx])
     }
 
     pub fn champion_info(&self, player_id: PlayerId) -> ChampionInfo {
         ChampionInfo {
-            process_count: self.0.process_count_by_player_id[&player_id],
-            last_live: self.0.last_lives[&player_id],
+            process_count: *self.0.process_count_by_player_id.get(&player_id).unwrap_or(&0),
+            last_live: *self.0.last_lives.get(&player_id).unwrap_or(&0),
         }
     }
 
