@@ -51,12 +51,12 @@ export class Arena extends React.Component<IArenaProps> {
         const y = Math.floor(i / COLUMNS)
 
         const cell = new Cell(x, y)
-        cell.container.on('pointerdown', () => {
+        cell.valueText.on('pointerdown', () => {
           this.props.onCellClicked(i)
         })
 
         this.cells.push(cell)
-        this.application.stage.addChild(cell.container)
+        this.application.stage.addChild(cell.valueText)
       }
     }
   }
@@ -152,7 +152,6 @@ class Cell {
   valueText: PIXI.Text
   pcSprite: PIXI.Sprite
   ageSprite: PIXI.Sprite
-  container: PIXI.Container
 
   constructor(x: number, y: number) {
     const text = new PIXI.Text('00', {
@@ -161,6 +160,9 @@ class Cell {
       fontWeight: 'bold',
       lineHeight: BYTE_HEIGHT
     })
+    text.x = MARGIN + x * (BYTE_WIDTH + X_SPACING)
+    text.y = MARGIN + y * (BYTE_HEIGHT + Y_SPACING)
+    text.interactive = true
 
     const pcSprite = new PIXI.Sprite(PIXI.Texture.WHITE)
     pcSprite.width = BYTE_WIDTH
@@ -174,16 +176,11 @@ class Cell {
     ageSprite.x = -X_SPACING
     ageSprite.y = -Y_SPACING
 
-    const container = new PIXI.Container()
-    container.addChild(pcSprite, ageSprite, text)
-    container.x = MARGIN + x * (BYTE_WIDTH + X_SPACING)
-    container.y = MARGIN + y * (BYTE_HEIGHT + Y_SPACING)
-    container.interactive = true
+    text.addChild(pcSprite, ageSprite)
 
     this.valueText = text
     this.pcSprite = pcSprite
     this.ageSprite = ageSprite
-    this.container = container
   }
 
   update(value: number, owner: number, age: number, pcCount: number, color: number) {
