@@ -3,6 +3,8 @@ import * as React from 'react'
 import { Memory, DecodeResult } from './corewar'
 import { Player } from './virtual_machine'
 
+PIXI.utils.skipHello()
+
 const MEM_SIZE = 4096
 const BYTE_WIDTH = 18
 const BYTE_HEIGHT = 13
