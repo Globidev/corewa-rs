@@ -1,15 +1,12 @@
 import { champions } from './champions'
 
 import * as React from 'react'
-import { JsCompileError, Region } from './corewar'
+import { CompileError, Region } from './corewar'
 import { observer } from 'mobx-react'
-import { ObservableVM } from './state'
 
 interface IEditorProps {
-  onCodeChanged: (code: CompiledChampion) => void
+  onCodeChanged: (code: CompiledChampion | null) => void
   onClosed: () => void
-  championColors: ObservableVM['colors']
-  championId: number
 }
 
 // Object.keys(champions).forEach(champName => {
@@ -20,17 +17,17 @@ interface IEditorProps {
 //   }
 // })
 
-// function randomChampion() {
-//   const keys = Object.keys(champions)
-//   const randomKey = keys[(keys.length * Math.random()) << 0]
-//   return champions[randomKey]
-// }
+function randomChampionName() {
+  const keys = Object.keys(champions)
+  return keys[(keys.length * Math.random()) << 0]
+}
 
 @observer
 export class Editor extends React.Component<IEditorProps> {
   domContainer = React.createRef<HTMLDivElement>()
   debounceId: number = 0
   editor: CodeMirror.Editor | null = null
+  initialChampion = randomChampionName()
 
   componentDidMount() {
     const container = this.domContainer.current
@@ -47,7 +44,7 @@ export class Editor extends React.Component<IEditorProps> {
           editor: this,
           lintOnChange: false
         },
-        value: champions.zork,
+        value: champions[this.initialChampion],
         keyMap: 'sublime'
         // lintOnChange: false
       })
@@ -79,11 +76,11 @@ export class Editor extends React.Component<IEditorProps> {
 
   render() {
     return (
-      <div id="editor-container">
+      <div className="editor-container">
         <div style={{ display: 'flex' }}>
           <div>Load model: </div>
           <select
-            defaultValue="zork"
+            defaultValue={this.initialChampion}
             onChange={e => {
               if (this.editor) this.editor.setValue(champions[e.target.value])
             }}
@@ -96,15 +93,8 @@ export class Editor extends React.Component<IEditorProps> {
               )
             })}
           </select>
-          <div
-            style={{
-              width: '20px',
-              height: '20px',
-              backgroundColor: this.props.championColors.get(this.props.championId)
-            }}
-          />
         </div>
-        <div id="editor" ref={this.domContainer} />
+        <div className="editor" ref={this.domContainer} />
       </div>
     )
   }
@@ -120,13 +110,16 @@ CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
     opts.editor.compile(code)
     return []
   } catch (err) {
-    const compileError = err as JsCompileError
+    opts.editor.props.onCodeChanged(null)
+    const compileError = err as CompileError
     const region = compileError.region() as Region | null
     let [from_row, from_col, to_row, to_col] = (() => {
       if (region != null)
         return [region.from_row - 1, region.from_col, region.to_row - 1, region.to_col]
       else return [0, 0, 5000, 5000]
     })()
+
+    if (from_col == to_col) ++to_col
 
     return [
       {

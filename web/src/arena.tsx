@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js'
 import * as React from 'react'
 import { Memory, DecodeResult } from './corewar'
+import { Player } from './virtual_machine'
 
 const MEM_SIZE = 4096
 const BYTE_WIDTH = 18
@@ -17,7 +18,7 @@ const MAX_CELL_AGE = 1024
 interface RenderContext {
   memory: Memory
   selection: { decoded: DecodeResult; idx: number } | null
-  colorsById: Map<number, number>
+  playersById: Map<number, Player>
 }
 
 interface IArenaProps {
@@ -107,7 +108,8 @@ export class Arena extends React.Component<IArenaProps> {
       const cellAge = cellAges[i]
       const pcCount = pcCounts[i]
 
-      let color = cellOwner !== 0 ? (ctx.colorsById.get(cellOwner) as number) : 0xffffff30
+      let player = ctx.playersById.get(cellOwner)
+      let color = player !== undefined ? player.color : 0xffffff30
 
       this.cells[i].update(cellValue, cellOwner, cellAge, pcCount, color)
     }

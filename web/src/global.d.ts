@@ -6,7 +6,7 @@ declare global {
 
   var wasm_bindgen: {
     compile_champion: typeof types.compile_champion
-    (wasm_path: string): Promise<any>
+    (wasm_path: string): Promise<void>
     wasm: any
     VMBuilder: typeof types.VMBuilder
   }

@@ -4,12 +4,12 @@ body {
   height: 100%;
   margin: 0;
   background-color: #111111;
-  color: white;
 }
 
-#editor {
-  overflow: hidden;
+.editor-container,
+.editor {
   height: 100%;
+  overflow: hidden;
 }
 
 .CodeMirror {
@@ -17,17 +17,12 @@ body {
   height: 100%;
 }
 
-#editor-container {
-  height: 100%;
-  overflow: hidden;
-}
-
-#canvas {
-  width: 80vw;
-}
-
-.info {
+.pad-left {
   margin-left: 10px;
+}
+
+.pad-top {
+  margin-top: 5px;
 }
 
 #app,
@@ -42,4 +37,20 @@ body {
 
 .cycle-input {
   max-width: 70px;
+}
+
+.info-title {
+  min-width: 110px;
+}
+
+.ctrl-btn {
+  min-height: 40px;
+  min-width: 40px;
+}
+
+.code {
+  background-color: white;
+  color: black;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
 }

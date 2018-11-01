@@ -1,84 +1,305 @@
 import * as React from 'react'
-import { ObservableVM } from './state'
+import { VirtualMachine, Player, MatchResult } from './virtual_machine'
+import { VirtualMachine as VMEngine } from './corewar'
 import { observer } from 'mobx-react'
-import { observe } from 'mobx'
-import { VirtualMachine } from './corewar.d'
-
-const BYTE_WIDTH = 20
-const BYTE_HEIGHT = 13
-const PADDING = 2
+import { observe, observable } from 'mobx'
+import { DecodeResult, ProcessCollection, ExecutingState } from './corewar.d'
+import { Arena } from './arena'
 
 interface IVMProps {
-  vm: ObservableVM
-  onNewChampionRequested: (id: number) => void
+  vm: VirtualMachine
+  onNewPlayerRequested: () => void
+  onHelpRequested: () => void
 }
 
 @observer
 export class VM extends React.Component<IVMProps> {
-  canvasRef = React.createRef<HTMLCanvasElement>()
+  arenaRef = React.createRef<Arena>()
+  @observable
+  selection: { idx: number; decoded: DecodeResult } | null = null
+  @observable
+  selectedProcesses: ProcessCollection | null = null
+
+  coverages = new Map<number, number>()
 
   constructor(props: IVMProps) {
     super(props)
 
-    window.addEventListener('resize', this.resizeCanvas.bind(this), false)
-
     observe(props.vm, 'cycles', _ => {
-      const canvas = this.canvasRef.current
-
-      if (props.vm.vm && canvas) drawVm(props.vm.vm, canvas, props.vm.colors)
+      this.selectedProcesses = null
+      if (this.selection && props.vm.engine != null)
+        this.updateSelection(this.selection.idx)
+      else this.selection = null
+      this.draw()
     })
   }
 
-  componentDidMount() {
-    this.resizeCanvas()
+  draw() {
+    // console.time('draw')
+    const renderer = this.arenaRef.current
+    const vm = this.props.vm
+    const engine = vm.engine
+
+    if (engine && renderer) {
+      const memory = engine.memory()
+
+      renderer.update({
+        memory,
+        selection: this.selection,
+        playersById: vm.playersById
+      })
+
+      const cellOwners = new Int32Array(
+        wasm_bindgen.wasm.memory.buffer,
+        memory.owners_ptr,
+        4096
+      )
+
+      this.coverages.clear()
+      cellOwners.forEach(owner => {
+        const previous = this.coverages.get(owner) || 0
+        this.coverages.set(owner, previous + 1)
+      })
+    }
+    // console.timeEnd('draw')
   }
 
-  resizeCanvas() {
-    const canvas = this.canvasRef.current
-
-    if (canvas) {
-      canvas.width = canvas.clientWidth
-      const vm = this.props.vm
-
-      if (vm.vm) {
-        const height = ROWS
-        canvas.height = height * BYTE_HEIGHT
-        drawVm(vm.vm, canvas, vm.colors)
-      } else {
-        canvas.height = canvas.clientHeight
-      }
+  updateSelection(idx: number) {
+    let engine = this.props.vm.engine
+    if (engine) {
+      this.selection = { idx, decoded: engine.decode(idx) }
+      this.selectedProcesses = engine.processes_at(idx)
+      this.draw()
     }
+  }
+
+  componentDidMount() {
+    this.draw()
   }
 
   onNewClicked() {
     const vm = this.props.vm
-    if (vm.players.size < 4) this.props.onNewChampionRequested(vm.nextChampionId())
+    if (vm.playersById.size < 4) this.props.onNewPlayerRequested()
   }
 
   render() {
     const vm = this.props.vm
     return (
       <div id="vm-container">
-        <div style={{ display: 'flex' }}>
-          {vm.players.size < 4 ? (
-            <button onClick={this.onNewClicked.bind(this)}>➕</button>
-          ) : null}
-          <ControlPanel vm={vm} />
-          <InfoPanel vm={vm} />
+        <div style={{ display: 'flex', height: '100%' }}>
+          <div className="pad-left pad-top">
+            <div style={{ display: 'flex' }}>
+              <button
+                className="ctrl-btn"
+                onClick={this.props.onHelpRequested.bind(this)}
+              >
+                ❓
+              </button>
+              {vm.playersById.size < 4 ? (
+                <button className="ctrl-btn" onClick={this.onNewClicked.bind(this)}>
+                  ➕
+                </button>
+              ) : null}
+            </div>
+            <ControlPanel vm={vm} />
+            {vm.matchResult !== null ? (
+              <MatchResultDisplay result={vm.matchResult} vm={vm} />
+            ) : null}
+            <hr />
+            <InfoPanel vm={vm} />
+            <hr />
+            <ContenderPanel vm={vm} coverages={this.coverages} />
+            {this.selection ? (
+              <div>
+                <hr />
+                <div>Cell {this.selection.idx}</div>
+                <div className="pad-top code">{this.selection.decoded.to_string()}</div>
+              </div>
+            ) : null}
+            {this.selectedProcesses ? (
+              <div className="pad-top">
+                <ProcessInfoDisplay processes={this.selectedProcesses} vm={vm} />
+              </div>
+            ) : null}
+          </div>
+          <Arena ref={this.arenaRef} onCellClicked={this.updateSelection.bind(this)} />
         </div>
-        <canvas ref={this.canvasRef} id="canvas" style={{ marginTop: '50px' }} />
+      </div>
+    )
+  }
+}
+
+function titledInfo(title: string, value: any) {
+  return (
+    <div className="pad-top" style={{ display: 'flex' }}>
+      <div className="pad-left" style={{ minWidth: '80px' }}>
+        {title}
+      </div>
+      <div className="code">{value}</div>
+    </div>
+  )
+}
+
+function toCssColor(color: number) {
+  color >>>= 0
+  const b = color & 0xff,
+    g = (color & 0xff00) >>> 8,
+    r = (color & 0xff0000) >>> 16
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+@observer
+class ProcessInfoDisplay extends React.Component<{
+  processes: ProcessCollection
+  vm: VirtualMachine
+}> {
+  render() {
+    const processes = this.props.processes
+    const len = processes.len()
+
+    const details = Array(Math.min(len, 32))
+      .fill(0)
+      .map((_, i) => {
+        const process = processes.at(i)
+        const state = process.executing() as ExecutingState | null
+        const data = [
+          titledInfo(
+            'Player',
+            <div
+              style={{
+                backgroundColor: toCssColor(
+                  (this.props.vm.playersById.get(process.player_id) as Player).color
+                )
+              }}
+            >
+              {process.player_id}
+            </div>
+          ),
+          titledInfo('Zero Flag', process.zf.toString()),
+          titledInfo('Last live', process.last_live_cycle),
+          titledInfo('State', state ? `${state.op()} (${state.cycle_left})` : 'Idle'),
+          <details className="pad-left">
+            <summary>Registers</summary>
+            {Array.from(process.registers()).map((r, i) => (
+              <div key={i} className="pad-left">
+                {titledInfo(`r${i + 1}`, r)}
+              </div>
+            ))}
+          </details>
+        ]
+        return (
+          <details key={i} className="pad-left">
+            <summary>PID {process.pid}</summary>
+            {data.map((e, i) => (
+              <div key={i}>{e}</div>
+            ))}
+          </details>
+        )
+      })
+
+    return len == 0 ? null : (
+      <div>
+        <details>
+          <summary>
+            {len} process
+            {len >= 2 ? 'es' : ''}
+          </summary>
+          {details}
+        </details>
       </div>
     )
   }
 }
 
 @observer
-class ControlPanel extends React.Component<{ vm: ObservableVM }> {
+class MatchResultDisplay extends React.Component<{
+  result: MatchResult
+  vm: VirtualMachine
+}> {
   render() {
+    const result = this.props.result
+
+    const nameSpans = result.map((p, i) => {
+      const playerColor = (this.props.vm.playersById.get(p.id) as Player).color
+      const color = toCssColor(playerColor)
+      return (
+        <span key={i} style={{ color }}>
+          {p.champion_name()}
+        </span>
+      )
+    })
+
+    const joinedSpans = [nameSpans[0]]
+    let i = 1
+    for (; i < nameSpans.length - 1; ++i) {
+      joinedSpans.push(<span>, </span>)
+      joinedSpans.push(nameSpans[i])
+    }
+    if (i < nameSpans.length) {
+      joinedSpans.push(<span> and </span>)
+      joinedSpans.push(nameSpans[i])
+    }
+
+    return (
+      <div>
+        <hr />
+        {result.length > 1 ? (
+          <div>
+            {'Draw between '}
+            {joinedSpans}
+          </div>
+        ) : (
+          <div>{joinedSpans} Wins</div>
+        )}
+      </div>
+    )
+  }
+}
+
+@observer
+class ControlPanel extends React.Component<{ vm: VirtualMachine }> {
+  render() {
+    const vm = this.props.vm
+    return (
+      <div style={{ display: 'flex' }}>
+        <button className="ctrl-btn" onClick={() => vm.togglePlay()}>
+          {vm.playing ? '⏸️' : '▶️'}️
+        </button>
+        <button className="ctrl-btn" onClick={() => vm.stop()}>
+          ⏹️
+        </button>
+        <button className="ctrl-btn" onClick={() => vm.step()}>
+          ⏭️
+        </button>
+        <button className="ctrl-btn" onClick={() => vm.nextSpeed()}>
+          ⏩ {vm.speed}x
+        </button>
+      </div>
+    )
+  }
+}
+
+function vmInfo(vm: VMEngine) {
+  return [
+    ['Processes', vm.process_count()],
+    ['Check interval', vm.check_interval()],
+    ['Next check', vm.check_interval() - (vm.cycles() - vm.last_live_check())],
+    ['Last check', vm.last_live_check()],
+    ['Live count', vm.live_count_since_last_check()],
+    ['Checks passed', vm.checks_without_cycle_decrement()]
+  ]
+}
+
+@observer
+class InfoPanel extends React.Component<{ vm: VirtualMachine }> {
+  render() {
+    const info =
+      this.props.vm.cycles !== null ? vmInfo(this.props.vm.engine as VMEngine) : []
+
     let cyclesInput =
       this.props.vm.cycles === null ? null : (
-        <div className="info">
-          <div>Cycles</div>
+        <div className="pad-top" style={{ display: 'flex' }}>
+          <div className="info-title">Cycles</div>
           <input
             style={{ textAlign: 'center' }}
             className="cycle-input"
@@ -90,43 +311,12 @@ class ControlPanel extends React.Component<{ vm: ObservableVM }> {
       )
 
     return (
-      <div style={{ display: 'flex' }}>
-        <button onClick={() => this.props.vm.togglePlay()}>
-          {this.props.vm.playing ? '⏸️' : '▶️'}️
-        </button>
-        <button onClick={() => this.props.vm.stop()}>⏹️</button>
-        <button onClick={() => this.props.vm.step()}>⏭️</button>
-        <button onClick={() => this.props.vm.nextSpeed()}>
-          ⏩ {this.props.vm.speed}x
-        </button>
+      <div>
         {cyclesInput}
-      </div>
-    )
-  }
-}
-
-function vmInfo(vm: VirtualMachine) {
-  return [
-    ['Processes alive', vm.process_count()],
-    ['Check interval', vm.cycles_to_die],
-    ['Last check cycle', vm.last_live_check],
-    ['Current live count', vm.live_count_since_last_check],
-    ['Live checks passed', vm.checks_without_cycle_decrement]
-  ]
-}
-
-@observer
-class InfoPanel extends React.Component<{ vm: ObservableVM }> {
-  render() {
-    const info =
-      this.props.vm.cycles !== null ? vmInfo(this.props.vm.vm as VirtualMachine) : []
-
-    return (
-      <div style={{ display: 'flex' }}>
         {info.map(([title, value]) => (
-          <div key={title} className="info">
-            <div>{title}</div>
-            <div style={{ textAlign: 'center' }}>{value}</div>
+          <div key={title} className="pad-top" style={{ display: 'flex' }}>
+            <div className="info-title">{title}</div>
+            <div className="code">{value}</div>
           </div>
         ))}
       </div>
@@ -134,48 +324,36 @@ class InfoPanel extends React.Component<{ vm: ObservableVM }> {
   }
 }
 
-const ROWS = 64
-const COLUMNS = 64
-
-function drawVm(
-  vm: VirtualMachine,
-  canvas: HTMLCanvasElement,
-  player_colors: Map<number, string>
-) {
-  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  ctx.fillStyle = '#111111'
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.font = 'bold 9pt Helvetica'
-
-  const size = vm.size()
-
-  for (let i = 0; i < vm.process_count(); ++i) {
-    const pc = vm.process_pc(i)
-    const x = pc % COLUMNS
-    const y = Math.floor(pc / COLUMNS)
-
-    ctx.fillStyle = '#FFFFFF80'
-    ctx.fillRect(
-      x * BYTE_WIDTH - PADDING,
-      y * BYTE_HEIGHT + PADDING,
-      BYTE_WIDTH - PADDING,
-      BYTE_HEIGHT
+@observer
+class ContenderPanel extends React.Component<{
+  vm: VirtualMachine
+  coverages: Map<number, number>
+}> {
+  render() {
+    const vm = this.props.vm
+    return (
+      <div>
+        <div>{vm.playersById.size} contenders:</div>
+        {Array.from(vm.playersById.values()).map((player, i) => {
+          if (vm.cycles !== null && vm.engine) {
+            let playerInfo = vm.engine.player_info(i)
+            let championInfo = vm.engine.champion_info(player.id)
+            const coverage = this.props.coverages.get(player.id) || 0
+            return (
+              <details key={i} style={{ color: toCssColor(player.color) }}>
+                <summary>{playerInfo.champion_name()}</summary>
+                {titledInfo('Player ID', player.id)}
+                {titledInfo('Size', playerInfo.champion_size)}
+                {titledInfo('Coverage', `${((coverage / 4096) * 100).toFixed(2)} %`)}
+                {titledInfo('Processes', championInfo.process_count)}
+                {titledInfo('Last live', championInfo.last_live)}
+              </details>
+            )
+          } else {
+            return null
+          }
+        })}
+      </div>
     )
-  }
-
-  for (let i = 0; i < size; ++i) {
-    const cell = vm.cell_at(i)
-    const x = i % COLUMNS
-    const y = Math.floor(i / COLUMNS)
-
-    let byteText = cell.value.toString(16).toUpperCase()
-    if (byteText.length < 2) byteText = `0${byteText}`
-
-    let textColor =
-      cell.owner !== undefined ? (player_colors.get(cell.owner) as string) : 'silver'
-    ctx.fillStyle = textColor
-    ctx.fillText(byteText, x * BYTE_WIDTH, (y + 1) * BYTE_HEIGHT, BYTE_WIDTH)
   }
 }

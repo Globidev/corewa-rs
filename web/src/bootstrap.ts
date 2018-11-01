@@ -1,4 +1,4 @@
-import { start } from './main'
+import { start } from '.'
 ;(function() {
   if (wasm_bindgen.wasm) {
     start()

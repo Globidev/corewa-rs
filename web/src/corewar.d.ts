@@ -1,54 +1,108 @@
 /* tslint:disable */
 export function compile_champion(arg0: string): Uint8Array
 
-export class Region {
-  from_row: number
-  from_col: number
-  to_row: number
-  to_col: number
+export class PlayerInfo {
   free(): void
+  id: number
+  champion_size: number
+
+  champion_name(): string
+
+  champion_comment(): string
 }
-export class JsCompileError {
+export class DecodeResult {
   free(): void
+
+  byte_size(): number
+
+  to_string(): string
+}
+export class ProcessCollection {
+  free(): void
+
+  len(): number
+
+  at(arg0: number): ProcessInfo
+}
+export class Memory {
+  free(): void
+  values_ptr: number
+  ages_ptr: number
+  owners_ptr: number
+  pc_count_ptr: number
+}
+export class CompileError {
+  free(): void
+
   reason(): string
 
   region(): any
 }
-export class VirtualMachine {
-  cycles: number
-  last_live_check: number
-  cycles_to_die: number
-  live_count_since_last_check: number
-  checks_without_cycle_decrement: number
+export class Region {
   free(): void
-  constructor()
+  from_row: number
+  from_col: number
+  to_row: number
+  to_col: number
+}
+export class VirtualMachine {
+  free(): void
 
-  size(): number
+  cycles(): number
+
+  last_live_check(): number
+
+  check_interval(): number
+
+  live_count_since_last_check(): number
+
+  checks_without_cycle_decrement(): number
+
+  tick(): boolean
 
   process_count(): number
 
-  process_pc(arg0: number): number
-
-  cell_at(arg0: number): Cell
-
-  winner(): string
-
   player_count(): number
 
-  player_id(arg0: number): number
+  player_info(arg0: number): PlayerInfo
 
-  tick(): boolean
+  champion_info(arg0: number): ChampionInfo
+
+  processes_at(arg0: number): ProcessCollection
+
+  decode(arg0: number): DecodeResult
+
+  memory(): Memory
+}
+export class ExecutingState {
+  free(): void
+  cycle_left: number
+
+  op(): string
+}
+export class ChampionInfo {
+  free(): void
+  process_count: number
+  last_live: number
 }
 export class VMBuilder {
   free(): void
+
   constructor()
 
   with_player(arg0: number, arg1: Uint8Array): VMBuilder
 
   finish(): VirtualMachine
 }
-export class Cell {
-  value: number
-  owner: number
+export class ProcessInfo {
   free(): void
+  pid: number
+  player_id: number
+  pc: number
+  zf: boolean
+  last_live_cycle: number
+
+  executing(): any
+
+  registers(): Int32Array
 }
