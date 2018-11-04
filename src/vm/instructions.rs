@@ -94,10 +94,10 @@ pub fn exec_zjmp(instr: &Instruction, ctx: &mut ExecutionContext) {
     let [offset_p, _, _] = &instr.params;
 
     if !*ctx.zf { return }
+    let jumped_offet = ctx.pc.offset(offset_p.value as isize, OffsetType::Limited);
+    *ctx.pc = jumped_offet.into();
     // Negating the instruction jump
-    let offset = offset_p.value as isize - instr.byte_size as isize;
-    let limited_offset = ctx.pc.offset(offset, OffsetType::Limited);
-    *ctx.pc = limited_offset.into();
+    ctx.pc.advance(-(instr.byte_size as isize))
 }
 
 pub fn exec_ldi(instr: &Instruction, ctx: &mut ExecutionContext) {
