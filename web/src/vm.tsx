@@ -122,7 +122,11 @@ export class VM extends React.Component<IVMProps> {
               </div>
             ) : null}
           </div>
-          <Arena ref={this.arenaRef} onCellClicked={this.updateSelection.bind(this)} />
+          <Arena
+            ref={this.arenaRef}
+            onCellClicked={this.updateSelection.bind(this)}
+            onApplicationLoaded={this.draw.bind(this)}
+          />
         </div>
       </div>
     )

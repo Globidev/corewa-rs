@@ -2,6 +2,8 @@ import * as PIXI from 'pixi.js'
 import * as React from 'react'
 import { Memory, DecodeResult } from './corewar'
 import { Player } from './virtual_machine'
+// @ts-ignore
+import cells from './cells.png'
 
 PIXI.utils.skipHello()
 
@@ -25,6 +27,7 @@ interface RenderContext {
 
 interface IArenaProps {
   onCellClicked: (idx: number) => void
+  onApplicationLoaded: () => void
 }
 
 export class Arena extends React.Component<IArenaProps> {
@@ -32,32 +35,52 @@ export class Arena extends React.Component<IArenaProps> {
   application: PIXI.Application | null = null
   cells: Cell[] = []
   selectionSprites: PIXI.Sprite[] = []
+  cellTextures: PIXI.Texture[] = []
 
   componentDidMount() {
     const canvas = this.canvasRef.current
 
     if (canvas) {
-      this.application = new PIXI.Application({
+      const app = new PIXI.Application({
         view: canvas,
         width: MEM_WIDTH,
         height: MEM_HEIGHT,
         backgroundColor: 0x000000
       })
       // Stop the automatic rendering since we do not continuously update
-      this.application.stop()
+      app.stop()
 
-      for (let i = 0; i < MEM_SIZE; ++i) {
-        const x = i % COLUMNS
-        const y = Math.floor(i / COLUMNS)
+      app.loader.add(cells).load(() => {
+        const cellSheet = PIXI.utils.TextureCache[cells] as PIXI.Texture
 
-        const cell = new Cell(x, y)
-        cell.valueText.on('pointerdown', () => {
-          this.props.onCellClicked(i)
-        })
+        for (let i = 0; i <= 0xff; ++i) {
+          const x = i % COLUMNS
+          const y = Math.floor(i / COLUMNS)
+          const frame = new PIXI.Rectangle(
+            x * BYTE_WIDTH,
+            y * BYTE_HEIGHT,
+            BYTE_WIDTH,
+            BYTE_HEIGHT
+          )
+          cellSheet.frame = frame
+          this.cellTextures.push(cellSheet.clone())
+        }
 
-        this.cells.push(cell)
-        this.application.stage.addChild(cell.valueText)
-      }
+        for (let i = 0; i < MEM_SIZE; ++i) {
+          const x = i % COLUMNS
+          const y = Math.floor(i / COLUMNS)
+
+          const cell = new Cell(x, y)
+          cell.valueSprite.on('pointerdown', () => {
+            this.props.onCellClicked(i)
+          })
+
+          this.cells.push(cell)
+          app.stage.addChild(cell.valueSprite)
+        }
+        this.application = app
+        this.props.onApplicationLoaded()
+      })
     }
   }
 
@@ -113,7 +136,13 @@ export class Arena extends React.Component<IArenaProps> {
       let player = ctx.playersById.get(cellOwner)
       let color = player !== undefined ? player.color : 0x404040
 
-      this.cells[i].update(cellValue, cellOwner, cellAge, pcCount, color)
+      this.cells[i].update(
+        this.cellTextures[cellValue],
+        cellOwner,
+        cellAge,
+        pcCount,
+        color
+      )
     }
 
     for (let sprite of this.selectionSprites) {
@@ -149,21 +178,15 @@ export class Arena extends React.Component<IArenaProps> {
 }
 
 class Cell {
-  valueText: PIXI.Text
+  valueSprite: PIXI.Sprite
   pcSprite: PIXI.Sprite
   ageSprite: PIXI.Sprite
 
   constructor(x: number, y: number) {
-    const text = new PIXI.Text('00', {
-      fontFamily: 'monospace',
-      fontSize: '9pt',
-      fontWeight: 'bold',
-      lineHeight: BYTE_HEIGHT
-    })
-    text.x = MARGIN + x * (BYTE_WIDTH + X_SPACING)
-    text.y = MARGIN + y * (BYTE_HEIGHT + Y_SPACING)
-    text.style.fill = 0xffffff
-    text.interactive = true
+    const valueSprite = new PIXI.Sprite()
+    valueSprite.x = MARGIN + x * (BYTE_WIDTH + X_SPACING)
+    valueSprite.y = MARGIN + y * (BYTE_HEIGHT + Y_SPACING)
+    valueSprite.interactive = true
 
     const pcSprite = new PIXI.Sprite(PIXI.Texture.WHITE)
     pcSprite.width = BYTE_WIDTH
@@ -177,30 +200,27 @@ class Cell {
     ageSprite.x = -X_SPACING
     ageSprite.y = -Y_SPACING
 
-    text.addChild(pcSprite, ageSprite)
+    valueSprite.addChild(pcSprite, ageSprite)
 
-    this.valueText = text
+    this.valueSprite = valueSprite
     this.pcSprite = pcSprite
     this.ageSprite = ageSprite
   }
 
-  update(value: number, owner: number, age: number, pcCount: number, color: number) {
-    const byteText = HEX_STRINGS[value]
+  update(
+    valueTexture: PIXI.Texture,
+    owner: number,
+    age: number,
+    pcCount: number,
+    color: number
+  ) {
     const pcAlpha = pcCount !== 0 ? 0.5 + (pcCount - 1) * 0.05 : 0
     const ageAlpha = owner !== 0 ? 0.35 * (age / MAX_CELL_AGE) : 0
 
-    this.valueText.text = byteText
-    this.valueText.tint = color
+    this.valueSprite.texture = valueTexture
+    this.valueSprite.tint = color
     this.pcSprite.alpha = pcAlpha
     this.ageSprite.tint = color
     this.ageSprite.alpha = ageAlpha
   }
 }
-
-const HEX_STRINGS = Array(256)
-  .fill(0)
-  .map((_, value) => {
-    let byteText = value.toString(16).toUpperCase()
-    if (byteText.length < 2) byteText = `0${byteText}`
-    return byteText
-  })
