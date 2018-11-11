@@ -1,6 +1,16 @@
 import { VirtualMachine as VMEngine, PlayerInfo, ChampionInfo } from './corewar'
 import { observable, action } from 'mobx'
 
+export type Player = {
+  id: number
+  color: number
+  champion: CompiledChampion | null
+}
+
+export type MatchResult = PlayerInfo[]
+
+const MAX_SPEED = 32
+const TARGET_UPS = 60
 const PLAYER_COLORS = [0x0fd5ff, 0xffa517, 0x7649cc, 0x14cc57]
 
 export class VirtualMachine {
@@ -192,14 +202,3 @@ export class VirtualMachine {
     }
   }
 }
-
-export type Player = {
-  id: number
-  color: number
-  champion: CompiledChampion | null
-}
-
-export type MatchResult = PlayerInfo[]
-
-const MAX_SPEED = 32
-const TARGET_UPS = 60

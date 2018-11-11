@@ -3,7 +3,7 @@ import * as React from 'react'
 import { Memory, DecodeResult } from './corewar'
 import { Player } from './virtual_machine'
 // @ts-ignore
-import cells from './cells.png'
+import cells from '../public/cells.png'
 
 PIXI.utils.skipHello()
 

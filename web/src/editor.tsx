@@ -10,14 +10,6 @@ interface IEditorProps {
   onClosed: () => void
 }
 
-// Object.keys(champions).forEach(champName => {
-//   try {
-//     wasm_bindgen.compile_champion(champions[champName])
-//   } catch (e) {
-//     console.log(champName, e)
-//   }
-// })
-
 function randomChampionName() {
   const keys = Object.keys(champions)
   return keys[(keys.length * Math.random()) << 0]
@@ -243,23 +235,3 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
     lineComment: lineCommentStartSymbol
   }
 })
-
-// const keywordCompletionItems = ALL_KEYWORDS.map(([kw, desc, params]) => ({
-//   label: kw,
-//   kind: monaco.languages.CompletionItemKind.Keyword,
-//   documentation: desc,
-//   insertText: `${kw} ${params}`
-// }))
-
-// monaco.languages.registerCompletionItemProvider('corewar_asm', {
-//   provideCompletionItems: function (model, position) {
-//     // find out if we are completing a property in the 'dependencies' object.
-//     // var textUntilPosition = model.getValueInRange({startLineNumber: 1, startColumn: 1, endLineNumber: position.lineNumber, endColumn: position.column});
-//     // var match = textUntilPosition.match(/"dependencies"\s*:\s*{\s*("[^"]*"\s*:\s*"[^"]*"\s*,\s*)*("[^"]*)?$/);
-//     // if (match) {
-//     //     return createDependencyProposals();
-//     // }
-//     // return [];
-//     return keywordCompletionItems;
-//   }
-// });

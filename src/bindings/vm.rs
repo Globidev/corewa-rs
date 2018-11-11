@@ -52,7 +52,6 @@ impl VirtualMachine {
             .map(PlayerInfo::from_player)
             .map(JsValue::from)
             .unwrap_or(JsValue::NULL)
-        // PlayerInfo::from_player(&self.0.players[idx])
     }
 
     pub fn champion_info(&self, player_id: PlayerId) -> ChampionInfo {
