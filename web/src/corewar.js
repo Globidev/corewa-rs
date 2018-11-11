@@ -99,12 +99,6 @@
     __wbg_error_cc95a3d302735ca3_target(varg0)
   }
 
-  function passArray8ToWasm(arg) {
-    const ptr = wasm.__wbindgen_malloc(arg.length * 1)
-    getUint8Memory().set(arg, ptr / 1)
-    return [ptr, arg.length]
-  }
-
   let cachedTextEncoder = new TextEncoder('utf-8')
 
   function passStringToWasm(arg) {
@@ -138,6 +132,12 @@
     }
   }
 
+  function passArray8ToWasm(arg) {
+    const ptr = wasm.__wbindgen_malloc(arg.length * 1)
+    getUint8Memory().set(arg, ptr / 1)
+    return [ptr, arg.length]
+  }
+
   function addHeapObject(obj) {
     if (slab_next === slab.length) slab.push(slab.length + 1)
     const idx = slab_next
@@ -149,18 +149,18 @@
     return idx << 1
   }
 
-  __exports.__wbg_executingstate_new = function(ptr) {
-    return addHeapObject(ExecutingState.__wrap(ptr))
+  __exports.__wbg_compileerror_new = function(ptr) {
+    return addHeapObject(CompileError.__wrap(ptr))
   }
 
-  function freeExecutingState(ptr) {
-    wasm.__wbg_executingstate_free(ptr)
+  function freeCompileError(ptr) {
+    wasm.__wbg_compileerror_free(ptr)
   }
   /**
    */
-  class ExecutingState {
+  class CompileError {
     static __wrap(ptr) {
-      const obj = Object.create(ExecutingState.prototype)
+      const obj = Object.create(CompileError.prototype)
       obj.ptr = ptr
 
       return obj
@@ -169,24 +169,15 @@
     free() {
       const ptr = this.ptr
       this.ptr = 0
-      freeExecutingState(ptr)
+      freeCompileError(ptr)
     }
 
     /**
-     * @returns {number}
-     */
-    get cycle_left() {
-      return wasm.__wbg_get_executingstate_cycle_left(this.ptr)
-    }
-    set cycle_left(arg0) {
-      return wasm.__wbg_set_executingstate_cycle_left(this.ptr, arg0)
-    }
-    /**
      * @returns {string}
      */
-    op() {
+    reason() {
       const retptr = globalArgumentPtr()
-      wasm.executingstate_op(retptr, this.ptr)
+      wasm.compileerror_reason(retptr, this.ptr)
       const mem = getUint32Memory()
       const rustptr = mem[retptr / 4]
       const rustlen = mem[retptr / 4 + 1]
@@ -194,138 +185,77 @@
       const realRet = getStringFromWasm(rustptr, rustlen).slice()
       wasm.__wbindgen_free(rustptr, rustlen * 1)
       return realRet
-    }
-  }
-  __exports.ExecutingState = ExecutingState
-
-  function freeDecodeResult(ptr) {
-    wasm.__wbg_decoderesult_free(ptr)
-  }
-  /**
-   */
-  class DecodeResult {
-    static __wrap(ptr) {
-      const obj = Object.create(DecodeResult.prototype)
-      obj.ptr = ptr
-
-      return obj
-    }
-
-    free() {
-      const ptr = this.ptr
-      this.ptr = 0
-      freeDecodeResult(ptr)
-    }
-
-    /**
-     * @returns {number}
-     */
-    byte_size() {
-      return wasm.decoderesult_byte_size(this.ptr)
-    }
-    /**
-     * @returns {string}
-     */
-    to_string() {
-      const retptr = globalArgumentPtr()
-      wasm.decoderesult_to_string(retptr, this.ptr)
-      const mem = getUint32Memory()
-      const rustptr = mem[retptr / 4]
-      const rustlen = mem[retptr / 4 + 1]
-
-      const realRet = getStringFromWasm(rustptr, rustlen).slice()
-      wasm.__wbindgen_free(rustptr, rustlen * 1)
-      return realRet
-    }
-  }
-  __exports.DecodeResult = DecodeResult
-
-  function freeProcessInfo(ptr) {
-    wasm.__wbg_processinfo_free(ptr)
-  }
-  /**
-   */
-  class ProcessInfo {
-    static __wrap(ptr) {
-      const obj = Object.create(ProcessInfo.prototype)
-      obj.ptr = ptr
-
-      return obj
-    }
-
-    free() {
-      const ptr = this.ptr
-      this.ptr = 0
-      freeProcessInfo(ptr)
-    }
-
-    /**
-     * @returns {number}
-     */
-    get pid() {
-      return wasm.__wbg_get_processinfo_pid(this.ptr)
-    }
-    set pid(arg0) {
-      return wasm.__wbg_set_processinfo_pid(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get player_id() {
-      return wasm.__wbg_get_processinfo_player_id(this.ptr)
-    }
-    set player_id(arg0) {
-      return wasm.__wbg_set_processinfo_player_id(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get pc() {
-      return wasm.__wbg_get_processinfo_pc(this.ptr)
-    }
-    set pc(arg0) {
-      return wasm.__wbg_set_processinfo_pc(this.ptr, arg0)
-    }
-    /**
-     * @returns {boolean}
-     */
-    get zf() {
-      return wasm.__wbg_get_processinfo_zf(this.ptr) !== 0
-    }
-    set zf(arg0) {
-      return wasm.__wbg_set_processinfo_zf(this.ptr, arg0 ? 1 : 0)
-    }
-    /**
-     * @returns {number}
-     */
-    get last_live_cycle() {
-      return wasm.__wbg_get_processinfo_last_live_cycle(this.ptr)
-    }
-    set last_live_cycle(arg0) {
-      return wasm.__wbg_set_processinfo_last_live_cycle(this.ptr, arg0)
     }
     /**
      * @returns {any}
      */
-    executing() {
-      return takeObject(wasm.processinfo_executing(this.ptr))
-    }
-    /**
-     * @returns {Int32Array}
-     */
-    registers() {
-      const retptr = globalArgumentPtr()
-      wasm.processinfo_registers(retptr, this.ptr)
-      const mem = getUint32Memory()
-      const rustptr = mem[retptr / 4]
-      const rustlen = mem[retptr / 4 + 1]
-
-      const realRet = getArrayI32FromWasm(rustptr, rustlen).slice()
-      wasm.__wbindgen_free(rustptr, rustlen * 4)
-      return realRet
+    region() {
+      return takeObject(wasm.compileerror_region(this.ptr))
     }
   }
-  __exports.ProcessInfo = ProcessInfo
+  __exports.CompileError = CompileError
+
+  __exports.__wbg_region_new = function(ptr) {
+    return addHeapObject(Region.__wrap(ptr))
+  }
+
+  function freeRegion(ptr) {
+    wasm.__wbg_region_free(ptr)
+  }
+  /**
+   */
+  class Region {
+    static __wrap(ptr) {
+      const obj = Object.create(Region.prototype)
+      obj.ptr = ptr
+
+      return obj
+    }
+
+    free() {
+      const ptr = this.ptr
+      this.ptr = 0
+      freeRegion(ptr)
+    }
+
+    /**
+     * @returns {number}
+     */
+    get from_row() {
+      return wasm.__wbg_get_region_from_row(this.ptr)
+    }
+    set from_row(arg0) {
+      return wasm.__wbg_set_region_from_row(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get from_col() {
+      return wasm.__wbg_get_region_from_col(this.ptr)
+    }
+    set from_col(arg0) {
+      return wasm.__wbg_set_region_from_col(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get to_row() {
+      return wasm.__wbg_get_region_to_row(this.ptr)
+    }
+    set to_row(arg0) {
+      return wasm.__wbg_set_region_to_row(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get to_col() {
+      return wasm.__wbg_get_region_to_col(this.ptr)
+    }
+    set to_col(arg0) {
+      return wasm.__wbg_set_region_to_col(this.ptr, arg0)
+    }
+  }
+  __exports.Region = Region
 
   function freeVirtualMachine(ptr) {
     wasm.__wbg_virtualmachine_free(ptr)
@@ -431,103 +361,6 @@
   }
   __exports.VirtualMachine = VirtualMachine
 
-  __exports.__wbg_region_new = function(ptr) {
-    return addHeapObject(Region.__wrap(ptr))
-  }
-
-  function freeRegion(ptr) {
-    wasm.__wbg_region_free(ptr)
-  }
-  /**
-   */
-  class Region {
-    static __wrap(ptr) {
-      const obj = Object.create(Region.prototype)
-      obj.ptr = ptr
-
-      return obj
-    }
-
-    free() {
-      const ptr = this.ptr
-      this.ptr = 0
-      freeRegion(ptr)
-    }
-
-    /**
-     * @returns {number}
-     */
-    get from_row() {
-      return wasm.__wbg_get_region_from_row(this.ptr)
-    }
-    set from_row(arg0) {
-      return wasm.__wbg_set_region_from_row(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get from_col() {
-      return wasm.__wbg_get_region_from_col(this.ptr)
-    }
-    set from_col(arg0) {
-      return wasm.__wbg_set_region_from_col(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get to_row() {
-      return wasm.__wbg_get_region_to_row(this.ptr)
-    }
-    set to_row(arg0) {
-      return wasm.__wbg_set_region_to_row(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get to_col() {
-      return wasm.__wbg_get_region_to_col(this.ptr)
-    }
-    set to_col(arg0) {
-      return wasm.__wbg_set_region_to_col(this.ptr, arg0)
-    }
-  }
-  __exports.Region = Region
-
-  function freeProcessCollection(ptr) {
-    wasm.__wbg_processcollection_free(ptr)
-  }
-  /**
-   */
-  class ProcessCollection {
-    static __wrap(ptr) {
-      const obj = Object.create(ProcessCollection.prototype)
-      obj.ptr = ptr
-
-      return obj
-    }
-
-    free() {
-      const ptr = this.ptr
-      this.ptr = 0
-      freeProcessCollection(ptr)
-    }
-
-    /**
-     * @returns {number}
-     */
-    len() {
-      return wasm.processcollection_len(this.ptr)
-    }
-    /**
-     * @param {number} arg0
-     * @returns {ProcessInfo}
-     */
-    at(arg0) {
-      return ProcessInfo.__wrap(wasm.processcollection_at(this.ptr, arg0))
-    }
-  }
-  __exports.ProcessCollection = ProcessCollection
-
   function freeVMBuilder(ptr) {
     wasm.__wbg_vmbuilder_free(ptr)
   }
@@ -575,18 +408,14 @@
   }
   __exports.VMBuilder = VMBuilder
 
-  __exports.__wbg_compileerror_new = function(ptr) {
-    return addHeapObject(CompileError.__wrap(ptr))
-  }
-
-  function freeCompileError(ptr) {
-    wasm.__wbg_compileerror_free(ptr)
+  function freeProcessCollection(ptr) {
+    wasm.__wbg_processcollection_free(ptr)
   }
   /**
    */
-  class CompileError {
+  class ProcessCollection {
     static __wrap(ptr) {
-      const obj = Object.create(CompileError.prototype)
+      const obj = Object.create(ProcessCollection.prototype)
       obj.ptr = ptr
 
       return obj
@@ -595,89 +424,24 @@
     free() {
       const ptr = this.ptr
       this.ptr = 0
-      freeCompileError(ptr)
+      freeProcessCollection(ptr)
     }
 
     /**
-     * @returns {string}
+     * @returns {number}
      */
-    reason() {
-      const retptr = globalArgumentPtr()
-      wasm.compileerror_reason(retptr, this.ptr)
-      const mem = getUint32Memory()
-      const rustptr = mem[retptr / 4]
-      const rustlen = mem[retptr / 4 + 1]
-
-      const realRet = getStringFromWasm(rustptr, rustlen).slice()
-      wasm.__wbindgen_free(rustptr, rustlen * 1)
-      return realRet
+    len() {
+      return wasm.processcollection_len(this.ptr)
     }
     /**
-     * @returns {any}
+     * @param {number} arg0
+     * @returns {ProcessInfo}
      */
-    region() {
-      return takeObject(wasm.compileerror_region(this.ptr))
+    at(arg0) {
+      return ProcessInfo.__wrap(wasm.processcollection_at(this.ptr, arg0))
     }
   }
-  __exports.CompileError = CompileError
-
-  function freeMemory(ptr) {
-    wasm.__wbg_memory_free(ptr)
-  }
-  /**
-   */
-  class Memory {
-    static __wrap(ptr) {
-      const obj = Object.create(Memory.prototype)
-      obj.ptr = ptr
-
-      return obj
-    }
-
-    free() {
-      const ptr = this.ptr
-      this.ptr = 0
-      freeMemory(ptr)
-    }
-
-    /**
-     * @returns {number}
-     */
-    get values_ptr() {
-      return wasm.__wbg_get_memory_values_ptr(this.ptr)
-    }
-    set values_ptr(arg0) {
-      return wasm.__wbg_set_memory_values_ptr(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get ages_ptr() {
-      return wasm.__wbg_get_memory_ages_ptr(this.ptr)
-    }
-    set ages_ptr(arg0) {
-      return wasm.__wbg_set_memory_ages_ptr(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get owners_ptr() {
-      return wasm.__wbg_get_memory_owners_ptr(this.ptr)
-    }
-    set owners_ptr(arg0) {
-      return wasm.__wbg_set_memory_owners_ptr(this.ptr, arg0)
-    }
-    /**
-     * @returns {number}
-     */
-    get pc_count_ptr() {
-      return wasm.__wbg_get_memory_pc_count_ptr(this.ptr)
-    }
-    set pc_count_ptr(arg0) {
-      return wasm.__wbg_set_memory_pc_count_ptr(this.ptr, arg0)
-    }
-  }
-  __exports.Memory = Memory
+  __exports.ProcessCollection = ProcessCollection
 
   __exports.__wbg_playerinfo_new = function(ptr) {
     return addHeapObject(PlayerInfo.__wrap(ptr))
@@ -751,6 +515,135 @@
   }
   __exports.PlayerInfo = PlayerInfo
 
+  function freeProcessInfo(ptr) {
+    wasm.__wbg_processinfo_free(ptr)
+  }
+  /**
+   */
+  class ProcessInfo {
+    static __wrap(ptr) {
+      const obj = Object.create(ProcessInfo.prototype)
+      obj.ptr = ptr
+
+      return obj
+    }
+
+    free() {
+      const ptr = this.ptr
+      this.ptr = 0
+      freeProcessInfo(ptr)
+    }
+
+    /**
+     * @returns {number}
+     */
+    get pid() {
+      return wasm.__wbg_get_processinfo_pid(this.ptr)
+    }
+    set pid(arg0) {
+      return wasm.__wbg_set_processinfo_pid(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get player_id() {
+      return wasm.__wbg_get_processinfo_player_id(this.ptr)
+    }
+    set player_id(arg0) {
+      return wasm.__wbg_set_processinfo_player_id(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get pc() {
+      return wasm.__wbg_get_processinfo_pc(this.ptr)
+    }
+    set pc(arg0) {
+      return wasm.__wbg_set_processinfo_pc(this.ptr, arg0)
+    }
+    /**
+     * @returns {boolean}
+     */
+    get zf() {
+      return wasm.__wbg_get_processinfo_zf(this.ptr) !== 0
+    }
+    set zf(arg0) {
+      return wasm.__wbg_set_processinfo_zf(this.ptr, arg0 ? 1 : 0)
+    }
+    /**
+     * @returns {number}
+     */
+    get last_live_cycle() {
+      return wasm.__wbg_get_processinfo_last_live_cycle(this.ptr)
+    }
+    set last_live_cycle(arg0) {
+      return wasm.__wbg_set_processinfo_last_live_cycle(this.ptr, arg0)
+    }
+    /**
+     * @returns {any}
+     */
+    executing() {
+      return takeObject(wasm.processinfo_executing(this.ptr))
+    }
+    /**
+     * @returns {Int32Array}
+     */
+    registers() {
+      const retptr = globalArgumentPtr()
+      wasm.processinfo_registers(retptr, this.ptr)
+      const mem = getUint32Memory()
+      const rustptr = mem[retptr / 4]
+      const rustlen = mem[retptr / 4 + 1]
+
+      const realRet = getArrayI32FromWasm(rustptr, rustlen).slice()
+      wasm.__wbindgen_free(rustptr, rustlen * 4)
+      return realRet
+    }
+  }
+  __exports.ProcessInfo = ProcessInfo
+
+  function freeDecodeResult(ptr) {
+    wasm.__wbg_decoderesult_free(ptr)
+  }
+  /**
+   */
+  class DecodeResult {
+    static __wrap(ptr) {
+      const obj = Object.create(DecodeResult.prototype)
+      obj.ptr = ptr
+
+      return obj
+    }
+
+    free() {
+      const ptr = this.ptr
+      this.ptr = 0
+      freeDecodeResult(ptr)
+    }
+
+    /**
+     * @returns {number}
+     */
+    byte_size() {
+      return wasm.decoderesult_byte_size(this.ptr)
+    }
+    /**
+     * @returns {string}
+     */
+    to_string() {
+      const retptr = globalArgumentPtr()
+      wasm.decoderesult_to_string(retptr, this.ptr)
+      const mem = getUint32Memory()
+      const rustptr = mem[retptr / 4]
+      const rustlen = mem[retptr / 4 + 1]
+
+      const realRet = getStringFromWasm(rustptr, rustlen).slice()
+      wasm.__wbindgen_free(rustptr, rustlen * 1)
+      return realRet
+    }
+  }
+  __exports.DecodeResult = DecodeResult
+
   function freeChampionInfo(ptr) {
     wasm.__wbg_championinfo_free(ptr)
   }
@@ -790,6 +683,113 @@
     }
   }
   __exports.ChampionInfo = ChampionInfo
+
+  __exports.__wbg_executingstate_new = function(ptr) {
+    return addHeapObject(ExecutingState.__wrap(ptr))
+  }
+
+  function freeExecutingState(ptr) {
+    wasm.__wbg_executingstate_free(ptr)
+  }
+  /**
+   */
+  class ExecutingState {
+    static __wrap(ptr) {
+      const obj = Object.create(ExecutingState.prototype)
+      obj.ptr = ptr
+
+      return obj
+    }
+
+    free() {
+      const ptr = this.ptr
+      this.ptr = 0
+      freeExecutingState(ptr)
+    }
+
+    /**
+     * @returns {number}
+     */
+    get cycle_left() {
+      return wasm.__wbg_get_executingstate_cycle_left(this.ptr)
+    }
+    set cycle_left(arg0) {
+      return wasm.__wbg_set_executingstate_cycle_left(this.ptr, arg0)
+    }
+    /**
+     * @returns {string}
+     */
+    op() {
+      const retptr = globalArgumentPtr()
+      wasm.executingstate_op(retptr, this.ptr)
+      const mem = getUint32Memory()
+      const rustptr = mem[retptr / 4]
+      const rustlen = mem[retptr / 4 + 1]
+
+      const realRet = getStringFromWasm(rustptr, rustlen).slice()
+      wasm.__wbindgen_free(rustptr, rustlen * 1)
+      return realRet
+    }
+  }
+  __exports.ExecutingState = ExecutingState
+
+  function freeMemory(ptr) {
+    wasm.__wbg_memory_free(ptr)
+  }
+  /**
+   */
+  class Memory {
+    static __wrap(ptr) {
+      const obj = Object.create(Memory.prototype)
+      obj.ptr = ptr
+
+      return obj
+    }
+
+    free() {
+      const ptr = this.ptr
+      this.ptr = 0
+      freeMemory(ptr)
+    }
+
+    /**
+     * @returns {number}
+     */
+    get values_ptr() {
+      return wasm.__wbg_get_memory_values_ptr(this.ptr)
+    }
+    set values_ptr(arg0) {
+      return wasm.__wbg_set_memory_values_ptr(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get ages_ptr() {
+      return wasm.__wbg_get_memory_ages_ptr(this.ptr)
+    }
+    set ages_ptr(arg0) {
+      return wasm.__wbg_set_memory_ages_ptr(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get owners_ptr() {
+      return wasm.__wbg_get_memory_owners_ptr(this.ptr)
+    }
+    set owners_ptr(arg0) {
+      return wasm.__wbg_set_memory_owners_ptr(this.ptr, arg0)
+    }
+    /**
+     * @returns {number}
+     */
+    get pc_count_ptr() {
+      return wasm.__wbg_get_memory_pc_count_ptr(this.ptr)
+    }
+    set pc_count_ptr(arg0) {
+      return wasm.__wbg_set_memory_pc_count_ptr(this.ptr, arg0)
+    }
+  }
+  __exports.Memory = Memory
 
   __exports.__wbindgen_rethrow = function(idx) {
     throw takeObject(idx)

@@ -1,30 +1,19 @@
 /* tslint:disable */
 export function compile_champion(arg0: string): Uint8Array
 
-export class ExecutingState {
+export class CompileError {
   free(): void
-  cycle_left: number
 
-  op(): string
+  reason(): string
+
+  region(): any
 }
-export class DecodeResult {
+export class Region {
   free(): void
-
-  byte_size(): number
-
-  to_string(): string
-}
-export class ProcessInfo {
-  free(): void
-  pid: number
-  player_id: number
-  pc: number
-  zf: boolean
-  last_live_cycle: number
-
-  executing(): any
-
-  registers(): Int32Array
+  from_row: number
+  from_col: number
+  to_row: number
+  to_col: number
 }
 export class VirtualMachine {
   free(): void
@@ -55,20 +44,6 @@ export class VirtualMachine {
 
   memory(): Memory
 }
-export class Region {
-  free(): void
-  from_row: number
-  from_col: number
-  to_row: number
-  to_col: number
-}
-export class ProcessCollection {
-  free(): void
-
-  len(): number
-
-  at(arg0: number): ProcessInfo
-}
 export class VMBuilder {
   free(): void
 
@@ -78,19 +53,12 @@ export class VMBuilder {
 
   finish(): VirtualMachine
 }
-export class CompileError {
+export class ProcessCollection {
   free(): void
 
-  reason(): string
+  len(): number
 
-  region(): any
-}
-export class Memory {
-  free(): void
-  values_ptr: number
-  ages_ptr: number
-  owners_ptr: number
-  pc_count_ptr: number
+  at(arg0: number): ProcessInfo
 }
 export class PlayerInfo {
   free(): void
@@ -101,8 +69,40 @@ export class PlayerInfo {
 
   champion_comment(): string
 }
+export class ProcessInfo {
+  free(): void
+  pid: number
+  player_id: number
+  pc: number
+  zf: boolean
+  last_live_cycle: number
+
+  executing(): any
+
+  registers(): Int32Array
+}
+export class DecodeResult {
+  free(): void
+
+  byte_size(): number
+
+  to_string(): string
+}
 export class ChampionInfo {
   free(): void
   process_count: number
   last_live: number
+}
+export class ExecutingState {
+  free(): void
+  cycle_left: number
+
+  op(): string
+}
+export class Memory {
+  free(): void
+  values_ptr: number
+  ages_ptr: number
+  owners_ptr: number
+  pc_count_ptr: number
 }
