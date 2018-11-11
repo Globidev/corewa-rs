@@ -1,4 +1,4 @@
-use crate::spec::{self, Header, OpSpec, OpType, DirectSize, PROG_NAME_LENGTH, PROG_COMMENT_LENGTH};
+use crate::spec::{self, Header, OpSpec, OpType, DirectSize, PROG_NAME_LENGTH, PROG_COMMENT_LENGTH, CHAMP_MAX_SIZE};
 use super::assembler::{Champion, ParsedInstruction};
 use super::types::*;
 
@@ -23,7 +23,11 @@ pub fn compile_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
     state.write_header(champion)?;
     state.resolve_labels()?;
 
-    Ok(state.size)
+    if state.size > CHAMP_MAX_SIZE {
+        Err(CompileError::ProgramTooLong(state.size))
+    } else {
+        Ok(state.size)
+    }
 }
 
 fn ocp(op: &Op) -> u8 {
@@ -121,11 +125,11 @@ impl<W: Write + Seek> State<W> {
     fn write_header(&mut self, champion: &Champion) -> CompileResult<()> {
         let header = Header::new(champion, self.size as u32)?;
 
-let header_data = {
-    let raw_header = &header as *const Header;
-    let header_len = mem::size_of::<Header>();
-    unsafe { ::std::slice::from_raw_parts(raw_header as *const u8, header_len) }
-};
+        let header_data = {
+            let raw_header = &header as *const Header;
+            let header_len = mem::size_of::<Header>();
+            unsafe { ::std::slice::from_raw_parts(raw_header as *const u8, header_len) }
+        };
 
         self.out.seek(SeekFrom::Start(0))?;
         self.out.write_all(header_data)?;
@@ -311,6 +315,7 @@ pub enum CompileError {
     ProgramCommentTooLong(usize),
     MissingLabel(String),
     DuplicateLabel(String),
+    ProgramTooLong(usize),
     IOError(IOError),
 }
 
@@ -331,6 +336,7 @@ impl fmt::Display for CompileError {
             ProgramCommentTooLong(size) => write!(f, "The champion's comment is too long: {} bytes (maximum allowed is {})", size, PROG_COMMENT_LENGTH),
             MissingLabel(label) => write!(f, "The label '{}' is missing. It is referenced in a parameter but has never been declared", label),
             DuplicateLabel(label) => write!(f, "The label '{}' has been declared multiple times. A label can only be declared once", label),
+            ProgramTooLong(size) => write!(f, "The champion's code is too big: {} bytes (maximum allowed is {})", size, CHAMP_MAX_SIZE),
             IOError(err) => write!(f, "Unexpected IO error: {}", err)
         }
     }
