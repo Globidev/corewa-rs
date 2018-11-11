@@ -27,22 +27,18 @@ export class Editor extends React.Component<IEditorProps> {
     const initialText = this.props.config.code || null
 
     if (container) {
-      // @ts-ignore
+      //  @ts-ignore
       const editor = CodeMirror(container, {
         lineNumbers: true,
         theme: 'monokai',
-        // theme: '3024-night',
         mode: ASM_LANGUAGE_ID,
-        // gutters: ['CodeMirror-lint-markeinitialChampionrs'],
         lint: {
           editor: this,
           lintOnChange: false
         },
         value: initialText !== null ? initialText : champions[this.initialChampion],
         keyMap: 'sublime'
-        // lintOnChange: false
       })
-      // editor.performLint()
 
       // @ts-ignore
       editor.on('change', (_e, _ch) => {
@@ -204,8 +200,11 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
 
       if (ch === 'r') {
         stream.eatWhile(/\d/)
-        const regNum = parseInt(stream.current().substr(1))
-        if (regNum >= 1 && regNum <= 16) return 'def'
+        const next = stream.peek()
+        if (!next || !/\w/.test(next)) {
+          const regNum = parseInt(stream.current().substr(1))
+          if (regNum >= 1 && regNum <= 16) return 'def'
+        }
       }
 
       if (ch === '-') {
