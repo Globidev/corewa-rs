@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "serve": "parcel -d dev src/index.html",
-    "bundle": "parcel build -d dist --no-source-maps --public-url=/corewar src/index.html"
+    "serve": "parcel -d dev public/index.html",
+    "bundle": "parcel build -d dist --no-source-maps --public-url=/corewar public/index.html"
   },
   "devDependencies": {
     "@types/codemirror": "0.0.62",
