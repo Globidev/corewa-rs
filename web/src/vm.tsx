@@ -1,10 +1,11 @@
 import * as React from 'react'
+import { observer } from 'mobx-react'
+import { observable, reaction, observe } from 'mobx'
+
 import { VirtualMachine, Player, MatchResult } from './virtual_machine'
 import { VirtualMachine as VMEngine, PlayerInfo } from './corewar'
-import { observer } from 'mobx-react'
-import { observe, observable } from 'mobx'
 import { DecodeResult, ProcessCollection, ExecutingState } from './corewar.d'
-import { Arena } from './arena'
+import { PIXIRenderer, MARGIN, MEM_HEIGHT, MEM_WIDTH } from './renderer'
 
 interface IVMProps {
   vm: VirtualMachine
@@ -14,7 +15,7 @@ interface IVMProps {
 
 @observer
 export class VM extends React.Component<IVMProps> {
-  arenaRef = React.createRef<Arena>()
+  canvasRef = React.createRef<HTMLCanvasElement>()
   @observable
   selection: { idx: number; decoded: DecodeResult } | null = null
   @observable
@@ -22,59 +23,54 @@ export class VM extends React.Component<IVMProps> {
 
   coverages = new Map<number, number>()
 
-  constructor(props: IVMProps) {
-    super(props)
+  componentDidMount() {
+    const canvas = this.canvasRef.current
 
-    observe(props.vm, 'cycles', _ => {
-      this.selectedProcesses = null
-      if (this.selection && props.vm.engine != null)
-        this.updateSelection(this.selection.idx)
-      else this.selection = null
-      this.draw()
+    if (canvas) {
+      const renderer = new PIXIRenderer({
+        canvas,
+        onCellClicked: cellIdx => {
+          this.updateSelection(cellIdx)
+          this.draw(renderer)
+        },
+        onLoad: () => {
+          this.draw(renderer)
+        }
+      })
+
+      observe(this.props.vm, 'cycles', _ => {
+        this.selectedProcesses = null
+        if (this.selection) this.updateSelection(this.selection.idx)
+        this.draw(renderer)
+      })
+    }
+  }
+
+  draw(renderer: PIXIRenderer) {
+    const memory = this.props.vm.engine.memory()
+
+    renderer.update({
+      memory,
+      selection: this.selection,
+      playersById: this.props.vm.playersById
+    })
+
+    const cellOwners = new Int32Array(
+      wasm_bindgen.wasm.memory.buffer,
+      memory.owners_ptr,
+      4096
+    )
+
+    this.coverages.clear()
+    cellOwners.forEach(owner => {
+      const previous = this.coverages.get(owner) || 0
+      this.coverages.set(owner, previous + 1)
     })
   }
 
-  draw() {
-    // console.time('draw')
-    const renderer = this.arenaRef.current
-    const vm = this.props.vm
-    const engine = vm.engine
-
-    if (engine && renderer) {
-      const memory = engine.memory()
-
-      renderer.update({
-        memory,
-        selection: this.selection,
-        playersById: vm.playersById
-      })
-
-      const cellOwners = new Int32Array(
-        wasm_bindgen.wasm.memory.buffer,
-        memory.owners_ptr,
-        4096
-      )
-
-      this.coverages.clear()
-      cellOwners.forEach(owner => {
-        const previous = this.coverages.get(owner) || 0
-        this.coverages.set(owner, previous + 1)
-      })
-    }
-    // console.timeEnd('draw')
-  }
-
   updateSelection(idx: number) {
-    let engine = this.props.vm.engine
-    if (engine) {
-      this.selection = { idx, decoded: engine.decode(idx) }
-      this.selectedProcesses = engine.processes_at(idx)
-      this.draw()
-    }
-  }
-
-  componentDidMount() {
-    this.draw()
+    this.selection = { idx, decoded: this.props.vm.engine.decode(idx) }
+    this.selectedProcesses = this.props.vm.engine.processes_at(idx)
   }
 
   onNewClicked() {
@@ -122,10 +118,15 @@ export class VM extends React.Component<IVMProps> {
               </div>
             ) : null}
           </div>
-          <Arena
-            ref={this.arenaRef}
-            onCellClicked={this.updateSelection.bind(this)}
-            onApplicationLoaded={this.draw.bind(this)}
+          <canvas
+            ref={this.canvasRef}
+            width={MEM_WIDTH}
+            height={MEM_HEIGHT}
+            style={{
+              margin: `${MARGIN}px ${MARGIN}px ${MARGIN}px ${MARGIN}px`,
+              maxHeight: `${MEM_HEIGHT}px`,
+              maxWidth: `${MEM_WIDTH}px`
+            }}
           />
         </div>
       </div>

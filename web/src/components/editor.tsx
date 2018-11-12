@@ -1,7 +1,7 @@
-import { champions } from './champions'
-
 import * as React from 'react'
-import { CompileError, Region } from './corewar'
+
+import { champions } from '../assets/champions'
+import { CompileError, Region } from '../corewar'
 import { observer } from 'mobx-react'
 
 interface IEditorProps {

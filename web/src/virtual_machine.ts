@@ -22,7 +22,7 @@ export class VirtualMachine {
   // INVARIANTS TO MAINTAIN:
   //   - cycles === null if engine === null
   //   - cycles === engine.cycles otherwise
-  engine: VMEngine | null = null
+  engine: VMEngine = new wasm_bindgen.VMBuilder().finish()
   @observable
   cycles: number | null = null
 
@@ -31,7 +31,7 @@ export class VirtualMachine {
   @observable
   speed: number = 1
 
-  animationId: number | null = null
+  timeoutId: number | null = null
   lastFrameTime = 0
 
   @observable
@@ -52,6 +52,7 @@ export class VirtualMachine {
     return id
   }
 
+  @action
   newPlayer() {
     const id = this.randomPlayerId()
     const color = PLAYER_COLORS[this.playersById.size]
@@ -61,6 +62,7 @@ export class VirtualMachine {
     return this.playersById.get(id) as Player
   }
 
+  @action
   changePlayerId(oldId: number, newId: number) {
     if (newId == 0 || this.playersById.has(newId)) return
 
@@ -75,22 +77,23 @@ export class VirtualMachine {
   }
 
   @action
-  tick(vm: VMEngine, n: number) {
+  tick(n: number) {
     for (let i = 0; i < n; ++i) {
-      if (vm.tick()) {
-        this.updateMatchResult(vm)
+      if (this.engine.tick()) {
+        this.updateMatchResult()
         this.pause()
         break
       }
     }
 
-    this.cycles = vm.cycles()
+    this.cycles = this.engine.cycles()
   }
 
-  updateMatchResult(vm: VMEngine) {
+  @action
+  updateMatchResult() {
     const info = Array.from(this.playersById.keys()).map(
       playerId =>
-        [vm.player_info(playerId), vm.champion_info(playerId)] as [
+        [this.engine.player_info(playerId), this.engine.champion_info(playerId)] as [
           PlayerInfo,
           ChampionInfo
         ]
@@ -108,14 +111,14 @@ export class VirtualMachine {
   }
 
   @action
-  renderLoop(vm: VMEngine) {
-    this.tick(vm, this.speed)
+  playLoop() {
+    this.tick(this.speed)
     const now = performance.now()
     const dt = now - this.lastFrameTime
     this.lastFrameTime = now
     const delta = Math.max(0, 1000 / TARGET_UPS - dt)
     if (this.playing) {
-      this.animationId = window.setTimeout(() => this.renderLoop(vm), delta)
+      this.timeoutId = window.setTimeout(() => this.playLoop(), delta)
     }
   }
 
@@ -125,13 +128,14 @@ export class VirtualMachine {
     this.matchResult = null
     this.cycles = null // effectively resets the VM observers
     this.engine = Array.from(this.playersById.values())
-      .reduce((builder, player) => {
-        if (player.champion) return builder.with_player(player.id, player.champion)
-        else return builder
-      }, new wasm_bindgen.VMBuilder())
+      .reduce(
+        (builder, player) =>
+          player.champion ? builder.with_player(player.id, player.champion) : builder,
+        new wasm_bindgen.VMBuilder()
+      )
       .finish()
 
-    this.cycles = 0
+    this.cycles = this.engine.cycles()
   }
 
   @action
@@ -145,29 +149,31 @@ export class VirtualMachine {
 
   @action
   togglePlay() {
-    if (this.playing) this.pause()
-    else this.play()
+    if (this.playing) {
+      this.pause()
+    } else {
+      this.play()
+    }
   }
 
   @action
   play() {
-    if (this.engine) {
-      this.playing = true
-      this.lastFrameTime = performance.now()
-      this.renderLoop(this.engine)
-    }
+    this.playing = true
+    this.lastFrameTime = performance.now()
+    this.playLoop()
   }
 
   @action
   pause() {
     this.playing = false
-    if (this.animationId) clearTimeout(this.animationId)
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId)
+    }
   }
 
-  // @action
+  @action
   stop() {
     this.pause()
-    this.engine = null
     this.cycles = null
 
     wasm_bindgen('./corewar_bg.wasm').then(() => this.compile())
@@ -175,8 +181,8 @@ export class VirtualMachine {
 
   @action
   step() {
-    if (this.playing) this.pause()
-    if (this.engine) this.tick(this.engine, 1)
+    this.pause()
+    this.tick(1)
   }
 
   @action
@@ -189,16 +195,12 @@ export class VirtualMachine {
   @action
   setCycle(cycle: number) {
     this.pause()
-    if (this.engine) {
-      const cycles = this.engine.cycles()
-      if (cycles <= cycle) {
-        this.tick(this.engine, cycle - cycles)
-      } else {
-        this.engine = null
-        this.cycles = null
-        this.compile()
-        if (this.engine) this.tick(this.engine, cycle)
-      }
+    const cycles = this.engine.cycles()
+    if (cycles <= cycle) {
+      this.tick(cycle - cycles)
+    } else {
+      this.compile()
+      this.tick(cycle)
     }
   }
 }

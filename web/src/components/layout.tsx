@@ -1,11 +1,11 @@
 import * as React from 'react'
 import * as Flex from 'flexlayout-react'
 
-import { VirtualMachine, Player } from './virtual_machine'
+import { VirtualMachine, Player } from '../virtual_machine'
 import { Help } from './help'
-import { VM } from './vm'
+import { VM } from '../vm'
 import { Editor } from './editor'
-import { observe } from 'mobx'
+import { autorun } from 'mobx'
 
 const enum PaneComponent {
   Editor = 'editor',
@@ -39,9 +39,9 @@ export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
       case PaneComponent.Editor:
         const player = this.getPlayer(config.playerId)
         config.playerId = player.id
-        observe(player, 'id', _ => {
-          config.playerId = player.id
-        })
+        // Update this editor's player id if it were to be changed
+        autorun(() => (config.playerId = player.id))
+
         return (
           <Editor
             config={config}
