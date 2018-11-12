@@ -19,9 +19,7 @@ export class VirtualMachine {
   // We can therefore just add a simple observable value corresponding to
   // the vm's cycle count and use it as a notifier for components that want to
   // observe the vm.
-  // INVARIANTS TO MAINTAIN:
-  //   - cycles === null if engine === null
-  //   - cycles === engine.cycles otherwise
+  // INVARIANT TO MAINTAIN: cycles === engine.cycles
   engine: VMEngine = new wasm_bindgen.VMBuilder().finish()
   @observable
   cycles: number | null = null

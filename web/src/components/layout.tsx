@@ -3,7 +3,7 @@ import * as Flex from 'flexlayout-react'
 
 import { VirtualMachine, Player } from '../virtual_machine'
 import { Help } from './help'
-import { VM } from '../vm'
+import { VM } from './vm'
 import { Editor } from './editor'
 import { autorun } from 'mobx'
 

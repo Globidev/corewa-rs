@@ -1,11 +1,11 @@
 import * as React from 'react'
 import { observer } from 'mobx-react'
-import { observable, reaction, observe } from 'mobx'
+import { observable, observe } from 'mobx'
 
-import { VirtualMachine, Player, MatchResult } from './virtual_machine'
-import { VirtualMachine as VMEngine, PlayerInfo } from './corewar'
-import { DecodeResult, ProcessCollection, ExecutingState } from './corewar.d'
-import { PIXIRenderer, MARGIN, MEM_HEIGHT, MEM_WIDTH } from './renderer'
+import { VirtualMachine, Player, MatchResult } from '../virtual_machine'
+import { VirtualMachine as VMEngine, PlayerInfo } from '../corewar'
+import { DecodeResult, ProcessCollection, ExecutingState } from '../corewar'
+import { PIXIRenderer, MARGIN, MEM_HEIGHT, MEM_WIDTH } from '../renderer'
 
 interface IVMProps {
   vm: VirtualMachine
@@ -23,6 +23,8 @@ export class VM extends React.Component<IVMProps> {
 
   coverages = new Map<number, number>()
 
+  vm = this.props.vm
+
   componentDidMount() {
     const canvas = this.canvasRef.current
 
@@ -38,7 +40,7 @@ export class VM extends React.Component<IVMProps> {
         }
       })
 
-      observe(this.props.vm, 'cycles', _ => {
+      observe(this.vm, 'cycles', _ => {
         this.selectedProcesses = null
         if (this.selection) this.updateSelection(this.selection.idx)
         this.draw(renderer)
@@ -47,12 +49,12 @@ export class VM extends React.Component<IVMProps> {
   }
 
   draw(renderer: PIXIRenderer) {
-    const memory = this.props.vm.engine.memory()
+    const memory = this.vm.engine.memory()
 
     renderer.update({
       memory,
       selection: this.selection,
-      playersById: this.props.vm.playersById
+      playersById: this.vm.playersById
     })
 
     const cellOwners = new Int32Array(
@@ -69,17 +71,17 @@ export class VM extends React.Component<IVMProps> {
   }
 
   updateSelection(idx: number) {
-    this.selection = { idx, decoded: this.props.vm.engine.decode(idx) }
-    this.selectedProcesses = this.props.vm.engine.processes_at(idx)
+    this.selection = { idx, decoded: this.vm.engine.decode(idx) }
+    this.selectedProcesses = this.vm.engine.processes_at(idx)
   }
 
   onNewClicked() {
-    const vm = this.props.vm
+    const vm = this.vm
     if (vm.playersById.size < 4) this.props.onNewPlayerRequested()
   }
 
   render() {
-    const vm = this.props.vm
+    const vm = this.vm
     return (
       <div id="vm-container">
         <div style={{ display: 'flex', height: '100%' }}>
@@ -91,32 +93,30 @@ export class VM extends React.Component<IVMProps> {
               >
                 ❓
               </button>
-              {vm.playersById.size < 4 ? (
+              {vm.playersById.size < 4 && (
                 <button className="ctrl-btn" onClick={this.onNewClicked.bind(this)}>
                   ➕
                 </button>
-              ) : null}
+              )}
             </div>
             <ControlPanel vm={vm} />
-            {vm.matchResult !== null ? (
-              <MatchResultDisplay result={vm.matchResult} vm={vm} />
-            ) : null}
+            {vm.matchResult && <MatchResultDisplay result={vm.matchResult} vm={vm} />}
             <hr />
             <InfoPanel vm={vm} />
             <hr />
             <ContenderPanel vm={vm} coverages={this.coverages} />
-            {this.selection ? (
+            {this.selection && (
               <div>
                 <hr />
                 <div>Cell {this.selection.idx}</div>
                 <div className="pad-top code">{this.selection.decoded.to_string()}</div>
               </div>
-            ) : null}
-            {this.selectedProcesses ? (
+            )}
+            {this.selectedProcesses && (
               <div className="pad-top">
                 <ProcessInfoDisplay processes={this.selectedProcesses} vm={vm} />
               </div>
-            ) : null}
+            )}
           </div>
           <canvas
             ref={this.canvasRef}
