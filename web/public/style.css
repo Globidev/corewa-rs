@@ -54,3 +54,18 @@ body {
   padding: 0.2em 0.4em;
   border-radius: 3px;
 }
+
+/* Markdown overrides */
+
+.markdown-body {
+  color: inherit;
+}
+
+.markdown-body code {
+  background-color: white;
+  color: black;
+}
+
+.markdown-body table {
+  color: black;
+}
