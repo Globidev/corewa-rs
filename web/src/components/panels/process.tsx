@@ -50,10 +50,10 @@ export class ProcessPanel extends React.Component<IProcessPanelProps> {
         return (
           <details key={i} className="pad-left">
             <summary>PID {process.pid}</summary>
-            {titledInfo('Player', coloredPlayerId)},
-            {titledInfo('Zero Flag', process.zf.toString())},
-            {titledInfo('Last live', process.last_live_cycle)},
-            {titledInfo('State', state ? `${state.op()} (${state.cycle_left})` : 'Idle')},
+            {titledInfo('Player', coloredPlayerId)}
+            {titledInfo('Zero Flag', process.zf.toString())}
+            {titledInfo('Last live', process.last_live_cycle)}
+            {titledInfo('State', state ? `${state.op()} (${state.cycle_left})` : 'Idle')}
             {registers}
           </details>
         )
