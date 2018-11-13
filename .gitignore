@@ -7,3 +7,4 @@ dist
 dev
 .cache
 web/src/champions.ts
+.vscode
