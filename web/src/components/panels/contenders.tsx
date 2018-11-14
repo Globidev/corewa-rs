@@ -3,7 +3,7 @@ import { observer } from 'mobx-react'
 
 import { VirtualMachine } from '../../virtual_machine'
 import { PlayerInfo } from '../../corewar'
-import { toCssColor, titledInfo } from './common'
+import { toCssColor, Info } from './common'
 
 interface IContendersPanelProps {
   vm: VirtualMachine
@@ -42,11 +42,11 @@ export class ContendersPanel extends React.Component<IContendersPanelProps> {
           return (
             <details key={i} style={{ color: toCssColor(player.color) }}>
               <summary>{playerInfo.champion_name()}</summary>
-              {titledInfo('Player ID', playerIdInput)}
-              {titledInfo('Size', playerInfo.champion_size)}
-              {titledInfo('Coverage', `${((coverage / 4096) * 100).toFixed(2)} %`)}
-              {titledInfo('Processes', championInfo.process_count)}
-              {titledInfo('Last live', championInfo.last_live)}
+              <Info title="Player ID">{playerIdInput}</Info>
+              <Info title="Size">{playerInfo.champion_size}</Info>
+              <Info title="Coverage">{`${((coverage / 4096) * 100).toFixed(2)} %`}</Info>
+              <Info title="Processes">{championInfo.process_count}</Info>
+              <Info title="Last live">{championInfo.last_live}</Info>
             </details>
           )
         })}

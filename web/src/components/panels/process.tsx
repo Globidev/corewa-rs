@@ -3,7 +3,7 @@ import { observer } from 'mobx-react'
 
 import { VirtualMachine, Player } from '../../virtual_machine'
 import { ProcessCollection, ExecutingState } from '../../corewar'
-import { toCssColor, titledInfo } from './common'
+import { toCssColor, Info } from './common'
 
 const MAX_PROCESS_DISPLAYED = 32
 
@@ -39,17 +39,23 @@ export class ProcessPanel extends React.Component<IProcessPanelProps> {
         const registers = (
           <details>
             <summary>Registers</summary>
-            {Array.from(process.registers()).map((r, i) => titledInfo(`r${i + 1}`, r))}
+            {Array.from(process.registers()).map((r, i) => (
+              <Info title={`r${i + 1}`} minWidth={50}>
+                {r}
+              </Info>
+            ))}
           </details>
         )
 
         return (
           <details key={i} className="pad-left">
             <summary>PID {process.pid}</summary>
-            {titledInfo('Player', coloredPlayerId)}
-            {titledInfo('Zero Flag', process.zf.toString())}
-            {titledInfo('Last live', process.last_live_cycle)}
-            {titledInfo('State', state ? `${state.op()} (${state.cycle_left})` : 'Idle')}
+            <Info title="Player">{coloredPlayerId}</Info>
+            <Info title="Zero Flag">{process.zf.toString()}</Info>
+            <Info title="Last live">{process.last_live_cycle}</Info>
+            <Info title="State">
+              {state ? `${state.op()} (${state.cycle_left})` : 'Idle'}
+            </Info>
             {registers}
           </details>
         )

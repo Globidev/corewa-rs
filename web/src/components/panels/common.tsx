@@ -8,13 +8,17 @@ export function toCssColor(color: number) {
   return `rgb(${r}, ${g}, ${b})`
 }
 
-export function titledInfo(title: string, value: any) {
-  return (
-    <div className="pad-top" style={{ display: 'flex' }}>
-      <div className="pad-left" style={{ minWidth: '80px' }}>
-        {title}
-      </div>
-      <div className="code">{value}</div>
-    </div>
-  )
+interface IInfoProps {
+  title: string
+  children: React.ReactNode
+  minWidth?: number
 }
+
+export const Info = ({ title, children, minWidth = 80 }: IInfoProps) => (
+  <div className="pad-top" style={{ display: 'flex' }}>
+    <div className="pad-left" style={{ minWidth: `${minWidth}px` }}>
+      {title}
+    </div>
+    <div className="code">{children}</div>
+  </div>
+)
