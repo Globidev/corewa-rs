@@ -62,7 +62,11 @@ export class VirtualMachine {
 
   @action
   changePlayerId(oldId: number, newId: number) {
-    if (newId == 0 || this.playersById.has(newId)) return
+    // Already taken
+    if (this.playersById.has(newId)) return
+    // Must not be NaN, must be non zero and must fit on a signed 32bit integer
+    if (Number.isNaN(newId) || newId == 0 || newId < -(2 ** 31) || newId >= 2 ** 31)
+      return
 
     let player = this.playersById.get(oldId)
     if (player === undefined) return
