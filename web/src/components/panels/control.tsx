@@ -12,19 +12,24 @@ export class ControlPanel extends React.Component<IControlPanelProps> {
   render() {
     const vm = this.props.vm
 
-    const btn = (text: string, onClick: () => void) => (
-      <button className="ctrl-btn" onClick={onClick}>
-        {text}
-      </button>
-    )
-
     return (
       <div style={{ display: 'flex' }}>
-        {btn(vm.playing ? '⏸️' : '▶️', () => vm.togglePlay())}
-        {btn('⏹️', () => vm.stop())}
-        {btn('⏭️', () => vm.step())}
-        {btn(`⏩ ${vm.speed}x`, () => vm.nextSpeed())}
+        <Button onClick={() => vm.togglePlay()}>{vm.playing ? '⏸️' : '▶️'}</Button>
+        <Button onClick={() => vm.stop()}>⏹️</Button>
+        <Button onClick={() => vm.step()}>⏭️</Button>
+        <Button onClick={() => vm.nextSpeed()}>⏩ {vm.speed}x</Button>
       </div>
     )
   }
 }
+
+interface IButtonProps {
+  onClick: () => void
+  children?: React.ReactNode
+}
+
+const Button = ({ onClick, children }: IButtonProps) => (
+  <button className="ctrl-btn" onClick={onClick}>
+    {children}
+  </button>
+)
