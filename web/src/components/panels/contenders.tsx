@@ -36,7 +36,15 @@ export class ContendersPanel extends React.Component<IContendersPanelProps> {
           const coverage = this.props.coverages.get(player.id) || 0
 
           const playerIdInput = (
-            <div onClick={() => this.changePlayerId(player.id)}>{player.id}</div>
+            <input
+              className="player-id-input"
+              type="number"
+              value={player.id}
+              onChange={ev => {
+                const newId = parseInt(ev.target.value)
+                vm.changePlayerId(player.id, newId)
+              }}
+            />
           )
 
           return (

@@ -25,22 +25,17 @@ body {
   margin-top: 3px;
 }
 
-#app,
-#main {
+#app {
   height: 100%;
-}
-
-#main {
-  display: flex;
-  align-items: stretch;
 }
 
 .cycle-input {
   max-width: 70px;
+  text-align: center;
 }
 
-.info-title {
-  min-width: 110px;
+.player-id-input {
+  max-width: 100px;
 }
 
 .ctrl-btn {
