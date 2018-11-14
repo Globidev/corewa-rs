@@ -129,8 +129,8 @@ export class VM extends React.Component<IVMProps> {
 
     return (
       <div id="vm-container">
-        <div style={{ display: 'flex', height: '100%' }}>
-          <div className="pad-left pad-top">
+        <div style={{ display: 'flex' }}>
+          <div className="pad-left pad-top panel-area">
             <div style={{ display: 'flex' }}>
               {helpButton}
               {addPlayerButton}

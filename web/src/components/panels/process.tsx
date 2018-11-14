@@ -37,13 +37,9 @@ export class ProcessPanel extends React.Component<IProcessPanelProps> {
         )
 
         const registers = (
-          <details className="pad-left">
+          <details>
             <summary>Registers</summary>
-            {Array.from(process.registers()).map((r, i) => (
-              <div key={i} className="pad-left">
-                {titledInfo(`r${i + 1}`, r)}
-              </div>
-            ))}
+            {Array.from(process.registers()).map((r, i) => titledInfo(`r${i + 1}`, r))}
           </details>
         )
 
