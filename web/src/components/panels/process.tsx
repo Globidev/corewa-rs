@@ -40,7 +40,7 @@ export class ProcessPanel extends React.Component<IProcessPanelProps> {
           <details>
             <summary>Registers</summary>
             {Array.from(process.registers()).map((r, i) => (
-              <Info title={`r${i + 1}`} minWidth={50}>
+              <Info title={`r${i + 1}`} minWidth={50} key={i}>
                 {r}
               </Info>
             ))}
