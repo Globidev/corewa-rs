@@ -41,14 +41,13 @@ export class VM extends React.Component<IVMProps> {
           this.draw(renderer)
         },
         onLoad: () => {
+          observe(this.vm, 'cycles', _ => {
+            this.selectedProcesses = null
+            if (this.selection) this.updateSelection(this.selection.idx)
+            this.draw(renderer)
+          })
           this.draw(renderer)
         }
-      })
-
-      observe(this.vm, 'cycles', _ => {
-        this.selectedProcesses = null
-        if (this.selection) this.updateSelection(this.selection.idx)
-        this.draw(renderer)
       })
     }
   }
