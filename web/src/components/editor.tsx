@@ -146,8 +146,10 @@ const ALL_KEYWORDS = [
   ['aff', 'display', 'r1']
 ]
 
+const COMMENT_CHAR = '#'
+
 CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
-  const lineCommentStartSymbol = '#'
+  const lineCommentStartSymbol = COMMENT_CHAR
 
   const directives = new Set(['.name', '.comment'])
 
@@ -233,4 +235,65 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
 
     lineComment: lineCommentStartSymbol
   }
+})
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Using_Special_Characters
+const WHITESPACES = ' \f\n\r\t\v\u00a0\u1680\u2000\u2028\u2029\u202f\u205f\u3000\ufeff'
+
+class InsertComment {
+  constructor(public col: number) {}
+}
+class RemoveComment {
+  constructor(public col: number, public length: number) {}
+}
+
+function toggleLineComment(line: string): InsertComment | RemoveComment {
+  const chars = line[Symbol.iterator]()
+
+  let byteIndex = 0
+  let charIter = chars.next()
+  // Skip whitespaces and keep track of the byte index
+  while (WHITESPACES.includes(charIter.value)) {
+    byteIndex += charIter.value.length
+    charIter = chars.next()
+  }
+
+  const columnStart = byteIndex
+  // We need to either comment or uncomment depending on the next char
+  if (charIter.value == COMMENT_CHAR) {
+    let removeLen = COMMENT_CHAR.length
+    // Remove one eventual additional whitespace
+    charIter = chars.next()
+    if (WHITESPACES.includes(charIter.value)) removeLen += charIter.value.length
+
+    return new RemoveComment(columnStart, removeLen)
+  } else {
+    return new InsertComment(columnStart)
+  }
+}
+
+CodeMirror.defineExtension('toggleComment', function(
+  this: CodeMirror.Doc,
+  _options: any
+) {
+  const document = this,
+    selections = document.listSelections()
+
+  const selectedLineNumbers = selections.reduce((nums, selection) => {
+    let lines = [selection.anchor.line, selection.head.line].sort((a, b) => a - b)
+    for (let i = lines[0]; i <= lines[1]; ++i) nums.add(i)
+    return nums
+  }, new Set<number>())
+
+  selectedLineNumbers.forEach(lineNum => {
+    const line = document.getLine(lineNum)
+    const toggle = toggleLineComment(line)
+    const fromPos = CodeMirror.Pos(lineNum, toggle.col)
+    if (toggle instanceof RemoveComment) {
+      const toPos = CodeMirror.Pos(lineNum, toggle.col + toggle.length)
+      document.replaceRange('', fromPos, toPos)
+    } else if (toggle instanceof InsertComment) {
+      document.replaceRange(COMMENT_CHAR + ' ', fromPos)
+    }
+  })
 })
