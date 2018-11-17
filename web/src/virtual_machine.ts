@@ -13,6 +13,16 @@ const MAX_SPEED = 32
 const TARGET_UPS = 60
 const PLAYER_COLORS = [0x0fd5ff, 0xffa517, 0x7649cc, 0x14cc57]
 
+// Webassembly memory can only grow (for now). Pages cannot be reclaimed which
+// can lead to leaks overtime. The only way to effectively free the memory is
+// to re-instantiate the webassembly module.
+// Since the most reucrrent heaviest operation will be the creation of the
+// wasm VirtualMachine, we can simply check for the current amount on mapped
+// memory before creating a new one and set a threshold that will trigger the
+// re-instantiation of the wasm module when exceeded.
+// Allowing up to 250MB of Wasm memory usage before forcing a reload
+const MAX_ACCEPTABLE_WASM_MEM_BUFFER_SIZE = 250000000 // In bytes
+
 export class VirtualMachine {
   // VMEngine is opaque and cannot be made observable.
   // We know, however, that its state will change every tick.
@@ -129,6 +139,16 @@ export class VirtualMachine {
     this.pause()
     this.matchResult = null
     this.cycles = null // effectively resets the VM observers
+
+    const currentBufferSize = wasm_bindgen.wasm.memory.buffer.byteLength
+    if (currentBufferSize > MAX_ACCEPTABLE_WASM_MEM_BUFFER_SIZE) {
+      wasm_bindgen('./corewar_bg.wasm').then(() => this.compileImpl())
+    } else {
+      this.compileImpl()
+    }
+  }
+
+  compileImpl() {
     this.engine = Array.from(this.playersById.values())
       .reduce(
         (builder, player) =>
@@ -176,9 +196,7 @@ export class VirtualMachine {
   @action
   stop() {
     this.pause()
-    this.cycles = null
-
-    wasm_bindgen('./corewar_bg.wasm').then(() => this.compile())
+    this.compile()
   }
 
   @action
