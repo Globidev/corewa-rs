@@ -142,12 +142,14 @@ export class VirtualMachine {
 
     const currentBufferSize = wasm_bindgen.wasm.memory.buffer.byteLength
     if (currentBufferSize > MAX_ACCEPTABLE_WASM_MEM_BUFFER_SIZE) {
-      wasm_bindgen('./corewar_bg.wasm').then(() => this.compileImpl())
+      return wasm_bindgen('./corewar_bg.wasm').then(() => this.compileImpl())
     } else {
       this.compileImpl()
+      return Promise.resolve()
     }
   }
 
+  @action
   compileImpl() {
     this.engine = Array.from(this.playersById.values())
       .reduce(
@@ -219,8 +221,7 @@ export class VirtualMachine {
     if (cycles <= cycle) {
       this.tick(cycle - cycles)
     } else {
-      this.compile()
-      this.tick(cycle)
+      this.compile().then(() => this.tick(cycle))
     }
   }
 }
