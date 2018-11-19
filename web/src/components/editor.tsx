@@ -239,36 +239,34 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Using_Special_Characters
 const WHITESPACES = ' \f\n\r\t\v\u00a0\u1680\u2000\u2028\u2029\u202f\u205f\u3000\ufeff'
+const isWhitespace = (ch: string) => WHITESPACES.includes(ch)
 
-class InsertComment {
-  constructor(public col: number) {}
-}
-class RemoveComment {
-  constructor(public col: number, public length: number) {}
-}
+type ToggleComment =
+  | { kind: 'insert'; col: number }
+  | { kind: 'remove'; col: number; length: number }
 
-function toggleLineComment(line: string): InsertComment | RemoveComment {
+function toggleLineComment(line: string): ToggleComment {
   const chars = line[Symbol.iterator]()
 
   let byteIndex = 0
-  let charIter = chars.next()
+  let currentChar = chars.next()
   // Skip whitespaces and keep track of the byte index
-  while (WHITESPACES.includes(charIter.value)) {
-    byteIndex += charIter.value.length
-    charIter = chars.next()
+  while (isWhitespace(currentChar.value)) {
+    byteIndex += currentChar.value.length
+    currentChar = chars.next()
   }
 
   const columnStart = byteIndex
   // We need to either comment or uncomment depending on the next char
-  if (charIter.value == COMMENT_CHAR) {
+  if (currentChar.value == COMMENT_CHAR) {
     let removeLen = COMMENT_CHAR.length
     // Remove one eventual additional whitespace
-    charIter = chars.next()
-    if (WHITESPACES.includes(charIter.value)) removeLen += charIter.value.length
+    currentChar = chars.next()
+    if (isWhitespace(currentChar.value)) removeLen += currentChar.value.length
 
-    return new RemoveComment(columnStart, removeLen)
+    return { kind: 'remove', col: columnStart, length: removeLen }
   } else {
-    return new InsertComment(columnStart)
+    return { kind: 'insert', col: columnStart }
   }
 }
 
@@ -280,8 +278,9 @@ CodeMirror.defineExtension('toggleComment', function(
     selections = document.listSelections()
 
   const selectedLineNumbers = selections.reduce((nums, selection) => {
-    let lines = [selection.anchor.line, selection.head.line].sort((a, b) => a - b)
-    for (let i = lines[0]; i <= lines[1]; ++i) nums.add(i)
+    let [low, high] = [selection.anchor.line, selection.head.line]
+    if (low > high) [low, high] = [high, low]
+    for (let i = low; i <= high; ++i) nums.add(i)
     return nums
   }, new Set<number>())
 
@@ -289,11 +288,14 @@ CodeMirror.defineExtension('toggleComment', function(
     const line = document.getLine(lineNum)
     const toggle = toggleLineComment(line)
     const fromPos = CodeMirror.Pos(lineNum, toggle.col)
-    if (toggle instanceof RemoveComment) {
-      const toPos = CodeMirror.Pos(lineNum, toggle.col + toggle.length)
-      document.replaceRange('', fromPos, toPos)
-    } else if (toggle instanceof InsertComment) {
-      document.replaceRange(COMMENT_CHAR + ' ', fromPos)
+    switch (toggle.kind) {
+      case 'remove':
+        const toPos = CodeMirror.Pos(lineNum, toggle.col + toggle.length)
+        document.replaceRange('', fromPos, toPos)
+        break
+      case 'insert':
+        document.replaceRange(COMMENT_CHAR + ' ', fromPos)
+        break
     }
   })
 })
