@@ -96,7 +96,7 @@ export class Editor extends React.Component<IEditorProps> {
   }
 }
 
-const ASM_LANGUAGE_ID = 'corewar-asm'
+export const ASM_LANGUAGE_ID = 'corewar-asm'
 
 CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
   code: string,

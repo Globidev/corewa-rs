@@ -11,6 +11,7 @@ import { ControlPanel } from './panels/control'
 import { ResultsPanel } from './panels/results'
 import { StatePanel } from './panels/state'
 import { ContendersPanel } from './panels/contenders'
+import { CellPanel } from './panels/cell'
 
 interface IVMProps {
   vm: VirtualMachine
@@ -18,15 +19,17 @@ interface IVMProps {
   onHelpRequested: () => void
 }
 
+type Selection = {
+  decoded: DecodeResult
+  processes: ProcessCollection
+}
+
 @observer
 export class VM extends React.Component<IVMProps> {
   canvasRef = React.createRef<HTMLCanvasElement>()
+
   @observable
-  selection: {
-    idx: number
-    decoded: DecodeResult
-    processes: ProcessCollection
-  } | null = null
+  selections = new Map<number, Selection>()
 
   coverages = new Map<number, number>()
 
@@ -38,17 +41,20 @@ export class VM extends React.Component<IVMProps> {
     if (canvas) {
       const renderer = new PIXIRenderer({
         canvas,
-        onCellClicked: cellIdx => this.updateSelection(cellIdx),
+        onCellClicked: (cellIdx, modifiers) => {
+          if (!modifiers.ctrl) this.selections.clear()
+          this.toggleSelection(cellIdx)
+        },
         onLoad: () => {
           observe(this.vm, 'cycles', _ => {
-            if (this.selection) this.updateSelection(this.selection.idx)
+            this.updateSelections()
             this.draw(renderer)
           })
           this.draw(renderer)
         }
       })
 
-      reaction(() => this.selection, () => this.draw(renderer))
+      reaction(() => this.selections.size, () => this.draw(renderer))
     }
   }
 
@@ -57,7 +63,10 @@ export class VM extends React.Component<IVMProps> {
 
     renderer.update({
       memory,
-      selection: this.selection,
+      selections: Array.from(this.selections).map(([idx, selection]) => ({
+        idx,
+        length: Math.max(selection.decoded.byte_size(), 1)
+      })),
       playersById: this.vm.playersById
     })
 
@@ -74,12 +83,22 @@ export class VM extends React.Component<IVMProps> {
     })
   }
 
-  updateSelection(idx: number) {
-    this.selection = {
-      idx,
+  selectionAt(idx: number) {
+    return {
       decoded: this.vm.engine.decode(idx),
       processes: this.vm.engine.processes_at(idx)
     }
+  }
+
+  toggleSelection(idx: number) {
+    if (this.selections.has(idx)) this.selections.delete(idx)
+    else this.selections.set(idx, this.selectionAt(idx))
+  }
+
+  updateSelections() {
+    this.selections.forEach((selection, idx) =>
+      Object.assign(selection, this.selectionAt(idx))
+    )
   }
 
   onNewClicked() {
@@ -101,23 +120,19 @@ export class VM extends React.Component<IVMProps> {
       </button>
     )
 
-    const selectionInfo = this.selection && (
-      <div>
+    const selectionPanels = Array.from(this.selections).map(([idx, selection]) => (
+      <div key={idx}>
         <hr />
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Cell {this.selection.idx}</span>
-          <button onClick={() => (this.selection = null)}>❌</button>
+        <CellPanel
+          idx={idx}
+          decoded={selection.decoded}
+          onDiscard={() => this.selections.delete(idx)}
+        />
+        <div className="pad-top">
+          <ProcessPanel processes={selection.processes} vm={vm} />
         </div>
-
-        <div className="pad-top code">{this.selection.decoded.to_string()}</div>
       </div>
-    )
-
-    const processInfo = this.selection && (
-      <div className="pad-top">
-        <ProcessPanel processes={this.selection.processes} vm={vm} />
-      </div>
-    )
+    ))
 
     const arena = (
       <canvas
@@ -146,8 +161,7 @@ export class VM extends React.Component<IVMProps> {
             <StatePanel vm={vm} />
             <hr />
             <ContendersPanel vm={vm} coverages={this.coverages} />
-            {selectionInfo}
-            {processInfo}
+            {selectionPanels}
           </div>
           {arena}
         </div>

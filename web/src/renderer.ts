@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js'
 
-import { Memory, DecodeResult } from './corewar'
+import { Memory } from './corewar'
 import { Player } from './virtual_machine'
 
 // @ts-ignore
@@ -9,7 +9,6 @@ import cells from './assets/cells.png'
 PIXI.utils.skipHello()
 
 const MAX_CELL_AGE = 1024
-const MAX_INSTRUCTION_SIZE = 11 // op + pcb + 2 32bit directs + 1 register
 const MEM_SIZE = 4096
 const BYTE_WIDTH = 18
 const BYTE_HEIGHT = 13
@@ -22,22 +21,27 @@ export const MARGIN = 5
 export const MEM_WIDTH = (BYTE_WIDTH + X_SPACING) * COLUMNS + (MARGIN - X_SPACING)
 export const MEM_HEIGHT = (BYTE_HEIGHT + Y_SPACING) * ROWS + (MARGIN - Y_SPACING)
 
+type Modifiers = {
+  ctrl: boolean
+  shift: boolean
+  alt: boolean
+}
+
 interface RendererSetup {
   canvas: HTMLCanvasElement
-  onCellClicked: (idx: number) => void
+  onCellClicked: (idx: number, modifiers: Modifiers) => void
   onLoad: () => void
 }
 
 interface RenderContext {
   memory: Memory
-  selection: { decoded: DecodeResult; idx: number } | null
+  selections: { idx: number; length: number }[]
   playersById: Map<number, Player>
 }
 
 export class PIXIRenderer {
   application: PIXI.Application
   cells: Cell[] = []
-  selectionSprites: PIXI.Sprite[] = []
   cellTextures: PIXI.Texture[] = []
 
   constructor(setup: RendererSetup) {
@@ -76,21 +80,17 @@ export class PIXIRenderer {
       const [x, y] = cellPos(i)
 
       const cell = new Cell(x, y)
-      cell.valueSprite.on('pointerdown', () => setup.onCellClicked(i))
+      cell.valueSprite.on('click', (pixiEvent: PIXI.interaction.InteractionEvent) => {
+        const event = pixiEvent.data.originalEvent
+        setup.onCellClicked(i, {
+          ctrl: event.ctrlKey,
+          shift: event.shiftKey,
+          alt: event.altKey
+        })
+      })
 
       this.cells.push(cell)
       this.application.stage.addChild(cell.valueSprite)
-    }
-
-    for (let i = 0; i < MAX_INSTRUCTION_SIZE; ++i) {
-      let sprite = new PIXI.Sprite(PIXI.Texture.WHITE)
-      sprite.tint = 0xff0000
-      sprite.alpha = 0.4
-      sprite.width = BYTE_WIDTH
-      sprite.height = BYTE_HEIGHT
-
-      this.selectionSprites.push(sprite)
-      this.application.stage.addChild(sprite)
     }
 
     setup.onLoad()
@@ -136,19 +136,10 @@ export class PIXIRenderer {
       )
     }
 
-    const selectionLength = ctx.selection ? ctx.selection.decoded.byte_size() : 0
-    const selectionStartIdx = ctx.selection ? ctx.selection.idx : 0
-    const selectionToShow = this.selectionSprites.slice(0, selectionLength)
-    const selectionToHide = this.selectionSprites.slice(selectionLength)
-
-    selectionToShow.forEach((spr, offset) => {
-      const [x, y] = cellPos(selectionStartIdx + offset)
-
-      spr.visible = true
-      spr.x = MARGIN + x * (BYTE_WIDTH + X_SPACING) - X_SPACING
-      spr.y = MARGIN + y * (BYTE_HEIGHT + Y_SPACING) - Y_SPACING
+    ctx.selections.forEach(selection => {
+      for (let i = 0; i < selection.length; ++i)
+        this.cells[selection.idx + i].selectionSprite.visible = true
     })
-    selectionToHide.forEach(spr => (spr.visible = false))
 
     this.application.render()
   }
@@ -158,6 +149,7 @@ class Cell {
   valueSprite: PIXI.Sprite
   pcSprite: PIXI.Sprite
   ageSprite: PIXI.Sprite
+  selectionSprite: PIXI.Sprite
 
   constructor(x: number, y: number) {
     const valueSprite = new PIXI.Sprite()
@@ -177,11 +169,21 @@ class Cell {
     ageSprite.x = -X_SPACING
     ageSprite.y = -Y_SPACING
 
-    valueSprite.addChild(pcSprite, ageSprite)
+    const selectionSprite = new PIXI.Sprite(PIXI.Texture.WHITE)
+    selectionSprite.tint = 0xff0000
+    selectionSprite.alpha = 0.4
+    selectionSprite.width = BYTE_WIDTH
+    selectionSprite.height = BYTE_HEIGHT
+    selectionSprite.x = -X_SPACING
+    selectionSprite.y = -Y_SPACING
+    selectionSprite.visible = false
+
+    valueSprite.addChild(pcSprite, ageSprite, selectionSprite)
 
     this.valueSprite = valueSprite
     this.pcSprite = pcSprite
     this.ageSprite = ageSprite
+    this.selectionSprite = selectionSprite
   }
 
   update(
@@ -199,6 +201,7 @@ class Cell {
     this.pcSprite.alpha = pcAlpha
     this.ageSprite.tint = color
     this.ageSprite.alpha = ageAlpha
+    this.selectionSprite.visible = false
   }
 }
 
