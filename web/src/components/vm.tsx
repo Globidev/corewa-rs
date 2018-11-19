@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { observer } from 'mobx-react'
-import { observable, observe } from 'mobx'
+import { observable, observe, reaction } from 'mobx'
 
 import { VirtualMachine } from '../virtual_machine'
 import { DecodeResult, ProcessCollection } from '../corewar'
@@ -22,9 +22,11 @@ interface IVMProps {
 export class VM extends React.Component<IVMProps> {
   canvasRef = React.createRef<HTMLCanvasElement>()
   @observable
-  selection: { idx: number; decoded: DecodeResult } | null = null
-  @observable
-  selectedProcesses: ProcessCollection | null = null
+  selection: {
+    idx: number
+    decoded: DecodeResult
+    processes: ProcessCollection
+  } | null = null
 
   coverages = new Map<number, number>()
 
@@ -36,19 +38,17 @@ export class VM extends React.Component<IVMProps> {
     if (canvas) {
       const renderer = new PIXIRenderer({
         canvas,
-        onCellClicked: cellIdx => {
-          this.updateSelection(cellIdx)
-          this.draw(renderer)
-        },
+        onCellClicked: cellIdx => this.updateSelection(cellIdx),
         onLoad: () => {
           observe(this.vm, 'cycles', _ => {
-            this.selectedProcesses = null
             if (this.selection) this.updateSelection(this.selection.idx)
             this.draw(renderer)
           })
           this.draw(renderer)
         }
       })
+
+      reaction(() => this.selection, () => this.draw(renderer))
     }
   }
 
@@ -75,13 +75,15 @@ export class VM extends React.Component<IVMProps> {
   }
 
   updateSelection(idx: number) {
-    this.selection = { idx, decoded: this.vm.engine.decode(idx) }
-    this.selectedProcesses = this.vm.engine.processes_at(idx)
+    this.selection = {
+      idx,
+      decoded: this.vm.engine.decode(idx),
+      processes: this.vm.engine.processes_at(idx)
+    }
   }
 
   onNewClicked() {
-    const vm = this.vm
-    if (vm.playersById.size < 4) this.props.onNewPlayerRequested()
+    if (this.vm.playersById.size < 4) this.props.onNewPlayerRequested()
   }
 
   render() {
@@ -102,14 +104,18 @@ export class VM extends React.Component<IVMProps> {
     const selectionInfo = this.selection && (
       <div>
         <hr />
-        <div>Cell {this.selection.idx}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span>Cell {this.selection.idx}</span>
+          <button onClick={() => (this.selection = null)}>❌</button>
+        </div>
+
         <div className="pad-top code">{this.selection.decoded.to_string()}</div>
       </div>
     )
 
-    const processInfo = this.selectedProcesses && (
+    const processInfo = this.selection && (
       <div className="pad-top">
-        <ProcessPanel processes={this.selectedProcesses} vm={vm} />
+        <ProcessPanel processes={this.selection.processes} vm={vm} />
       </div>
     )
 
