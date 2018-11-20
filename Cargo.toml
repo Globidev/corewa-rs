@@ -7,12 +7,12 @@ repository = "https://github.com/Globidev/corewar-rs"
 license = "MIT"
 edition = "2018"
 
-# [[bin]]
-# name = "assembler"
-# path = "bin/main.rs"
+[[bin]]
+name = "assembler"
+path = "assembler/main.rs"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]
 
 [features]
 default = ["console_error_panic_hook"]
