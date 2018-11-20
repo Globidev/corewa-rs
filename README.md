@@ -231,7 +231,8 @@ Compiled champions are made of two parts:
 Only the `code section` is loaded into the arena as the `header` is just there
 to validate champions and provide metadata.
 
-⚠ the `code section` cannot exceed **682** bytes in size.
+⚠ the `code section` cannot exceed **682** bytes in size.  
+📝 the VM's byte order is **big endian**
 
 #### Header content
 Headers contain 4 fields:
