@@ -9,6 +9,7 @@ mod program_counter;
 mod wrapping_array;
 
 use crate::spec::*;
+use self::decoder::{decode_op, decode_instr};
 use self::execution_context::ExecutionContext;
 use self::process::{Process, ProcessState};
 use self::memory::Memory;
@@ -16,7 +17,6 @@ use self::types::*;
 
 use std::collections::HashMap;
 
-// #[derive(Default)]
 pub struct VirtualMachine {
     pub players: Vec<Player>,
 
@@ -34,11 +34,6 @@ pub struct VirtualMachine {
 
     pub process_count_per_cells: [u32; MEM_SIZE],
     pub process_count_by_player_id: HashMap<PlayerId, u32>
-}
-
-fn track_pc(from: usize, to: usize, count_tracker: &mut [u32; MEM_SIZE]) {
-    count_tracker[from] -= 1;
-    count_tracker[to] += 1;
 }
 
 impl VirtualMachine {
@@ -66,8 +61,6 @@ impl VirtualMachine {
     pub fn tick(&mut self) {
         if self.processes.is_empty() { return }
 
-        use self::decoder::{decode_op, decode_instr};
-
         let mut forks = Vec::with_capacity(8192);
         let mut lives = linked_hash_set::LinkedHashSet::new();
 
@@ -81,7 +74,8 @@ impl VirtualMachine {
                     } else {
                         let pc_start = *process.pc;
                         process.pc.advance(1);
-                        track_pc(pc_start, *process.pc, &mut self.process_count_per_cells);
+                        self.process_count_per_cells[pc_start] -= 1;
+                        self.process_count_per_cells[*process.pc] += 1;
                     }
                 },
                 // Execute
@@ -109,7 +103,8 @@ impl VirtualMachine {
                         }
                     };
                     process.state = ProcessState::Idle;
-                    track_pc(pc_start, *process.pc, &mut self.process_count_per_cells);
+                    self.process_count_per_cells[pc_start] -= 1;
+                    self.process_count_per_cells[*process.pc] += 1;
                 },
 
                 _ => ()
@@ -126,28 +121,25 @@ impl VirtualMachine {
 
         self.processes.append(&mut forks);
 
-        let cycle = self.cycles;
-        let last_lives = &mut self.last_lives;
-        self.players.iter().for_each(|p| {
-            if lives.contains(&p.id) {
-                last_lives.insert(p.id, cycle);
+        for process in &self.players {
+            if lives.contains(&process.id) {
+                self.last_lives.insert(process.id, self.cycles);
             }
-        });
+        }
 
         self.cycles += 1;
 
         let last_live_check = self.last_live_check;
         let should_live_check = self.cycles - last_live_check >= self.check_interval;
         if should_live_check {
-            let process_count_per_cells = &mut self.process_count_per_cells;
-            let process_count_by_player_id = &mut self.process_count_by_player_id;
-            self.processes.drain_filter(|process|
-                process.last_live_cycle <= last_live_check
-            ).for_each(|p| {
-                process_count_per_cells[*p.pc] -= 1;
-                process_count_by_player_id.entry(p.player_id)
+            let process_killed = self.processes
+                .drain_filter(|process| process.last_live_cycle <= last_live_check);
+
+            for process in process_killed {
+                self.process_count_per_cells[*process.pc] -= 1;
+                self.process_count_by_player_id.entry(process.player_id)
                     .and_modify(|count| *count -= 1);
-            });
+            }
 
             if self.live_count_since_last_check >= NBR_LIVE {
                 self.check_interval = self.check_interval.saturating_sub(CYCLE_DELTA);
