@@ -20,7 +20,7 @@ pub struct ProcessInfo {
 #[wasm_bindgen]
 pub struct ExecutingState {
     op: OpType,
-    pub cycle_left: u32
+    pub exec_at: u32
 }
 
 #[wasm_bindgen]
@@ -47,8 +47,8 @@ impl ProcessInfo {
     pub fn executing(&self) -> JsValue {
         match self.state {
             ProcessState::Idle => JsValue::NULL,
-            ProcessState::Executing { op, cycle_left } => {
-                let state = ExecutingState { op, cycle_left };
+            ProcessState::Executing { op, exec_at } => {
+                let state = ExecutingState { op, exec_at };
                 JsValue::from(state)
             }
         }

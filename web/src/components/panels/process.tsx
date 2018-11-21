@@ -15,6 +15,7 @@ interface IProcessPanelProps {
 @observer
 export class ProcessPanel extends React.Component<IProcessPanelProps> {
   render() {
+    const vm = this.props.vm
     const processes = this.props.processes
     const len = processes.len()
 
@@ -23,8 +24,7 @@ export class ProcessPanel extends React.Component<IProcessPanelProps> {
       .map((_, i) => {
         const process = processes.at(i)
         const state = process.executing() as ExecutingState | null
-        const playerColor = (this.props.vm.playersById.get(process.player_id) as Player)
-          .color
+        const playerColor = (vm.playersById.get(process.player_id) as Player).color
 
         const coloredPlayerId = (
           <div
@@ -37,7 +37,7 @@ export class ProcessPanel extends React.Component<IProcessPanelProps> {
         )
 
         const registers = (
-          <details>
+          <details className="pad-left">
             <summary>Registers</summary>
             {Array.from(process.registers()).map((r, i) => (
               <Info title={`r${i + 1}`} minWidth={50} key={i}>
@@ -54,7 +54,9 @@ export class ProcessPanel extends React.Component<IProcessPanelProps> {
             <Info title="Zero Flag">{process.zf.toString()}</Info>
             <Info title="Last live">{process.last_live_cycle}</Info>
             <Info title="State">
-              {state ? `${state.op()} (${state.cycle_left})` : 'Idle'}
+              {state
+                ? `${state.op()} (${state.exec_at - (vm.cycles as number) + 1})`
+                : 'Idle'}
             </Info>
             {registers}
           </details>

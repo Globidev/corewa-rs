@@ -72,16 +72,20 @@ impl VirtualMachine {
         let mut lives = linked_hash_set::LinkedHashSet::new();
 
         for process in self.processes.iter_mut().rev() {
-            // Attempt to read instructions
-            if let ProcessState::Idle = process.state {
-                if let Ok(op) = decode_op(&self.memory, *process.pc) {
-                    let cycle_left = OpSpec::from(op).cycles;
-                    process.state = ProcessState::Executing { cycle_left, op };
-                }
-            }
-
             match process.state {
-                ProcessState::Executing { cycle_left: 1, op } => {
+                // Attempt to read instruction
+                ProcessState::Idle => {
+                    if let Ok(op) = decode_op(&self.memory, *process.pc) {
+                        let exec_at = self.cycles + OpSpec::from(op).cycles - 1;
+                        process.state = ProcessState::Executing { exec_at, op };
+                    } else {
+                        let pc_start = *process.pc;
+                        process.pc.advance(1);
+                        track_pc(pc_start, *process.pc, &mut self.process_count_per_cells);
+                    }
+                },
+                // Execute
+                ProcessState::Executing { exec_at, op } if exec_at == self.cycles => {
                     let pc_start = *process.pc;
                     match decode_instr(&self.memory, op, pc_start) {
                         Ok(instr) => {
@@ -99,26 +103,16 @@ impl VirtualMachine {
                                 live_ids: &mut lives
                             };
                             execute_instr(&instr, execution_context);
-                            track_pc(pc_start, *process.pc, &mut self.process_count_per_cells);
                         },
                         Err(_e) => {
-                            let pc_start = *process.pc;
                             process.pc.advance(1);
-                            track_pc(pc_start, *process.pc, &mut self.process_count_per_cells);
                         }
                     };
                     process.state = ProcessState::Idle;
-                },
-
-                ProcessState::Executing { cycle_left: ref mut n, .. } => {
-                    *n -= 1;
-                },
-
-                ProcessState::Idle => {
-                    let pc_start = *process.pc;
-                    process.pc.advance(1);
                     track_pc(pc_start, *process.pc, &mut self.process_count_per_cells);
-                }
+                },
+
+                _ => ()
             };
         }
 

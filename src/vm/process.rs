@@ -17,7 +17,7 @@ pub struct Process {
 #[derive(Debug, Clone)]
 pub enum ProcessState {
     Idle,
-    Executing { op: OpType, cycle_left: u32 }
+    Executing { op: OpType, exec_at: u32 }
 }
 
 impl Process {

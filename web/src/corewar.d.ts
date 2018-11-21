@@ -1,12 +1,10 @@
 /* tslint:disable */
 export function compile_champion(arg0: string): Uint8Array
 
-export class CompileError {
+export class ChampionInfo {
   free(): void
-
-  reason(): string
-
-  region(): any
+  process_count: number
+  last_live: number
 }
 export class Region {
   free(): void
@@ -44,21 +42,12 @@ export class VirtualMachine {
 
   memory(): Memory
 }
-export class VMBuilder {
+export class Memory {
   free(): void
-
-  constructor()
-
-  with_player(arg0: number, arg1: Uint8Array): VMBuilder
-
-  finish(): VirtualMachine
-}
-export class ProcessCollection {
-  free(): void
-
-  len(): number
-
-  at(arg0: number): ProcessInfo
+  values_ptr: number
+  ages_ptr: number
+  owners_ptr: number
+  pc_count_ptr: number
 }
 export class PlayerInfo {
   free(): void
@@ -68,6 +57,22 @@ export class PlayerInfo {
   champion_name(): string
 
   champion_comment(): string
+}
+export class ProcessCollection {
+  free(): void
+
+  len(): number
+
+  at(arg0: number): ProcessInfo
+}
+export class VMBuilder {
+  free(): void
+
+  constructor()
+
+  with_player(arg0: number, arg1: Uint8Array): VMBuilder
+
+  finish(): VirtualMachine
 }
 export class ProcessInfo {
   free(): void
@@ -81,6 +86,12 @@ export class ProcessInfo {
 
   registers(): Int32Array
 }
+export class ExecutingState {
+  free(): void
+  exec_at: number
+
+  op(): string
+}
 export class DecodeResult {
   free(): void
 
@@ -88,21 +99,10 @@ export class DecodeResult {
 
   to_string(): string
 }
-export class ChampionInfo {
+export class CompileError {
   free(): void
-  process_count: number
-  last_live: number
-}
-export class ExecutingState {
-  free(): void
-  cycle_left: number
 
-  op(): string
-}
-export class Memory {
-  free(): void
-  values_ptr: number
-  ages_ptr: number
-  owners_ptr: number
-  pc_count_ptr: number
+  reason(): string
+
+  region(): any
 }
