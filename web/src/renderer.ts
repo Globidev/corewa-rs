@@ -138,7 +138,7 @@ export class PIXIRenderer {
 
     ctx.selections.forEach(selection => {
       for (let i = 0; i < selection.length; ++i)
-        this.cells[selection.idx + i].selectionSprite.visible = true
+        this.cells[(selection.idx + i) % MEM_SIZE].selectionSprite.visible = true
     })
 
     this.application.render()
