@@ -50,15 +50,27 @@ impl Memory {
     }
 
     pub fn read_i32(&self, addr: usize) -> i32 {
-          (i32::from(self[addr    ]) << 24)
-        + (i32::from(self[addr + 1]) << 16)
-        + (i32::from(self[addr + 2]) << 8 )
-        + (i32::from(self[addr + 3])      )
+        if addr > MEM_SIZE - std::mem::size_of::<i32>() {
+              ((u32::from(self.values[addr + 0]) << 24)
+            | (u32::from(self.values[addr + 1]) << 16)
+            | (u32::from(self.values[addr + 2]) << 8 )
+            | (u32::from(self.values[addr + 3]) << 0 )) as i32
+        } else {
+            let ptr = self.values.as_ptr();
+            unsafe { std::ptr::read_unaligned(ptr.offset(addr as isize) as *const i32) }.to_be()
+        }
     }
 
     pub fn read_i16(&self, addr: usize) -> i16 {
-          (i16::from(self[addr    ]) << 8)
-        + (i16::from(self[addr + 1])     )
+        if addr > MEM_SIZE - std::mem::size_of::<i16>() {
+            (
+              (u16::from(self[addr + 0]) << 8)
+            | (u16::from(self[addr + 1]) << 0)
+            ) as i16
+        } else {
+            let ptr = self.values.as_ptr();
+            unsafe { std::ptr::read_unaligned(ptr.offset(addr as isize) as *const i16) }.to_be()
+        }
     }
 
     pub fn write_i32(&mut self, value: i32, owner: PlayerId, at: usize) {
