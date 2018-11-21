@@ -120,13 +120,15 @@ export class VM extends React.Component<IVMProps> {
       </button>
     )
 
-    const selectionPanels = Array.from(this.selections).map(([idx, selection]) => (
+    const selectionsAsArray = Array.from(this.selections)
+    const selectionPanels = selectionsAsArray.map(([cellIdx, selection], idx) => (
       <div key={idx}>
         <hr />
         <CellPanel
-          idx={idx}
+          idx={cellIdx}
+          previousIdx={idx > 0 ? selectionsAsArray[idx - 1][0] : null}
           decoded={selection.decoded}
-          onDiscard={() => this.selections.delete(idx)}
+          onDiscard={() => this.selections.delete(cellIdx)}
         />
         <div className="pad-top">
           <ProcessPanel processes={selection.processes} vm={vm} />
