@@ -2,6 +2,8 @@ use crate::spec::*;
 use super::types::*;
 use super::wrapping_array::WrappingArray;
 
+use std::iter;
+
 pub struct Memory {
     values: WrappingArray<u8>,
     ages: WrappingArray<u16>,
@@ -11,9 +13,9 @@ pub struct Memory {
 impl Default for Memory {
     fn default() -> Self {
         Self {
-            values: WrappingArray::with_size(MEM_SIZE),
-            ages: WrappingArray::repeat(MEM_SIZE, 1024),
-            owners: WrappingArray::with_size(MEM_SIZE)
+            values: iter::repeat(0).take(MEM_SIZE).collect(),
+            ages: iter::repeat(1024).take(MEM_SIZE).collect(),
+            owners: iter::repeat(0).take(MEM_SIZE).collect()
         }
     }
 }
@@ -51,10 +53,12 @@ impl Memory {
 
     pub fn read_i32(&self, addr: usize) -> i32 {
         if addr > MEM_SIZE - std::mem::size_of::<i32>() {
-              ((u32::from(self.values[addr + 0]) << 24)
-            | (u32::from(self.values[addr + 1]) << 16)
-            | (u32::from(self.values[addr + 2]) << 8 )
-            | (u32::from(self.values[addr + 3]) << 0 )) as i32
+            (
+                (u32::from(self[addr + 0]) << 24)
+              | (u32::from(self[addr + 1]) << 16)
+              | (u32::from(self[addr + 2]) << 8 )
+              | (u32::from(self[addr + 3]) << 0 )
+            ) as i32
         } else {
             let ptr = self.values.as_ptr();
             unsafe { std::ptr::read_unaligned(ptr.offset(addr as isize) as *const i32) }.to_be()
@@ -64,8 +68,8 @@ impl Memory {
     pub fn read_i16(&self, addr: usize) -> i16 {
         if addr > MEM_SIZE - std::mem::size_of::<i16>() {
             (
-              (u16::from(self[addr + 0]) << 8)
-            | (u16::from(self[addr + 1]) << 0)
+                (u16::from(self[addr + 0]) << 8)
+              | (u16::from(self[addr + 1]) << 0)
             ) as i16
         } else {
             let ptr = self.values.as_ptr();

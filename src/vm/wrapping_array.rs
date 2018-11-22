@@ -1,30 +1,22 @@
 pub struct WrappingArray<T>(Box<[T]>);
 
 impl<T: Default + Clone> WrappingArray<T> {
-    pub fn with_size(size: usize) -> Self {
-        Self {
-            0: std::iter::repeat_with(Default::default)
-                .take(size)
-                .collect::<Vec<_>>()
-                .into_boxed_slice()
-        }
-    }
-
-    pub fn repeat(size: usize, t: T) -> Self {
-        Self {
-            0: std::iter::repeat(t)
-                .take(size)
-                .collect::<Vec<_>>()
-                .into_boxed_slice()
-        }
-    }
-
     pub fn as_ptr(&self) -> *const T {
         self.0.as_ptr()
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         self.0.iter_mut()
+    }
+}
+
+impl<T> std::iter::FromIterator<T> for WrappingArray<T> {
+    fn from_iter<It: IntoIterator<Item = T>>(iter: It) -> Self {
+        Self {
+            0: iter.into_iter()
+            .collect::<Vec<_>>()
+            .into_boxed_slice()
+        }
     }
 }
 
@@ -50,9 +42,7 @@ mod test {
     use super::WrappingArray;
 
     fn usize_indexing_wraps_correctly(size: usize) {
-        let mut array = WrappingArray::with_size(size);
-
-        for idx in 0..size { array[idx] = idx }
+        let array = (0..size).collect::<WrappingArray<_>>();
 
         for offset in 0..256 {
             for idx in 0..size {
