@@ -5,7 +5,9 @@ Corewar is a programming game involving between 2 and 4 players.
  - Champions compete in a virtual arena until they are all dead
  - The last player reported alive by a champion wins
 
-[Demo](https://glo.bi/corewar/)
+[Playable demo](https://glo.bi/corewar/)
+
+![Fighting demo](https://glo.bi/corewar/demo.gif)
 
 ## The arena
 Matches are played by a **V**irtual **M**achine featuring:
