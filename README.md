@@ -7,7 +7,7 @@ Corewar is a programming game involving between 2 and 4 players.
 
 [Playable demo](https://glo.bi/corewar/)
 
-![Fighting demo](https://glo.bi/corewar/demo.gif)
+![Fighting demo](demo.gif)
 
 ## The arena
 Matches are played by a **V**irtual **M**achine featuring:
