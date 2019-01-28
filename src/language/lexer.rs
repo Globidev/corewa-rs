@@ -85,9 +85,10 @@ impl<'a> Tokenizer<'a> {
     fn lex_directive(&mut self, idx_start: usize)
         -> TokenResult
     {
-        const DIRECTIVES: [(&str, Term); 2] = [
+        const DIRECTIVES: [(&str, Term); 3] = [
             (".name",    Term::ChampionNameCmd),
             (".comment", Term::ChampionCommentCmd),
+            (".code",    Term::CodeCmd),
         ];
 
         let current_str = &self.input[idx_start..];
@@ -200,6 +201,7 @@ impl<'a> Tokenizer<'a> {
 pub enum Term {
     ChampionNameCmd,
     ChampionCommentCmd,
+    CodeCmd,
     QuotedString,
     Comment,
     LabelDef,
@@ -263,6 +265,7 @@ impl fmt::Display for Term {
         match self {
             ChampionNameCmd => write!(f, "Name directive"),
             ChampionCommentCmd => write!(f, "Comment directive"),
+            CodeCmd => write!(f, "Code directive"),
             QuotedString => write!(f, "Quoted string"),
             Comment => write!(f, "Comment"),
             LabelDef => write!(f, "Label declaration"),

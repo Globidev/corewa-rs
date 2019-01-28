@@ -23,6 +23,7 @@ pub fn assemble_line(builder: ChampionBuilder, parsed_line: ParsedLine)
     match parsed_line {
         ChampionName(name)       => builder.with_name(name),
         ChampionComment(comment) => builder.with_comment(comment),
+        Code(bytes)              => Ok(builder.add_bytes(bytes)),
 
         Op(op)                => Ok(builder.add_op(op)),
         Label(label)          => Ok(builder.add_label(label)),
@@ -45,6 +46,11 @@ impl ChampionBuilder {
             Some(comment) => Err(AssembleError::CommentAlreadySet(comment)),
             None          => Ok(Self { comment: Some(comment), ..self })
         }
+    }
+
+    fn add_bytes(mut self, bytes: Vec<u8>) -> Self {
+        self.instructions.push(ParsedInstruction::RawCode(bytes));
+        self
     }
 
     fn add_label(mut self, label: String) -> Self {
@@ -72,6 +78,7 @@ impl ChampionBuilder {
 pub enum ParsedInstruction {
     Label(String),
     Op(Op),
+    RawCode(Vec<u8>)
 }
 
 #[derive(Debug)]

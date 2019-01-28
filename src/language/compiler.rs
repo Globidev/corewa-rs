@@ -15,8 +15,9 @@ pub fn compile_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
 
     for instr in &champion.instructions {
         match instr {
-            ParsedInstruction::Op(op)       => state.write_op(op)?,
-            ParsedInstruction::Label(label) => state.register_label(label)?
+            ParsedInstruction::Op(op)         => state.write_op(op)?,
+            ParsedInstruction::Label(label)   => state.register_label(label)?,
+            ParsedInstruction::RawCode(bytes) => state.add_raw_code(bytes)?,
         }
     }
 
@@ -141,6 +142,10 @@ impl<W: Write + Seek> State<W> {
         self.label_positions.insert(String::from(label), self.size)
             .map(|_| Err(CompileError::DuplicateLabel(String::from(label))))
             .unwrap_or_else(|| Ok(()))
+    }
+
+    fn add_raw_code(&mut self, bytes: &[u8]) -> CompileResult<()> {
+        self.write(bytes)
     }
 
     fn resolve_labels(&mut self) -> CompileResult<()> {

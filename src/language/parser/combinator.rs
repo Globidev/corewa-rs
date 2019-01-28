@@ -13,11 +13,15 @@ pub trait Parser<I>: Sized {
     fn or<C>(self, other: C) -> Or<Self, C> {
         Or(self, other)
     }
+    fn many(self) -> Many<Self> {
+        Many(self)
+    }
 }
 
 pub struct Map<P, F>(P, F);
 pub struct MapErr<P, F>(P, F);
 pub struct Or<P1, P2>(P1, P2);
+pub struct Many<P>(P);
 
 impl<I, E, T, U, P, F> Parser<I> for Map<P, F>
 where
@@ -62,6 +66,32 @@ where
             std::mem::replace(input, saved);
             p2.parse(input).map_err(|e2| (e1, e2))
         })
+    }
+}
+
+impl<I, E, T, P> Parser<I> for Many<P>
+where
+    P: Parser<I, Output = T, Err = E> + Clone,
+    I: Clone,
+{
+    type Output = Vec<T>;
+    type Err = E;
+
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
+        let mut out = Vec::new();
+
+        loop {
+            let saved = input.clone();
+            match self.0.clone().parse(input) {
+                Ok(x) => out.push(x),
+                Err(_) => {
+                    std::mem::replace(input, saved);
+                    break
+                }
+            }
+        }
+
+        Ok(out)
     }
 }
 

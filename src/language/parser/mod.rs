@@ -8,6 +8,7 @@ use super::types::*;
 pub enum ParsedLine {
     ChampionName(String),
     ChampionComment(String),
+    Code(Vec<u8>),
     Op(Op),
     Label(String),
     LabelAndOp(String, Op),
@@ -30,6 +31,10 @@ pub fn parse_line(input: &str) -> Result<ParsedLine, ParseError> {
         Term::ChampionCommentCmd => {
             champion_comment(&mut tokens)
                 .map(ParsedLine::ChampionComment)
+        },
+        Term::CodeCmd => {
+            code(&mut tokens)
+                .map(ParsedLine::Code)
         },
         Term::LabelDef => {
             let label = label(&mut tokens)?;
@@ -67,6 +72,16 @@ fn champion_name(input: &mut TokenStream) -> ParseResult<String> {
 fn champion_comment(input: &mut TokenStream) -> ParseResult<String> {
     input.next(Term::ChampionCommentCmd)?;
     input.next(Term::QuotedString).map(String::from)
+}
+
+fn code(input: &mut TokenStream) -> ParseResult<Vec<u8>> {
+    input.next(Term::CodeCmd)?;
+    let numbers = number.many().parse(input)?;
+    // TODO: Better enforce numeric limit invariants
+    let as_bytes = numbers.into_iter()
+        .map(|x| x as u8)
+        .collect();
+    Ok(as_bytes)
 }
 
 fn label(input: &mut TokenStream) -> ParseResult<String> {
@@ -257,8 +272,8 @@ pub enum ParseError {
     InvalidRegisterCount(i64, Token),
     InvalidRegisterPrefix(char, Token),
     MissingRegisterPrefix(Token),
-    ParseIntError(::std::num::ParseIntError, Token),
-    RegisterParseIntError(::std::num::ParseIntError, Token),
+    ParseIntError(std::num::ParseIntError, Token),
+    RegisterParseIntError(std::num::ParseIntError, Token),
     InvalidOpMnemonic(String, Token),
 }
 

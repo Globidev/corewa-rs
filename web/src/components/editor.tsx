@@ -151,7 +151,7 @@ const COMMENT_CHAR = '#'
 CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
   const lineCommentStartSymbol = COMMENT_CHAR
 
-  const directives = new Set(['.name', '.comment'])
+  const directives = new Set(['.name', '.comment', '.code'])
 
   const KEYWORDS = new Set(ALL_KEYWORDS.map(([kw, ..._]) => kw))
 
