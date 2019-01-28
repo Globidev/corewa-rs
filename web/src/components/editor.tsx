@@ -210,10 +210,18 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
       }
 
       if (ch === '-') {
-        if (stream.eat(/\d/)) {
+        const next = stream.eat(/\d/)
+        if (next) {
+          if (next == '0') {
+            if (tokenizePrefixedNumber(stream)) return 'number'
+          }
           stream.eatWhile(/\d/)
           return 'number'
         }
+      }
+
+      if (ch === '0') {
+        if (tokenizePrefixedNumber(stream)) return 'number'
       }
 
       if (/\d/.test(ch)) {
@@ -236,6 +244,23 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
     lineComment: lineCommentStartSymbol
   }
 })
+
+function tokenizePrefixedNumber(stream: CodeMirror.StringStream) {
+  const next = stream.peek()
+  if (next) {
+    switch (next) {
+      case 'd':
+        stream.next()
+        stream.eatWhile(/\d/)
+        return 'number'
+      case 'x':
+        stream.next()
+        stream.eatWhile(/[0-9a-fA-F]/)
+        return 'number'
+    }
+  }
+  return null
+}
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Using_Special_Characters
 const WHITESPACES = ' \f\n\r\t\v\u00a0\u1680\u2000\u2028\u2029\u202f\u205f\u3000\ufeff'

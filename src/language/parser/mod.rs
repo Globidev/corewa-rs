@@ -1,7 +1,7 @@
 mod combinator;
 
 use self::combinator::*;
-use super::lexer::{Token, Term, Tokenizer, TokenResult, LexerError};
+use super::lexer::{Token, Term, Tokenizer, TokenResult, LexerError, NumberBase};
 use super::types::*;
 
 #[derive(Debug)]
@@ -80,9 +80,35 @@ fn label_param(input: &mut TokenStream) -> ParseResult<String> {
 }
 
 fn number(input: &mut TokenStream) -> ParseResult<i64> {
-    let (tok, number_as_str) = input.next_with_token(Term::Number)?;
-    number_as_str.parse()
-        .map_err(|e| ParseError::ParseIntError(e, tok))
+    let token_result = input.tokens
+        .next()
+        .ok_or_else(|| expected_either((
+            ParseError::ExpectedButGotEof(Term::Number { base: NumberBase::Decimal }),
+            ParseError::ExpectedButGotEof(Term::Number { base: NumberBase::Hexadecimal }))
+        ))?;
+
+    let tok = token_result.map_err(ParseError::LexerError)?;
+
+    match tok.clone() {
+        Token { term: Term::Number { base }, range } => {
+            let mut number_as_str = &input.input[range];
+            let negative = number_as_str.starts_with('-');
+            if negative {
+                number_as_str = &number_as_str[1..];
+            }
+            if number_as_str.starts_with("0d") || number_as_str.starts_with("0x") {
+                number_as_str = &number_as_str[2..];
+            }
+
+            i64::from_str_radix(number_as_str, base.radix())
+                .map_err(|e| ParseError::ParseIntError(e, tok))
+                .map(|x| if negative { -x } else { x })
+        },
+        _ => Err(expected_either((
+            ParseError::ExpectedButGot(Term::Number { base: NumberBase::Decimal }, tok.clone()),
+            ParseError::ExpectedButGot(Term::Number { base: NumberBase::Hexadecimal }, tok)
+        )))
+    }
 }
 
 fn register(input: &mut TokenStream) -> ParseResult<Register> {
@@ -99,7 +125,7 @@ fn register(input: &mut TokenStream) -> ParseResult<Register> {
     match (first_char, reg_num_result) {
         ('r', Ok(x)) if 1 <= x && x <= 16 => Ok(Register(x as u8)),
         ('r', Ok(x)) => Err(ParseError::InvalidRegisterCount(x, tok)),
-        ('r', Err(e)) => Err(ParseError::ParseIntError(e, tok)),
+        ('r', Err(e)) => Err(ParseError::RegisterParseIntError(e, tok)),
         (c,   _) => Err(ParseError::InvalidRegisterPrefix(c, tok)),
     }
 }
@@ -232,6 +258,7 @@ pub enum ParseError {
     InvalidRegisterPrefix(char, Token),
     MissingRegisterPrefix(Token),
     ParseIntError(::std::num::ParseIntError, Token),
+    RegisterParseIntError(::std::num::ParseIntError, Token),
     InvalidOpMnemonic(String, Token),
 }
 
@@ -282,7 +309,8 @@ impl fmt::Display for ParseError {
             InvalidRegisterCount(n, _) => write!(f, "'{}' is not a valid register number. It must be between 1 and 16", n),
             InvalidRegisterPrefix(prefix, _) => write!(f, "Register prefix should be 'r' and not '{}'", prefix),
             MissingRegisterPrefix(_) => write!(f, "Register prefix 'r' is missing"),
-            ParseIntError(err, _) => write!(f, "Invalid register number: {}", err),
+            ParseIntError(err, _) => write!(f, "Invalid number: {}", err),
+            RegisterParseIntError(err, _) => write!(f, "Invalid register number: {}", err),
             InvalidOpMnemonic(mnemonic, _) => write!(f, "'{}' is not a valid operation", mnemonic)
         }
     }
@@ -317,6 +345,7 @@ pub fn error_range(err: &ParseError) -> (usize, Option<usize>) {
         InvalidRegisterPrefix(_, token) => (token.range.start, Some(token.range.end)),
         MissingRegisterPrefix(token) => (token.range.start, Some(token.range.end)),
         ParseIntError(_, token) => (token.range.start, Some(token.range.end)),
+        RegisterParseIntError(_, token) => (token.range.start, Some(token.range.end)),
         InvalidOpMnemonic(_, token) => (token.range.start, Some(token.range.end))
     }
 }

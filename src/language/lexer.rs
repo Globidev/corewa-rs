@@ -143,7 +143,7 @@ impl<'a> Tokenizer<'a> {
     {
         self.chars.next(); // consume -
 
-        match self.chars.next() {
+        match self.chars.peek() {
             Some((_, c)) if c.is_digit(10) => self.lex_number(idx_start),
             _ => Err(LexerErrorKind::NoNumberAfterMinus.at(idx_start..idx_start+1))
         }
@@ -152,9 +152,25 @@ impl<'a> Tokenizer<'a> {
     fn lex_number(&mut self, idx_start: usize)
         -> TokenResult
     {
-        self.skip_while(|(_, c)| c.is_digit(10));
+        let (_, first_digit) = self.chars.next()
+            .expect("Empty input while lexing number");
 
-        Ok(Term::Number.at(idx_start..self.peek_idx()))
+        let second_digit = self.chars.peek().map(|(_, c)| c);
+
+        let base = match (first_digit, second_digit) {
+            ('0', Some('x')) => {
+                self.chars.next();
+                NumberBase::Hexadecimal
+            },
+            ('0', Some('d')) => {
+                self.chars.next();
+                NumberBase::Decimal
+            },
+            _ => NumberBase::Decimal
+        };
+
+        self.skip_while(|(_, c)| c.is_digit(base.radix()));
+        Ok(Term::Number { base }.at(idx_start..self.peek_idx()))
     }
 
     fn lex_ident(&mut self, idx_start: usize)
@@ -190,8 +206,23 @@ pub enum Term {
     LabelUse,
     ParamSeparator,
     DirectChar,
-    Number,
+    Number { base: NumberBase },
     Ident
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum NumberBase {
+    Decimal,
+    Hexadecimal
+}
+
+impl NumberBase {
+    pub fn radix(&self) -> u32 {
+        match self {
+            NumberBase::Decimal => 10,
+            NumberBase::Hexadecimal => 16
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -206,6 +237,8 @@ pub enum LexerErrorKind {
     InvalidDirective,
     UnclosedQuotedString,
     NoNumberAfterMinus,
+    InvalidNumberAfterBase,
+    InvalidNumberBase(char),
     EmptyLabel
 }
 
@@ -236,7 +269,7 @@ impl fmt::Display for Term {
             LabelUse => write!(f, "Label reference"),
             ParamSeparator => write!(f, "Parameter separator"),
             DirectChar => write!(f, "Direct character"),
-            Number => write!(f, "Number"),
+            Number { .. } => write!(f, "Number"),
             Ident => write!(f, "Identifier"),
         }
     }
@@ -251,6 +284,8 @@ impl fmt::Display for LexerErrorKind {
             InvalidDirective => write!(f, "Unknown directive"),
             UnclosedQuotedString => write!(f, "Missing end quote for string"),
             NoNumberAfterMinus => write!(f, "Missing number after minus sign"),
+            InvalidNumberAfterBase => write!(f, "Invalid number"),
+            InvalidNumberBase(invalid) => write!(f, "Invalid number base: {}", invalid),
             EmptyLabel => write!(f, "Missing label name"),
         }
     }
