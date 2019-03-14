@@ -92,7 +92,7 @@ pub enum AssembleError {
 use std::fmt;
 
 impl fmt::Display for AssembleError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::AssembleError::*;
 
         match self {

@@ -16,7 +16,7 @@ pub struct Tokenizer<'a> {
     pub input: &'a str
 }
 
-impl<'a> Iterator for Tokenizer<'a> {
+impl Iterator for Tokenizer<'_> {
     type Item = TokenResult;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -45,9 +45,9 @@ impl<'a> Iterator for Tokenizer<'a> {
     }
 }
 
-impl<'a> Tokenizer<'a> {
-    pub fn new(input: &'a str) -> Self {
-        Self {
+impl Tokenizer<'_> {
+    pub fn new(input: &str) -> Tokenizer {
+        Tokenizer {
             chars: input.char_indices().peekable(),
             input
         }

@@ -55,7 +55,7 @@ fn decode_param(source: &impl Decodable, kind: ParamType, idx: usize, dir_size: 
         (Register, _) => {
             let reg = source[idx];
             match reg as usize {
-                1 ... REG_COUNT => (i32::from(reg), 1),
+                1..=REG_COUNT => (i32::from(reg), 1),
                 _ => return Err(InstrDecodeError::InvalidRegNumber(reg))
             }
         },
@@ -129,7 +129,7 @@ fn read_type_and_bit(param_code: u8) -> Option<(ParamType, u8)> {
 
 fn op_from_code(code: u8) -> Option<OpType> {
     match code {
-        1...16 => Some(unsafe { std::mem::transmute(code) }),
+        1..=16 => Some(unsafe { std::mem::transmute(code) }),
         _      => None
     }
 }
@@ -146,7 +146,7 @@ pub enum InstrDecodeError {
 use std::fmt;
 
 impl fmt::Display for InstrDecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::InstrDecodeError::*;
 
         match self {
@@ -157,7 +157,7 @@ impl fmt::Display for InstrDecodeError {
 }
 
 impl fmt::Display for InvalidOpCode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Invalid OP code: 0x{:X}", self.0)
     }
 }

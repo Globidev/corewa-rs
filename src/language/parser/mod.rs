@@ -64,17 +64,17 @@ pub fn parse_line(input: &str) -> Result<ParsedLine, ParseError> {
 
 type ParseResult<T> = Result<T, ParseError>;
 
-fn champion_name(input: &mut TokenStream) -> ParseResult<String> {
+fn champion_name(input: &mut TokenStream<'_>) -> ParseResult<String> {
     input.next(Term::ChampionNameCmd)?;
     input.next(Term::QuotedString).map(String::from)
 }
 
-fn champion_comment(input: &mut TokenStream) -> ParseResult<String> {
+fn champion_comment(input: &mut TokenStream<'_>) -> ParseResult<String> {
     input.next(Term::ChampionCommentCmd)?;
     input.next(Term::QuotedString).map(String::from)
 }
 
-fn code(input: &mut TokenStream) -> ParseResult<Vec<u8>> {
+fn code(input: &mut TokenStream<'_>) -> ParseResult<Vec<u8>> {
     input.next(Term::CodeCmd)?;
     let numbers = number.many().parse(input)?;
     // TODO: Better enforce numeric limit invariants
@@ -84,17 +84,17 @@ fn code(input: &mut TokenStream) -> ParseResult<Vec<u8>> {
     Ok(as_bytes)
 }
 
-fn label(input: &mut TokenStream) -> ParseResult<String> {
+fn label(input: &mut TokenStream<'_>) -> ParseResult<String> {
     input.next(Term::LabelDef)
         .map(|label_str| String::from(&label_str[..label_str.len() - 1]))
 }
 
-fn label_param(input: &mut TokenStream) -> ParseResult<String> {
+fn label_param(input: &mut TokenStream<'_>) -> ParseResult<String> {
     input.next(Term::LabelUse)
         .map(|label_str| String::from(&label_str[1..]))
 }
 
-fn number(input: &mut TokenStream) -> ParseResult<i64> {
+fn number(input: &mut TokenStream<'_>) -> ParseResult<i64> {
     let token_result = input.tokens
         .next()
         .ok_or_else(|| expected_either((
@@ -126,7 +126,7 @@ fn number(input: &mut TokenStream) -> ParseResult<i64> {
     }
 }
 
-fn register(input: &mut TokenStream) -> ParseResult<Register> {
+fn register(input: &mut TokenStream<'_>) -> ParseResult<Register> {
     let (tok, reg_str) = input.next_with_token(Term::Ident)?;
     let mut chars = reg_str.chars();
 
@@ -145,7 +145,7 @@ fn register(input: &mut TokenStream) -> ParseResult<Register> {
     }
 }
 
-fn direct(input: &mut TokenStream) -> ParseResult<Direct> {
+fn direct(input: &mut TokenStream<'_>) -> ParseResult<Direct> {
     input.next(Term::DirectChar)?;
     label_param.map(Direct::Label)
         .or(number.map(Direct::Numeric))
@@ -153,35 +153,35 @@ fn direct(input: &mut TokenStream) -> ParseResult<Direct> {
         .parse(input)
 }
 
-fn indirect(input: &mut TokenStream) -> ParseResult<Indirect> {
+fn indirect(input: &mut TokenStream<'_>) -> ParseResult<Indirect> {
     label_param.map(Indirect::Label)
         .or(number.map(Indirect::Numeric))
         .map_err(expected_either)
         .parse(input)
 }
 
-fn reg_dir(input: &mut TokenStream) -> ParseResult<RegDir> {
+fn reg_dir(input: &mut TokenStream<'_>) -> ParseResult<RegDir> {
     register.map(RegDir::Reg)
         .or(direct.map(RegDir::Dir))
         .map_err(expected_either)
         .parse(input)
 }
 
-fn reg_ind(input: &mut TokenStream) -> ParseResult<RegInd> {
+fn reg_ind(input: &mut TokenStream<'_>) -> ParseResult<RegInd> {
     register.map(RegInd::Reg)
         .or(indirect.map(RegInd::Ind))
         .map_err(expected_either)
         .parse(input)
 }
 
-fn dir_ind(input: &mut TokenStream) -> ParseResult<DirInd> {
+fn dir_ind(input: &mut TokenStream<'_>) -> ParseResult<DirInd> {
     direct.map(DirInd::Dir)
         .or(indirect.map(DirInd::Ind))
         .map_err(expected_either)
         .parse(input)
 }
 
-fn any_param(input: &mut TokenStream) -> ParseResult<AnyParam> {
+fn any_param(input: &mut TokenStream<'_>) -> ParseResult<AnyParam> {
     register.map(AnyParam::Reg)
         .or(direct.map(AnyParam::Dir))
         .or(indirect.map(AnyParam::Ind))
@@ -189,7 +189,7 @@ fn any_param(input: &mut TokenStream) -> ParseResult<AnyParam> {
         .parse(input)
 }
 
-fn op(input: &mut TokenStream) -> ParseResult<Op> {
+fn op(input: &mut TokenStream<'_>) -> ParseResult<Op> {
     macro_rules! parse_op {
         ( $op:expr, $p:expr $(,$ps:expr )* ) => {
             Ok($op(
@@ -229,9 +229,9 @@ struct TokenStream<'a> {
     input: &'a str
 }
 
-impl<'a> TokenStream<'a> {
-    fn new(input: &'a str) -> Self {
-        Self {
+impl TokenStream<'_> {
+    fn new(input: &str) -> TokenStream<'_> {
+        TokenStream {
             tokens: Tokenizer::new(input).peekable(),
             input
         }
@@ -241,12 +241,12 @@ impl<'a> TokenStream<'a> {
         self.tokens.peek()
     }
 
-    fn next(&mut self, term: Term) -> ParseResult<&'a str> {
+    fn next(&mut self, term: Term) -> ParseResult<&str> {
         self.next_with_token(term)
             .map(|(_, s)| s)
     }
 
-    fn next_with_token(&mut self, term: Term) -> ParseResult<(Token, &'a str)> {
+    fn next_with_token(&mut self, term: Term) -> ParseResult<(Token, &str)> {
         let token_result = self.tokens
             .next()
             .ok_or_else(|| ParseError::ExpectedButGotEof(term.clone()))?;
@@ -284,7 +284,7 @@ fn expected_either((e1, e2): (ParseError, ParseError)) -> ParseError {
 use std::fmt;
 
 impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::ParseError::*;
         use std::collections::HashSet;
 

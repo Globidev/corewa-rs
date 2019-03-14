@@ -191,7 +191,7 @@ impl VirtualMachine {
     }
 }
 
-fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext) {
+fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext<'_>) {
     use self::OpType::*;
     use self::instructions::*;
 

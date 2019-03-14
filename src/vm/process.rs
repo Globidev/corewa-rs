@@ -33,7 +33,7 @@ impl Process {
         }
     }
 
-    pub fn fork(pid: Pid, pc: ProgramCounter, ctx: &ExecutionContext) -> Self {
+    pub fn fork(pid: Pid, pc: ProgramCounter, ctx: &ExecutionContext<'_>) -> Self {
         Self {
             pid,
             player_id: ctx.player_id,

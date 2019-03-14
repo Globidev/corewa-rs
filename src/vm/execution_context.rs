@@ -18,7 +18,7 @@ pub struct ExecutionContext<'a> {
     pub live_ids: &'a mut linked_hash_set::LinkedHashSet<PlayerId>
 }
 
-impl<'a> ExecutionContext<'a> {
+impl ExecutionContext<'_> {
     pub fn get_param(&self, param: &Param, offset_type: OffsetType) -> i32 {
         use self::ParamType::*;
 

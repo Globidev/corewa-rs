@@ -333,7 +333,7 @@ impl From<IOError> for CompileError {
 use std::fmt;
 
 impl fmt::Display for CompileError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::CompileError::*;
 
         match self {
