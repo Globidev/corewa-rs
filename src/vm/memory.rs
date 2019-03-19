@@ -103,3 +103,31 @@ impl super::decoder::Decodable for Memory {
         self.read_i32(at)
     }
 }
+
+#[cfg(test)]
+mod test {
+    extern crate test;
+    use super::*;
+
+    #[bench]
+    fn i32_reads(bencher: &mut test::Bencher) {
+        let mut mem = Memory::default();
+
+        mem.values.iter_mut().for_each(|x| *x = rand::random());
+
+        bencher.iter(|| {
+            (0..MEM_SIZE).fold(0, |h, idx| h ^ mem.read_i32(idx))
+        })
+    }
+
+    #[bench]
+    fn i16_reads(bencher: &mut test::Bencher) {
+        let mut mem = Memory::default();
+
+        mem.values.iter_mut().for_each(|x| *x = rand::random());
+
+        bencher.iter(move || {
+            (0..MEM_SIZE).fold(0, |h, idx| h ^ mem.read_i16(idx))
+        })
+    }
+}
