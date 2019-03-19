@@ -20,8 +20,8 @@ const PLAYER_COLORS = [0x0fd5ff, 0xffa517, 0x7649cc, 0x14cc57]
 // wasm VirtualMachine, we can simply check for the current amount on mapped
 // memory before creating a new one and set a threshold that will trigger the
 // re-instantiation of the wasm module when exceeded.
-// Allowing up to 250MB of Wasm memory usage before forcing a reload
-const MAX_ACCEPTABLE_WASM_MEM_BUFFER_SIZE = 250000000 // In bytes
+// Allowing up to 500MB of Wasm memory usage before forcing a reload
+const MAX_ACCEPTABLE_WASM_MEM_BUFFER_SIZE = 500000000 // In bytes
 
 export class VirtualMachine {
   // VMEngine is opaque and cannot be made observable.
