@@ -52,7 +52,7 @@ impl DecodeError {
 use std::fmt;
 
 impl fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DecodeError::OpOnly(op, err) => write!(f, "{} [{}]", op, err),
             DecodeError::InvalidOp(err) => write!(f, "{}", err)
@@ -61,7 +61,7 @@ impl fmt::Display for DecodeError {
 }
 
 impl fmt::Display for Instruction {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let spec = OpSpec::from(self.kind);
         write!(f, "{} {}", self.kind, self.params[0])?;
         for i in 1..spec.param_count {
@@ -72,7 +72,7 @@ impl fmt::Display for Instruction {
 }
 
 impl fmt::Display for OpType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::OpType::*;
 
         let mnemonic = match self {
@@ -99,7 +99,7 @@ impl fmt::Display for OpType {
 }
 
 impl fmt::Display for Param {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind {
             ParamType::Direct => write!(f, "%{}", self.value),
             ParamType::Indirect => write!(f, "{}", self.value),

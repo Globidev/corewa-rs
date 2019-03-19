@@ -46,7 +46,7 @@ impl Iterator for Tokenizer<'_> {
 }
 
 impl Tokenizer<'_> {
-    pub fn new(input: &str) -> Tokenizer {
+    pub fn new(input: &str) -> Tokenizer<'_> {
         Tokenizer {
             chars: input.char_indices().peekable(),
             input
@@ -259,7 +259,7 @@ impl Term {
 use std::fmt;
 
 impl fmt::Display for Term {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::Term::*;
 
         match self {
@@ -279,7 +279,7 @@ impl fmt::Display for Term {
 }
 
 impl fmt::Display for LexerErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::LexerErrorKind::*;
 
         match self {
