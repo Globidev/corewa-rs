@@ -11,14 +11,22 @@ edition = "2018"
 name = "assembler"
 path = "assembler/main.rs"
 
+[[bin]]
+name = "corewars"
+path = "corewars/main.rs"
+
+
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["lib", "cdylib"]
 
 [features]
 default = ["console_error_panic_hook"]
 
 [dependencies]
 linked_hash_set = "0.1"
+structopt = "0.2"
+rand = "0.6"
+
 cfg-if = "0.1"
 wasm-bindgen = "0.2"
 
