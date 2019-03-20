@@ -7,4 +7,7 @@ dist
 dev
 .cache
 web/src/champions.ts
+web/src/corewar.js
+web/src/corewar.d.ts
+web/src/corewar_bg.d.ts
 .vscode
