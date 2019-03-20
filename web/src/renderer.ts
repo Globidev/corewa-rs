@@ -97,23 +97,11 @@ export class PIXIRenderer {
   }
 
   update(ctx: RenderContext) {
-    const cellValues = new Uint8Array(
-      wasm_bindgen.wasm.memory.buffer,
-      ctx.memory.values_ptr,
-      MEM_SIZE
-    )
-    const cellAges = new Uint16Array(
-      wasm_bindgen.wasm.memory.buffer,
-      ctx.memory.ages_ptr,
-      MEM_SIZE
-    )
-    const cellOwners = new Int32Array(
-      wasm_bindgen.wasm.memory.buffer,
-      ctx.memory.owners_ptr,
-      MEM_SIZE
-    )
+    const cellValues = new Uint8Array(wasm_memory.buffer, ctx.memory.values_ptr, MEM_SIZE)
+    const cellAges = new Uint16Array(wasm_memory.buffer, ctx.memory.ages_ptr, MEM_SIZE)
+    const cellOwners = new Int32Array(wasm_memory.buffer, ctx.memory.owners_ptr, MEM_SIZE)
     const pcCounts = new Uint32Array(
-      wasm_bindgen.wasm.memory.buffer,
+      wasm_memory.buffer,
       ctx.memory.pc_count_ptr,
       MEM_SIZE
     )

@@ -1,7 +1,7 @@
 import * as React from 'react'
 
 import { champions } from '../assets/champions'
-import { CompileError, Region } from '../corewar'
+import { CompileError, Region, compile_champion } from '../corewar'
 import { observer } from 'mobx-react'
 
 interface IEditorProps {
@@ -56,7 +56,7 @@ export class Editor extends React.Component<IEditorProps> {
   }
 
   compile(code: string) {
-    let champion = wasm_bindgen.compile_champion(code)
+    let champion = compile_champion(code)
     this.props.onCodeChanged(code, champion)
   }
 

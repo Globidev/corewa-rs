@@ -70,11 +70,7 @@ export class VM extends React.Component<IVMProps> {
       playersById: this.vm.playersById
     })
 
-    const cellOwners = new Int32Array(
-      wasm_bindgen.wasm.memory.buffer,
-      memory.owners_ptr,
-      4096
-    )
+    const cellOwners = new Int32Array(wasm_memory.buffer, memory.owners_ptr, 4096)
 
     this.coverages.clear()
     cellOwners.forEach(owner => {

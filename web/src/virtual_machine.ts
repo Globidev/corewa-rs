@@ -1,5 +1,11 @@
-import { VirtualMachine as VMEngine, PlayerInfo, ChampionInfo } from './corewar'
+import {
+  VirtualMachine as VMEngine,
+  PlayerInfo,
+  ChampionInfo,
+  VMBuilder
+} from './corewar'
 import { observable, action } from 'mobx'
+import { load_wasm } from './bootstrap'
 
 export type Player = {
   id: number
@@ -30,7 +36,7 @@ export class VirtualMachine {
   // the vm's cycle count and use it as a notifier for components that want to
   // observe the vm.
   // INVARIANT TO MAINTAIN: cycles === engine.cycles
-  engine: VMEngine = new wasm_bindgen.VMBuilder().finish()
+  engine: VMEngine = new VMBuilder().finish()
   @observable
   cycles: number | null = null
 
@@ -140,9 +146,9 @@ export class VirtualMachine {
     this.matchResult = null
     this.cycles = null // effectively resets the VM observers
 
-    const currentBufferSize = wasm_bindgen.wasm.memory.buffer.byteLength
+    const currentBufferSize = wasm_memory.buffer.byteLength
     if (currentBufferSize > MAX_ACCEPTABLE_WASM_MEM_BUFFER_SIZE) {
-      return wasm_bindgen('./corewar_bg.wasm').then(() => this.compileImpl())
+      return load_wasm(() => this.compileImpl())
     } else {
       this.compileImpl()
       return Promise.resolve()
@@ -155,7 +161,7 @@ export class VirtualMachine {
       .reduce(
         (builder, player) =>
           player.champion ? builder.with_player(player.id, player.champion) : builder,
-        new wasm_bindgen.VMBuilder()
+        new VMBuilder()
       )
       .finish()
 
