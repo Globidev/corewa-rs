@@ -97,7 +97,7 @@ impl Tokenizer<'_> {
 
         match directive {
             None => {
-                self.skip_while(|&(_, c)| c.is_whitespace());
+                self.skip_while(|&(_, c)| !c.is_whitespace());
                 Err(LexerErrorKind::InvalidDirective.at(idx_start..self.peek_idx()))
             },
             Some((cmd, term)) => {
