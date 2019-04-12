@@ -1,8 +1,8 @@
-mod assembler;
-mod compiler;
-mod lexer;
-mod parser;
-mod types;
+pub mod assembler;
+pub mod compiler;
+pub mod lexer;
+pub mod parser;
+pub mod types;
 
 use self::assembler::{ChampionBuilder, Champion, AssembleError, assemble_line};
 use self::compiler::{CompileError, compile_champion};
@@ -12,9 +12,7 @@ pub use self::parser::error_range;
 
 use std::io::{Read, Write, BufRead, BufReader, Cursor, Error as IOError};
 
-pub fn read_champion(input: impl Read)
-    -> Result<assembler::Champion, ReadError>
-{
+pub fn read_champion(input: impl Read) -> Result<Champion, ReadError> {
     let mut parsed_lines = BufReader::new(input)
         .lines()
         .enumerate()

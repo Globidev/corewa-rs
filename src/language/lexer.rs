@@ -2,7 +2,7 @@ const IDENT_CHARS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_
 
 type InputRange = ::std::ops::Range<usize>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub term: Term,
     pub range: InputRange
@@ -197,7 +197,7 @@ impl Tokenizer<'_> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Term {
     ChampionNameCmd,
     ChampionCommentCmd,
@@ -212,7 +212,7 @@ pub enum Term {
     Ident
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NumberBase {
     Decimal,
     Hexadecimal
@@ -227,13 +227,13 @@ impl NumberBase {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LexerError {
     pub kind: LexerErrorKind,
     pub at: InputRange
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LexerErrorKind {
     NoMatch,
     InvalidDirective,
@@ -245,13 +245,13 @@ pub enum LexerErrorKind {
 }
 
 impl LexerErrorKind {
-    fn at(self, at: InputRange) -> LexerError {
+    pub fn at(self, at: InputRange) -> LexerError {
         LexerError { kind: self, at }
     }
 }
 
 impl Term {
-    fn at(self, range: InputRange) -> Token {
+    pub fn at(self, range: InputRange) -> Token {
         Token { term: self, range }
     }
 }

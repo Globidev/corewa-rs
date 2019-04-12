@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Op {
     Live  ( Direct                       ),
     Ld    ( DirInd,   Register           ),
@@ -18,39 +18,39 @@ pub enum Op {
     Aff   ( Register                     ),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, From)]
 pub struct Register(pub u8);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, From)]
 pub enum Direct {
     Label(String),
     Numeric(i64)
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, From)]
 pub enum Indirect {
     Label(String),
     Numeric(i64)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, From)]
 pub enum RegDir {
     Reg(Register),
     Dir(Direct)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, From)]
 pub enum RegInd {
     Reg(Register),
     Ind(Indirect)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, From)]
 pub enum DirInd {
     Dir(Direct),
     Ind(Indirect)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, From)]
 pub enum AnyParam {
     Reg(Register),
     Dir(Direct),

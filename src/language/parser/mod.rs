@@ -4,7 +4,7 @@ use self::combinator::*;
 use super::lexer::{Token, Term, Tokenizer, TokenResult, LexerError, NumberBase};
 use super::types::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ParsedLine {
     ChampionName(String),
     ChampionComment(String),
@@ -261,7 +261,7 @@ impl TokenStream<'_> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParseError {
     RemainingInput(Token),
     LexerError(LexerError),
