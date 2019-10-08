@@ -215,7 +215,7 @@ impl<W: Write + Seek> State<W> {
                     write_pos: self.size,
                     op_pos: self.current_op_pos,
                     name: label.clone(),
-                    size: size,
+                    size,
                 });
                 self.write(&::std::iter::repeat(0).take(size).collect::<Vec<_>>())
             },
@@ -314,7 +314,7 @@ impl Header {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, From)]
 pub enum CompileError {
     ProgramNameTooLong(usize),
     ProgramCommentTooLong(usize),
@@ -322,12 +322,6 @@ pub enum CompileError {
     DuplicateLabel(String),
     ProgramTooLong(usize),
     IOError(IOError),
-}
-
-impl From<IOError> for CompileError {
-    fn from(err: IOError) -> Self {
-        CompileError::IOError(err)
-    }
 }
 
 use std::fmt;

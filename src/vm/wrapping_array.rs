@@ -1,6 +1,7 @@
+
 pub struct WrappingArray<T>(Box<[T]>);
 
-impl<T: Default + Clone> WrappingArray<T> {
+impl<T> WrappingArray<T> {
     pub fn as_ptr(&self) -> *const T {
         self.0.as_ptr()
     }
@@ -12,11 +13,7 @@ impl<T: Default + Clone> WrappingArray<T> {
 
 impl<T> std::iter::FromIterator<T> for WrappingArray<T> {
     fn from_iter<It: IntoIterator<Item = T>>(iter: It) -> Self {
-        Self {
-            0: iter.into_iter()
-            .collect::<Vec<_>>()
-            .into_boxed_slice()
-        }
+        Self(Vec::from_iter(iter).into_boxed_slice())
     }
 }
 

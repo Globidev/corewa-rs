@@ -1,3 +1,5 @@
+#![allow(clippy::range_plus_one)] // This lint is kind of confusing and breaks consistency here
+
 const IDENT_CHARS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789";
 
 type InputRange = ::std::ops::Range<usize>;

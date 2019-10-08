@@ -17,8 +17,7 @@ pub fn read_champion(input: impl Read) -> Result<Champion, ReadError> {
         .lines()
         .enumerate()
         .map(|(line_no, read_result)| {
-            let line = read_result
-                .map_err(ReadError::IOError)?;
+            let line = read_result?;
 
             parse_line(&line)
                 .map_err(|e| ReadError::ParseError(e, line_no + 1))
@@ -26,14 +25,12 @@ pub fn read_champion(input: impl Read) -> Result<Champion, ReadError> {
 
     let champion_assembler = parsed_lines
         .try_fold(ChampionBuilder::default(), |builder, line_result| {
-            line_result.and_then(|parsed_line| {
-                assemble_line(builder, parsed_line)
-                    .map_err(ReadError::AssembleError)
-            })
+            let parsed_line = line_result?;
+
+            Ok::<_, ReadError>(assemble_line(builder, parsed_line)?)
         })?;
 
-    champion_assembler.finish()
-        .map_err(ReadError::AssembleError)
+    Ok(champion_assembler.finish()?)
 }
 
 pub fn write_champion(mut output: impl Write, champion: &Champion)
@@ -41,21 +38,19 @@ pub fn write_champion(mut output: impl Write, champion: &Champion)
 {
     let mut seek_vec = Cursor::new(Vec::with_capacity(8192));
 
-    compile_champion(&mut seek_vec, &champion)
-        .map_err(WriteError::CompileError)?;
+    compile_champion(&mut seek_vec, &champion)?;
 
-    output.write_all(&seek_vec.into_inner())
-        .map_err(WriteError::IOError)
+    Ok(output.write_all(&seek_vec.into_inner())?)
 }
 
-#[derive(Debug)]
+#[derive(Debug, From)]
 pub enum ReadError {
     IOError(IOError),
     ParseError(ParseError, usize),
     AssembleError(AssembleError),
 }
 
-#[derive(Debug)]
+#[derive(Debug, From)]
 pub enum WriteError {
     IOError(IOError),
     CompileError(CompileError),

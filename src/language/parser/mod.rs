@@ -20,7 +20,7 @@ pub fn parse_line(input: &str) -> Result<ParsedLine, ParseError> {
 
     let first_tok = match tokens.peek() {
         None             => return Ok(ParsedLine::Empty),
-        Some(tok_result) => tok_result.clone().map_err(ParseError::LexerError)?
+        Some(tok_result) => tok_result.clone()?
     };
 
     let parse_result = match first_tok.term {
@@ -102,7 +102,7 @@ fn number(input: &mut TokenStream<'_>) -> ParseResult<i64> {
             ParseError::ExpectedButGotEof(Term::Number { base: NumberBase::Hexadecimal }))
         ))?;
 
-    let tok = token_result.map_err(ParseError::LexerError)?;
+    let tok = token_result?;
 
     match tok.clone() {
         Token { term: Term::Number { base }, range } => {
@@ -251,7 +251,7 @@ impl TokenStream<'_> {
             .next()
             .ok_or_else(|| ParseError::ExpectedButGotEof(term.clone()))?;
 
-        let token = token_result.map_err(ParseError::LexerError)?;
+        let token = token_result?;
 
         if token.term == term {
             Ok((token.clone(), &self.input[token.range]))
@@ -261,7 +261,7 @@ impl TokenStream<'_> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, From)]
 pub enum ParseError {
     RemainingInput(Token),
     LexerError(LexerError),
@@ -288,7 +288,7 @@ impl fmt::Display for ParseError {
         use self::ParseError::*;
         use std::collections::HashSet;
 
-        fn flatten_errors(errs: &Vec<ParseError>) -> Vec<&ParseError> {
+        fn flatten_errors(errs: &[ParseError]) -> Vec<&ParseError> {
             errs.iter()
                 .flat_map(|err| match err {
                     ExpectedOneOf(sub_errors) => flatten_errors(sub_errors),
