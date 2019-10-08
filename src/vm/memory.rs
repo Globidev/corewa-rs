@@ -2,7 +2,7 @@ use crate::spec::*;
 use super::types::*;
 use super::wrapping_array::WrappingArray;
 
-use std::iter;
+use std::{iter, mem, ptr};
 
 pub struct Memory {
     values: WrappingArray<u8>,
@@ -52,28 +52,34 @@ impl Memory {
     }
 
     pub fn read_i32(&self, addr: usize) -> i32 {
-        if addr > MEM_SIZE - std::mem::size_of::<i32>() {
-            (
-                (u32::from(self[addr + 0]) << 24)
-              | (u32::from(self[addr + 1]) << 16)
-              | (u32::from(self[addr + 2]) << 8 )
-              | (u32::from(self[addr + 3]) << 0 )
-            ) as i32
+        if addr > MEM_SIZE - mem::size_of::<i32>() {
+            i32::from_be_bytes([
+                self[addr + 0],
+                self[addr + 1],
+                self[addr + 2],
+                self[addr + 3]
+            ])
         } else {
             let ptr = self.values.as_ptr();
-            unsafe { std::ptr::read_unaligned(ptr.offset(addr as isize) as *const i32) }.to_be()
+            unsafe {
+                let offseted_ptr = ptr.offset(addr as isize) as *const i32;
+                ptr::read_unaligned(offseted_ptr).to_be()
+            }
         }
     }
 
     pub fn read_i16(&self, addr: usize) -> i16 {
-        if addr > MEM_SIZE - std::mem::size_of::<i16>() {
-            (
-                (u16::from(self[addr + 0]) << 8)
-              | (u16::from(self[addr + 1]) << 0)
-            ) as i16
+        if addr > MEM_SIZE - mem::size_of::<i16>() {
+            i16::from_be_bytes([
+                self[addr + 0],
+                self[addr + 1]
+            ])
         } else {
             let ptr = self.values.as_ptr();
-            unsafe { std::ptr::read_unaligned(ptr.offset(addr as isize) as *const i16) }.to_be()
+            unsafe {
+                let offseted_ptr = ptr.offset(addr as isize) as *const i16;
+                ptr::read_unaligned(offseted_ptr).to_be()
+            }
         }
     }
 
