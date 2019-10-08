@@ -78,7 +78,7 @@ impl Memory {
     }
 
     pub fn write_i32(&mut self, value: i32, owner: PlayerId, at: usize) {
-        let value_as_bytes: [u8; 4] = unsafe { std::mem::transmute(value.to_be()) };
+        let value_as_bytes = value.to_be_bytes();
 
         self.write(at, &value_as_bytes, owner)
     }

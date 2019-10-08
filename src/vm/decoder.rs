@@ -128,10 +128,27 @@ fn read_type_and_bit(param_code: u8) -> Option<(ParamType, u8)> {
 }
 
 fn op_from_code(code: u8) -> Option<OpType> {
-    match code {
-        1..=16 => Some(unsafe { std::mem::transmute(code) }),
-        _      => None
-    }
+    let op_type = match code {
+        1 => OpType::Live,
+        2 => OpType::Ld,
+        3 => OpType::St,
+        4 => OpType::Add,
+        5 => OpType::Sub,
+        6 => OpType::And,
+        7 => OpType::Or,
+        8 => OpType::Xor,
+        9 => OpType::Zjmp,
+        10 => OpType::Ldi,
+        11 => OpType::Sti,
+        12 => OpType::Fork,
+        13 => OpType::Lld,
+        14 => OpType::Lldi,
+        15 => OpType::Lfork,
+        16 => OpType::Aff,
+        _ => return None
+    };
+
+    Some(op_type)
 }
 
 #[derive(Debug)]
