@@ -59,18 +59,15 @@ impl Tokenizer<'_> {
     where
         F: Fn(&(usize, char)) -> bool
     {
-        while self.chars.peek()
-                .map(|c| skipper(c))
-                .unwrap_or(false)
-        {
+        while self.chars.peek().map_or(false, &skipper) {
             self.chars.next();
         }
     }
 
     fn lex_label_use(&mut self, idx_start: usize) -> TokenResult {
         self.chars.next(); // consume
-        match self.chars.peek().cloned() {
-            Some((_, c)) if IDENT_CHARS.contains(c) => {
+        match self.chars.peek() {
+            Some((_, c)) if IDENT_CHARS.contains(*c) => {
                 self.skip_while(|&(_, c)| IDENT_CHARS.contains(c));
                 Ok(Term::LabelUse.at(idx_start..self.peek_idx()))
             }
