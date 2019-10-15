@@ -31,7 +31,7 @@ pub fn compile_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
     }
 }
 
-fn ocp(op: &Op) -> u8 {
+fn pcb(op: &Op) -> u8 {
     use Op::*;
     use spec::{REG_PARAM_CODE, DIR_PARAM_CODE, IND_PARAM_CODE};
 
@@ -74,7 +74,7 @@ fn ocp(op: &Op) -> u8 {
         Lldi  ( any,  rd,    _ ) => combine3(any_code(any),  rd_code(rd),    REG_PARAM_CODE),
         Aff   ( _              ) => combine1(REG_PARAM_CODE,                               ),
 
-        _ => unreachable!("has_ocp invariant broken!")
+        _ => unreachable!("has_pcb invariant broken!")
     }
 }
 
@@ -159,11 +159,11 @@ impl<W: Write + Seek> State<W> {
     }
 
     fn write_op(&mut self, op: &Op) -> CompileResult<()> {
-        let OpSpec { code, has_ocp, dir_size, .. } = op_spec(op);
+        let OpSpec { code, has_pcb, dir_size, .. } = op_spec(op);
 
         self.current_op_pos = self.size;
 
-        if has_ocp { self.write(&[code, ocp(op)])?; }
+        if has_pcb { self.write(&[code, pcb(op)])?; }
         else       { self.write(&[code])?; }
 
         let size = match dir_size {

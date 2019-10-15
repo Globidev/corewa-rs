@@ -21,24 +21,24 @@ pub trait Decode: Read {
     {
         let op_spec = OpSpec::from(op);
 
-        let (param_types, mut byte_size) = if op_spec.has_ocp {
-            let ocp = self[idx + 1];
-            (read_ocp_params(ocp, &op_spec)?, 2)
+        let (param_types, mut byte_size) = if op_spec.has_pcb {
+            let pcb = self[idx + 1];
+            (read_pcb_params(pcb, &op_spec)?, 2)
         } else {
             (params_from_unambiguous_masks(op_spec.param_masks), 1)
         };
 
         let mut params: [Param; MAX_PARAMS] = Default::default();
 
-        for i in 0..op_spec.param_count {
-            let param_type = param_types[i];
+        for idx in 0..op_spec.param_count {
+            let param_type = param_types[idx];
             let (param, size) = self.decode_param(
                 param_type,
                 idx + byte_size,
                 &op_spec.dir_size
             )?;
-            params[i] = param;
-            byte_size += size
+            byte_size += size;
+            params[idx] = param;
         }
 
         Ok(Instruction { kind: op, params, byte_size })
@@ -92,13 +92,13 @@ fn params_from_unambiguous_masks(masks: [u8; MAX_PARAMS]) -> ParamTypes {
     ]
 }
 
-fn read_ocp_params(ocp: u8, op_spec: &OpSpec)
+fn read_pcb_params(pcb: u8, op_spec: &OpSpec)
     -> Result<ParamTypes, InstrDecodeError>
 {
     let unused_mask = (1 << ((4 - op_spec.param_count) * 2)) - 1;
 
-    if ocp & unused_mask != 0 {
-        return Err(InstrDecodeError::InvalidOCP(ocp))
+    if pcb & unused_mask != 0 {
+        return Err(InstrDecodeError::InvalidPCB(pcb))
     }
 
     let mut param_types = ParamTypes::default();
@@ -107,11 +107,11 @@ fn read_ocp_params(ocp: u8, op_spec: &OpSpec)
         .zip(op_spec.param_masks.iter())
         .enumerate()
     {
-        let shifted_bits = ocp >> (6 - 2 * i);
+        let shifted_bits = pcb >> (6 - 2 * i);
         let (param_type, bit) = read_type_and_bit(shifted_bits & 0b0000_0011)
-            .ok_or_else(|| InstrDecodeError::InvalidOCP(ocp))?;
+            .ok_or_else(|| InstrDecodeError::InvalidPCB(pcb))?;
         if param_mask & bit != bit {
-            return Err(InstrDecodeError::InvalidOCP(ocp))
+            return Err(InstrDecodeError::InvalidPCB(pcb))
         }
         *param_type_out = param_type;
     }
@@ -157,7 +157,7 @@ pub struct InvalidOpCode(u8);
 
 #[derive(Debug)]
 pub enum InstrDecodeError {
-    InvalidOCP(u8),
+    InvalidPCB(u8),
     InvalidRegNumber(u8),
 }
 
