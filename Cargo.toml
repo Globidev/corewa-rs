@@ -5,3 +5,6 @@ members = [
     "corewa-rs-term-arena",
     "corewa-rs-wasm",
 ]
+
+[profile.release]
+lto = true
