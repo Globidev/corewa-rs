@@ -1,6 +1,6 @@
 use crate::vm::types::*;
 use crate::vm::memory::Memory;
-use crate::vm::decoder::{decode_op, decode_instr, InvalidOpCode, InstrDecodeError};
+use crate::vm::decoder::{Decode, InvalidOpCode, InstrDecodeError};
 use crate::spec::*;
 
 use wasm_bindgen::prelude::*;
@@ -27,10 +27,10 @@ impl DecodeResult {
     }
 
     fn read_result(memory: &Memory, idx: usize) -> Result<Instruction, DecodeError> {
-        let op = decode_op(memory, idx)
+        let op = memory.decode_op(idx)
             .map_err(DecodeError::InvalidOp)?;
 
-        decode_instr(memory, op, idx)
+        memory.decode_instr(op, idx)
             .map_err(|err| DecodeError::OpOnly(op, err))
     }
 }

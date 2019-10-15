@@ -3,68 +3,69 @@ use super::types::*;
 
 use std::ops::Index;
 
-pub trait Decodable: Index<usize, Output = u8> {
+pub trait Read: Index<usize, Output = u8> {
     fn read_i32(&self, at: usize) -> i32;
     fn read_i16(&self, at: usize) -> i16;
 }
 
-pub fn decode_op(source: &impl Decodable, idx: usize)
-    -> Result<OpType, InvalidOpCode>
-{
-    let op_code = source[idx];
+pub trait Decode: Read {
+    fn decode_op(&self, idx: usize) -> Result<OpType, InvalidOpCode> {
+        let op_code = self[idx];
 
-    op_from_code(op_code)
-        .ok_or_else(|| InvalidOpCode(op_code))
-}
-
-pub fn decode_instr(source: &impl Decodable, op: OpType, idx: usize)
-    -> Result<Instruction, InstrDecodeError>
-{
-    let op_spec = OpSpec::from(op);
-
-    let (param_types, mut byte_size) = if op_spec.has_ocp {
-        let ocp = source[idx + 1];
-        (read_ocp_params(ocp, &op_spec)?, 2)
-    } else {
-        (params_from_unambiguous_masks(op_spec.param_masks), 1)
-    };
-
-    let mut params: [Param; MAX_PARAMS] = Default::default();
-
-    for i in 0..op_spec.param_count {
-        let param_type = param_types[i];
-        let (param, size) = decode_param(
-            source,
-            param_type,
-            idx + byte_size,
-            &op_spec.dir_size
-        )?;
-        params[i] = param;
-        byte_size += size
+        op_from_code(op_code)
+            .ok_or_else(|| InvalidOpCode(op_code))
     }
 
-    Ok(Instruction { kind: op, params, byte_size })
+    fn decode_instr(&self, op: OpType, idx: usize)
+        -> Result<Instruction, InstrDecodeError>
+    {
+        let op_spec = OpSpec::from(op);
+
+        let (param_types, mut byte_size) = if op_spec.has_ocp {
+            let ocp = self[idx + 1];
+            (read_ocp_params(ocp, &op_spec)?, 2)
+        } else {
+            (params_from_unambiguous_masks(op_spec.param_masks), 1)
+        };
+
+        let mut params: [Param; MAX_PARAMS] = Default::default();
+
+        for i in 0..op_spec.param_count {
+            let param_type = param_types[i];
+            let (param, size) = self.decode_param(
+                param_type,
+                idx + byte_size,
+                &op_spec.dir_size
+            )?;
+            params[i] = param;
+            byte_size += size
+        }
+
+        Ok(Instruction { kind: op, params, byte_size })
+    }
+
+    fn decode_param(&self, kind: ParamType, idx: usize, dir_size: &DirectSize)
+        -> Result<(Param, usize), InstrDecodeError>
+    {
+        use self::ParamType::*;
+
+        let (value, size) = match (&kind, dir_size) {
+            (Register, _) => {
+                let reg = self[idx];
+                match reg as usize {
+                    1..=REG_COUNT => (i32::from(reg), 1),
+                    _ => return Err(InstrDecodeError::InvalidRegNumber(reg))
+                }
+            },
+            (Direct, DirectSize::FourBytes) => (self.read_i32(idx), 4),
+            _ => (i32::from(self.read_i16(idx)), 2)
+        };
+
+        Ok((Param { kind, value }, size))
+    }
 }
 
-fn decode_param(source: &impl Decodable, kind: ParamType, idx: usize, dir_size: &DirectSize)
-    -> Result<(Param, usize), InstrDecodeError>
-{
-    use self::ParamType::*;
-
-    let (value, size) = match (&kind, dir_size) {
-        (Register, _) => {
-            let reg = source[idx];
-            match reg as usize {
-                1..=REG_COUNT => (i32::from(reg), 1),
-                _ => return Err(InstrDecodeError::InvalidRegNumber(reg))
-            }
-        },
-        (Direct, DirectSize::FourBytes) => (source.read_i32(idx), 4),
-        _ => (i32::from(source.read_i16(idx)), 2)
-    };
-
-    Ok((Param { kind, value }, size))
-}
+impl<T: Read> Decode for T { }
 
 type ParamTypes = [ParamType; MAX_PARAMS];
 

@@ -100,7 +100,7 @@ impl Index<usize> for Memory {
     }
 }
 
-impl super::decoder::Decodable for Memory {
+impl super::decoder::Read for Memory {
     fn read_i16(&self, at: usize) -> i16 {
         self.read_i16(at)
     }

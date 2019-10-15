@@ -9,7 +9,7 @@ mod program_counter;
 mod wrapping_array;
 
 use crate::spec::*;
-use self::decoder::{decode_op, decode_instr};
+use self::decoder::Decode;
 use self::execution_context::ExecutionContext;
 use self::process::{Process, ProcessState};
 use self::memory::Memory;
@@ -68,7 +68,7 @@ impl VirtualMachine {
             match process.state {
                 // Attempt to read instruction
                 ProcessState::Idle => {
-                    if let Ok(op) = decode_op(&self.memory, *process.pc) {
+                    if let Ok(op) = self.memory.decode_op(*process.pc) {
                         let exec_at = self.cycles + OpSpec::from(op).cycles - 1;
                         process.state = ProcessState::Executing { exec_at, op };
                     } else {
@@ -81,7 +81,7 @@ impl VirtualMachine {
                 // Execute
                 ProcessState::Executing { exec_at, op } if exec_at == self.cycles => {
                     let pc_start = *process.pc;
-                    match decode_instr(&self.memory, op, pc_start) {
+                    match self.memory.decode_instr(op, pc_start) {
                         Ok(instr) => {
                             let execution_context = ExecutionContext {
                                 memory: &mut self.memory,
