@@ -248,12 +248,17 @@ impl Header {
     }
 
     fn name(&self) -> &CStr {
-        CStr::from_bytes_with_nul(&self.prog_name)
+        let idx = self.prog_name.iter().position(|&b| b == 0)
+            .unwrap();
+        CStr::from_bytes_with_nul(&self.prog_name[..idx + 1])
             .expect("Invalid program name")
     }
 
     fn comment(&self) -> &CStr {
-        CStr::from_bytes_with_nul(&self.prog_comment)
+        let idx = self.prog_comment.iter().position(|&b| b == 0)
+            .unwrap();
+
+        CStr::from_bytes_with_nul(&self.prog_comment[..idx + 1])
             .expect("Invalid program comment")
     }
 }
