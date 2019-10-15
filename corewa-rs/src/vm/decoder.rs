@@ -148,30 +148,14 @@ fn op_from_code(code: u8) -> Option<OpType> {
     Some(op_type)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Display)]
+#[display(fmt = "Invalid OP code: 0x{:X}", _0)]
 pub struct InvalidOpCode(u8);
 
-#[derive(Debug)]
+#[derive(Debug, Display)]
 pub enum InstrDecodeError {
+    #[display(fmt = "Invalid PCB: 0x{:X}", _0)]
     InvalidPCB(u8),
+    #[display(fmt = "Invalid register: {}", _0)]
     InvalidRegNumber(u8),
-}
-
-use std::fmt;
-
-impl fmt::Display for InstrDecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use InstrDecodeError::*;
-
-        match self {
-            InvalidOCP(byte) => write!(f, "Invalid PCB: 0x{:X}", byte),
-            InvalidRegNumber(byte) => write!(f, "Invalid register: {}", byte),
-        }
-    }
-}
-
-impl fmt::Display for InvalidOpCode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Invalid OP code: 0x{:X}", self.0)
-    }
 }
