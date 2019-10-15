@@ -1,6 +1,6 @@
 mod combinator;
 
-use self::combinator::*;
+use combinator::*;
 use super::lexer::{Token, Term, Tokenizer, TokenResult, LexerError, NumberBase};
 use super::types::*;
 
@@ -285,7 +285,7 @@ use std::fmt;
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use self::ParseError::*;
+        use ParseError::*;
         use std::collections::HashSet;
 
         fn flatten_errors(errs: &[ParseError]) -> Vec<&ParseError> {
@@ -332,7 +332,7 @@ impl fmt::Display for ParseError {
 }
 
 pub fn error_range(err: &ParseError) -> (usize, Option<usize>) {
-    use self::ParseError::*;
+    use ParseError::*;
 
     match err {
         RemainingInput(token) => (token.range.start, Some(token.range.end)),

@@ -18,7 +18,7 @@ pub struct ChampionBuilder {
 pub fn assemble_line(builder: ChampionBuilder, parsed_line: ParsedLine)
     -> Result<ChampionBuilder, AssembleError>
 {
-    use self::ParsedLine::*;
+    use ParsedLine::*;
 
     match parsed_line {
         ChampionName(name)       => builder.with_name(name),
@@ -93,7 +93,7 @@ use std::fmt;
 
 impl fmt::Display for AssembleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use self::AssembleError::*;
+        use AssembleError::*;
 
         match self {
             NameAlreadySet(previous_name) => write!(f, "Duplicate '.name' directive: the champion was already named '{}'", previous_name),

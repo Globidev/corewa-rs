@@ -47,7 +47,7 @@ pub trait Decode: Read {
     fn decode_param(&self, kind: ParamType, idx: usize, dir_size: &DirectSize)
         -> Result<(Param, usize), InstrDecodeError>
     {
-        use self::ParamType::*;
+        use ParamType::*;
 
         let (value, size) = match (&kind, dir_size) {
             (Register, _) => {
@@ -165,7 +165,7 @@ use std::fmt;
 
 impl fmt::Display for InstrDecodeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use self::InstrDecodeError::*;
+        use InstrDecodeError::*;
 
         match self {
             InvalidOCP(byte) => write!(f, "Invalid PCB: 0x{:X}", byte),

@@ -262,7 +262,7 @@ use std::fmt;
 
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use self::Term::*;
+        use Term::*;
 
         match self {
             ChampionNameCmd => write!(f, "Name directive"),
@@ -282,7 +282,7 @@ impl fmt::Display for Term {
 
 impl fmt::Display for LexerErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use self::LexerErrorKind::*;
+        use LexerErrorKind::*;
 
         match self {
             NoMatch => write!(f, "No token matched"),

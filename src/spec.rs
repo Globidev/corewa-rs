@@ -67,8 +67,8 @@ pub const T_IND: u8 = 4;
 
 impl From<OpType> for OpSpec {
     fn from(op_type: OpType) -> Self {
-        use self::OpType::*;
-        use self::DirectSize::*;
+        use OpType::*;
+        use DirectSize::*;
 
         let code = op_type as u8;
 

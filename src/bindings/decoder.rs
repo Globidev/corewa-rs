@@ -73,7 +73,7 @@ impl fmt::Display for Instruction {
 
 impl fmt::Display for OpType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use self::OpType::*;
+        use OpType::*;
 
         let mnemonic = match self {
             Live  => "live",

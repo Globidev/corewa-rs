@@ -9,11 +9,11 @@ mod program_counter;
 mod wrapping_array;
 
 use crate::spec::*;
-use self::decoder::Decode;
-use self::execution_context::ExecutionContext;
-use self::process::{Process, ProcessState};
-use self::memory::Memory;
-use self::types::*;
+use decoder::Decode;
+use execution_context::ExecutionContext;
+use process::{Process, ProcessState};
+use memory::Memory;
+use types::*;
 
 use std::collections::HashMap;
 
@@ -192,8 +192,8 @@ impl VirtualMachine {
 }
 
 fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext<'_>) {
-    use self::OpType::*;
-    use self::instructions::*;
+    use OpType::*;
+    use instructions::*;
 
     let exec = match instr.kind {
         Live  => exec_live,

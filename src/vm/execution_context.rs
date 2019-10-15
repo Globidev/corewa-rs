@@ -20,7 +20,7 @@ pub struct ExecutionContext<'a> {
 
 impl ExecutionContext<'_> {
     pub fn get_param(&self, param: &Param, offset_type: OffsetType) -> i32 {
-        use self::ParamType::*;
+        use ParamType::*;
 
         match param.kind {
             Register => self.registers[param.value as usize - 1],

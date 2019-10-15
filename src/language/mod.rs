@@ -4,11 +4,11 @@ pub mod lexer;
 pub mod parser;
 pub mod types;
 
-use self::assembler::{ChampionBuilder, Champion, AssembleError, assemble_line};
-use self::compiler::{CompileError, compile_champion};
-use self::parser::{ParseError, parse_line};
+pub use parser::error_range;
 
-pub use self::parser::error_range;
+use assembler::{ChampionBuilder, Champion, AssembleError, assemble_line};
+use compiler::{CompileError, compile_champion};
+use parser::{ParseError, parse_line};
 
 use std::io::{Read, Write, BufRead, BufReader, Cursor, Error as IOError};
 

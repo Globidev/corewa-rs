@@ -32,8 +32,8 @@ pub fn compile_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
 }
 
 fn ocp(op: &Op) -> u8 {
-    use self::Op::*;
-    use self::spec::{REG_PARAM_CODE, DIR_PARAM_CODE, IND_PARAM_CODE};
+    use Op::*;
+    use spec::{REG_PARAM_CODE, DIR_PARAM_CODE, IND_PARAM_CODE};
 
     let combine1 = |a|       a << 6;
     let combine2 = |a, b|    a << 6 | b << 4;
@@ -79,7 +79,7 @@ fn ocp(op: &Op) -> u8 {
 }
 
 fn op_spec(op: &Op) -> OpSpec {
-    use self::Op::*;
+    use Op::*;
 
     let op_type = match op {
         Live  (..) => OpType::Live,
@@ -180,7 +180,7 @@ impl<W: Write + Seek> State<W> {
     }
 
     fn write_params(&mut self, op: &Op, size: usize) -> CompileResult<()> {
-        use self::Op::*;
+        use Op::*;
 
         match op {
             Live  ( dir,             ) => { self.write_dir(dir, size)?                                                         },
@@ -328,7 +328,7 @@ use std::fmt;
 
 impl fmt::Display for CompileError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use self::CompileError::*;
+        use CompileError::*;
 
         match self {
             ProgramNameTooLong(size) => write!(f, "The champion's name is too long: {} bytes (maximum allowed is {})", size, PROG_NAME_LENGTH),
