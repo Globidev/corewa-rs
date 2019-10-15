@@ -2,7 +2,8 @@ use crate::spec::*;
 use super::types::*;
 use super::wrapping_array::WrappingArray;
 
-use std::{iter, mem, ptr};
+use std::{iter, mem};
+use byteorder::{ByteOrder, BigEndian};
 
 pub struct Memory {
     values: WrappingArray<u8>,
@@ -60,11 +61,7 @@ impl Memory {
                 self[addr + 3]
             ])
         } else {
-            let ptr = self.values.as_ptr();
-            unsafe {
-                let offseted_ptr = ptr.offset(addr as isize) as *const i32;
-                ptr::read_unaligned(offseted_ptr).to_be()
-            }
+            BigEndian::read_i32(&self.values.as_slice()[addr..addr+4])
         }
     }
 
@@ -75,11 +72,7 @@ impl Memory {
                 self[addr + 1]
             ])
         } else {
-            let ptr = self.values.as_ptr();
-            unsafe {
-                let offseted_ptr = ptr.offset(addr as isize) as *const i16;
-                ptr::read_unaligned(offseted_ptr).to_be()
-            }
+            BigEndian::read_i16(&self.values.as_slice()[addr..addr+2])
         }
     }
 

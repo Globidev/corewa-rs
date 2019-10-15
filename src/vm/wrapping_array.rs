@@ -9,6 +9,10 @@ impl<T> WrappingArray<T> {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         self.0.iter_mut()
     }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.0
+    }
 }
 
 impl<T> std::iter::FromIterator<T> for WrappingArray<T> {
