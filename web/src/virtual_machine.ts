@@ -1,11 +1,4 @@
-import {
-  VirtualMachine as VMEngine,
-  PlayerInfo,
-  ChampionInfo,
-  VMBuilder
-} from './corewar'
 import { observable, action } from 'mobx'
-import { load_wasm } from './bootstrap'
 
 export type Player = {
   id: number
@@ -13,7 +6,7 @@ export type Player = {
   champion: CompiledChampion | null
 }
 
-export type MatchResult = PlayerInfo[]
+export type MatchResult = import('corewa-rs').PlayerInfo[]
 
 const MAX_SPEED = 32
 const TARGET_UPS = 60
@@ -27,7 +20,7 @@ const PLAYER_COLORS = [0x0fd5ff, 0xffa517, 0x7649cc, 0x14cc57]
 // memory before creating a new one and set a threshold that will trigger the
 // re-instantiation of the wasm module when exceeded.
 // Allowing up to 500MB of Wasm memory usage before forcing a reload
-const MAX_ACCEPTABLE_WASM_MEM_BUFFER_SIZE = 500000000 // In bytes
+// const MAX_ACCEPTABLE_WASM_MEM_BUFFER_SIZE = 500000000 // In bytes
 
 export class VirtualMachine {
   // VMEngine is opaque and cannot be made observable.
@@ -36,7 +29,7 @@ export class VirtualMachine {
   // the vm's cycle count and use it as a notifier for components that want to
   // observe the vm.
   // INVARIANT TO MAINTAIN: cycles === engine.cycles
-  engine: VMEngine = new VMBuilder().finish()
+  engine = new corewar.VMBuilder().finish()
   @observable
   cycles: number | null = null
 
@@ -96,15 +89,24 @@ export class VirtualMachine {
 
   @action
   tick(n: number) {
+    let before = performance.now()
+    let processes = 0
     for (let i = 0; i < n; ++i) {
       if (this.engine.tick()) {
         this.updateMatchResult()
         this.pause()
         break
       }
+      processes += this.engine.process_count()
     }
 
     this.cycles = this.engine.cycles()
+
+    let duration = performance.now() - before
+    if (duration > 16)
+      console.warn(
+        `${n} cycles took too long to compute:\n${duration} ms | ${processes} procs`
+      )
   }
 
   @action
@@ -112,8 +114,8 @@ export class VirtualMachine {
     const info = Array.from(this.playersById.keys()).map(
       playerId =>
         [this.engine.player_info(playerId), this.engine.champion_info(playerId)] as [
-          PlayerInfo,
-          ChampionInfo
+          import('corewa-rs').PlayerInfo,
+          import('corewa-rs').ChampionInfo
         ]
     )
 
@@ -144,15 +146,8 @@ export class VirtualMachine {
   compile() {
     this.pause()
     this.matchResult = null
-    this.cycles = null // effectively resets the VM observers
-
-    const currentBufferSize = wasm_memory.buffer.byteLength
-    if (currentBufferSize > MAX_ACCEPTABLE_WASM_MEM_BUFFER_SIZE) {
-      return load_wasm(() => this.compileImpl())
-    } else {
-      this.compileImpl()
-      return Promise.resolve()
-    }
+    this.cycles = null // effectively resets the VM observe
+    this.compileImpl()
   }
 
   @action
@@ -161,7 +156,7 @@ export class VirtualMachine {
       .reduce(
         (builder, player) =>
           player.champion ? builder.with_player(player.id, player.champion) : builder,
-        new VMBuilder()
+        new corewar.VMBuilder()
       )
       .finish()
 
@@ -227,7 +222,8 @@ export class VirtualMachine {
     if (cycles <= cycle) {
       this.tick(cycle - cycles)
     } else {
-      this.compile().then(() => this.tick(cycle))
+      this.compile()
+      this.tick(cycle)
     }
   }
 }

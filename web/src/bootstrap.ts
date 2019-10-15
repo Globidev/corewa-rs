@@ -1,22 +1,22 @@
-// @ts-ignore
-import { default as init } from './corewar'
-import { start } from '.'
+import * as CodeMirrorObj from 'codemirror'
 
-export function load_wasm(entrypoint: () => void) {
-  return init('./corewar_bg.wasm')
-    .then((module: any) => {
-      // @ts-ignore
-      window.wasm_memory = module.memory
-      entrypoint()
-    })
-    .catch(console.error)
+declare global {
+  var corewar: typeof import('corewa-rs');
+  var wasm_memory: any;
+
+  var CodeMirror: typeof CodeMirrorObj;
+  type CompiledChampion = Uint8Array;
 }
 
-load_wasm(start)
+import { main } from "./index";
 
-// Disable Parcel's HMR
-// @ts-ignore
-if (module && module.hot) {
-  // @ts-ignore
-  module.hot.accept(() => location.reload())
+export async function loadWasm() {
+  const corewar = await import('corewa-rs');
+  const corewarBg = await import('../../corewa-rs-wasm/pkg/corewa_rs_wasm_bg');
+
+  window.corewar = corewar;
+  window.wasm_memory = corewarBg.memory;
 }
+
+loadWasm()
+  .then(main);

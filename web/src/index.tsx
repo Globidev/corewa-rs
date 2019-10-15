@@ -1,3 +1,5 @@
+import '../public/style.css';
+
 import * as React from 'react'
 import { render } from 'react-dom'
 
@@ -6,7 +8,7 @@ import { CorewarLayout } from './components/layout'
 
 const App = () => <CorewarLayout vm={new VirtualMachine()} />
 
-export function start() {
+export function main() {
   const $root = document.getElementById('app')
   render(<App />, $root)
 }

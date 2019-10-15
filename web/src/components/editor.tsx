@@ -1,7 +1,6 @@
 import * as React from 'react'
 
 import { champions } from '../assets/champions'
-import { CompileError, Region, compile_champion } from '../corewar'
 import { observer } from 'mobx-react'
 
 interface IEditorProps {
@@ -37,7 +36,8 @@ export class Editor extends React.Component<IEditorProps> {
           lintOnChange: false
         },
         value: initialText !== null ? initialText : champions[this.initialChampion],
-        keyMap: 'sublime'
+        keyMap: 'sublime',
+        extraKeys: { 'Ctrl-Space': 'autocomplete' }
       })
 
       // @ts-ignore
@@ -56,7 +56,7 @@ export class Editor extends React.Component<IEditorProps> {
   }
 
   compile(code: string) {
-    let champion = compile_champion(code)
+    let champion = corewar.compile_champion(code)
     this.props.onCodeChanged(code, champion)
   }
 
@@ -98,7 +98,7 @@ export class Editor extends React.Component<IEditorProps> {
 
 export const ASM_LANGUAGE_ID = 'corewar-asm'
 
-CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
+CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function (
   code: string,
   opts: { editor: Editor }
 ) {
@@ -107,15 +107,15 @@ CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
     return []
   } catch (err) {
     opts.editor.props.onCodeChanged(code, null)
-    const compileError = err as CompileError
-    const region = compileError.region() as Region | null
+    const compileError = err as import('corewa-rs').CompileError
+    const region = compileError.region() as import('corewa-rs').Region | null
     let [from_row, from_col, to_row, to_col] = (() => {
       if (region != null)
         return [region.from_row - 1, region.from_col, region.to_row - 1, region.to_col]
       else return [0, 0, 5000, 5000]
     })()
 
-    if (from_col == to_col) ++to_col
+    if (from_col == to_col)++to_col
 
     return [
       {
@@ -125,6 +125,21 @@ CodeMirror.registerHelper('lint', ASM_LANGUAGE_ID, function(
       }
     ]
   }
+})
+
+CodeMirror.registerHelper('hint', ASM_LANGUAGE_ID, function (
+  editor: CodeMirror.Doc,
+  _opts: any
+) {
+  //@ts-ignore
+  const cursor = editor.getCursor()
+
+  // console.log(cursor)
+  // return {
+  //   list: ['st r1, 42', 'd', 'efghij', 'kl'],
+  //   from: CodeMirror.Pos(cursor.line, 0),
+  //   to: CodeMirror.Pos(cursor.line, 10)
+  // }
 })
 
 const ALL_KEYWORDS = [
@@ -148,7 +163,7 @@ const ALL_KEYWORDS = [
 
 const COMMENT_CHAR = '#'
 
-CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
+CodeMirror.defineMode(ASM_LANGUAGE_ID, function (_config, _parserConfig) {
   const lineCommentStartSymbol = COMMENT_CHAR
 
   const directives = new Set(['.name', '.comment', '.code'])
@@ -156,13 +171,13 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function(_config, _parserConfig) {
   const KEYWORDS = new Set(ALL_KEYWORDS.map(([kw, ..._]) => kw))
 
   return {
-    startState: function() {
+    startState: function () {
       return {
         tokenize: null
       }
     },
 
-    token: function(stream, state) {
+    token: function (stream, state) {
       if (state.tokenize) {
         return state.tokenize(stream, state)
       }
@@ -295,7 +310,7 @@ function toggleLineComment(line: string): ToggleComment {
   }
 }
 
-CodeMirror.defineExtension('toggleComment', function(
+CodeMirror.defineExtension('toggleComment', function (
   this: CodeMirror.Doc,
   _options: any
 ) {

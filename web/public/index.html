@@ -14,21 +14,20 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/addon/lint/lint.min.css" />
     <!-- key map -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/keymap/sublime.min.js"></script>
+    <!-- autocomplete -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/addon/hint/show-hint.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/addon/hint/show-hint.min.css"></script>
   <!-- Codemirror -->
 
   <!-- Flexlayout theme -->
   <link rel="stylesheet" href="../node_modules/flexlayout-react/style/dark.css" />
 
-  <!-- Wasm bindgen entrypoint -->
-  <script src="../src/corewar.js"></script>
-
   <link rel="stylesheet" href="../node_modules/github-markdown-css/github-markdown.css">
-  <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
   <div id="app"></div>
-  <script src="../src/bootstrap.ts"></script>
+  <script src="./bundle.js"></script>
 </body>
 
 </html>
