@@ -8,7 +8,6 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
-linked_hash_set = "0.1"
 byteorder = "1.3"
 derive_more = "0.15"
 

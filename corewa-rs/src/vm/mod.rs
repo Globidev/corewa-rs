@@ -15,7 +15,7 @@ use process::{Process, ProcessState};
 use memory::Memory;
 use types::*;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CStr;
 
 pub struct VirtualMachine {
@@ -63,7 +63,7 @@ impl VirtualMachine {
         if self.processes.is_empty() { return }
 
         let mut forks = Vec::with_capacity(8192);
-        let mut lives = linked_hash_set::LinkedHashSet::new();
+        let mut lives = HashSet::new();
 
         for mut process in self.processes.iter_mut().rev() {
             match process.state {

@@ -3,6 +3,8 @@ use super::PidPool;
 use super::process::Process;
 use super::types::*;
 
+use std::collections::HashSet;
+
 pub struct ExecutionContext<'a> {
     pub memory: &'a mut super::memory::Memory,
     pub process: &'a mut Process,
@@ -10,7 +12,7 @@ pub struct ExecutionContext<'a> {
     pub cycle: u32,
     pub live_count: &'a mut u32,
     pub pid_pool: &'a mut PidPool,
-    pub live_ids: &'a mut linked_hash_set::LinkedHashSet<PlayerId>
+    pub live_ids: &'a mut HashSet<PlayerId>
 }
 
 impl ExecutionContext<'_> {
