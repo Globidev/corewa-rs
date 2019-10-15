@@ -1,9 +1,9 @@
 use crate::spec::*;
 use super::types::*;
 
-use std::ops::Index;
+use arraytools::ArrayTools;
 
-pub trait Read: Index<usize, Output = u8> {
+pub trait Read: std::ops::Index<usize, Output = u8> {
     fn read_i32(&self, at: usize) -> i32;
     fn read_i16(&self, at: usize) -> i16;
 }
@@ -85,11 +85,7 @@ fn params_from_unambiguous_masks(masks: [u8; MAX_PARAMS]) -> ParamTypes {
         }
     }
 
-    [
-        to_param_type(masks[0]),
-        to_param_type(masks[1]),
-        to_param_type(masks[2]),
-    ]
+    masks.map(to_param_type)
 }
 
 fn read_pcb_params(pcb: u8, op_spec: &OpSpec)
