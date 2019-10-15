@@ -6,9 +6,8 @@ node_modules
 dist
 dev
 .cache
-web/src/champions.ts
-web/src/corewar.js
-web/src/corewar.d.ts
-web/src/corewar_bg.d.ts
+web/src/assets/champions.ts
+web/README.md
 .vscode
 Cargo.lock
+pack-champions.py
