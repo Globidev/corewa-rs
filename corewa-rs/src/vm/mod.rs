@@ -69,19 +69,19 @@ impl VirtualMachine {
             match process.state {
                 // Attempt to read instruction
                 ProcessState::Idle => {
-                    if let Ok(op) = self.memory.decode_op(*process.pc) {
+                    if let Ok(op) = self.memory.decode_op(process.pc.addr()) {
                         let exec_at = self.cycles + OpSpec::from(op).cycles - 1;
                         process.state = ProcessState::Executing { exec_at, op };
                     } else {
-                        let pc_start = *process.pc;
+                        let pc_start = process.pc.addr();
                         process.pc.advance(1);
                         self.process_count_per_cells[pc_start] -= 1;
-                        self.process_count_per_cells[*process.pc] += 1;
+                        self.process_count_per_cells[process.pc.addr()] += 1;
                     }
                 },
                 // Execute
                 ProcessState::Executing { exec_at, op } if exec_at == self.cycles => {
-                    let pc_start = *process.pc;
+                    let pc_start = process.pc.addr();
                     match self.memory.decode_instr(op, pc_start) {
                         Ok(instr) => {
                             let execution_context = ExecutionContext {
@@ -101,7 +101,7 @@ impl VirtualMachine {
                     };
                     process.state = ProcessState::Idle;
                     self.process_count_per_cells[pc_start] -= 1;
-                    self.process_count_per_cells[*process.pc] += 1;
+                    self.process_count_per_cells[process.pc.addr()] += 1;
                 },
 
                 _ => ()
@@ -111,7 +111,7 @@ impl VirtualMachine {
         self.memory.tick();
 
         for process in &forks {
-            self.process_count_per_cells[*process.pc] += 1;
+            self.process_count_per_cells[process.pc.addr()] += 1;
             if let Some(count) = self.process_count_by_player_id.get_mut(&process.player_id) {
                 *count += 1;
             }
@@ -134,7 +134,7 @@ impl VirtualMachine {
                 .drain_filter(|process| process.last_live_cycle <= last_live_check);
 
             for process in process_killed {
-                self.process_count_per_cells[*process.pc] -= 1;
+                self.process_count_per_cells[process.pc.addr()] -= 1;
                 if let Some(count) = self.process_count_by_player_id.get_mut(&process.player_id) {
                     *count -= 1;
                 }

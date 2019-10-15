@@ -33,7 +33,7 @@ impl ProcessInfo {
         Self {
             pid: process.pid,
             player_id: process.player_id,
-            pc: *process.pc,
+            pc: process.pc.addr(),
             registers: process.registers,
             zf: process.zf,
             last_live_cycle: process.last_live_cycle,

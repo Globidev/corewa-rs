@@ -21,12 +21,8 @@ impl ProgramCounter {
         let offset = offset % reach as isize;
         mem_offset(self.0, offset)
     }
-}
 
-impl std::ops::Deref for ProgramCounter {
-    type Target = usize;
-
-    fn deref(&self) -> &usize {
-        &self.0
+    pub fn addr(&self) -> usize {
+        self.0
     }
 }
