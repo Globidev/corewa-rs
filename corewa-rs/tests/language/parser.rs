@@ -1,6 +1,6 @@
-use corewar::language::lexer::Term::*;
-use corewar::language::parser::{ParsedLine::{self, *}, parse_line, ParseError::{self, *}};
-use corewar::language::types::{Op::*, *};
+use corewa_rs::language::lexer::Term::*;
+use corewa_rs::language::parser::{ParsedLine::{self, *}, parse_line, ParseError::{self, *}};
+use corewa_rs::language::types::{Op::*, *};
 
 fn parse_ok(input: &str) -> ParsedLine {
     parse_line(input).expect("Failed to parse")

@@ -1,7 +1,4 @@
-extern crate corewar;
-
-use corewar::vm::VirtualMachine;
-// use corewar::vm::types::PlayerId;
+use corewa_rs::vm::VirtualMachine;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -14,19 +11,20 @@ fn main() -> Result<(), io::Error> {
 
     println!("{:?}", opts);
 
-    if opts.champion_files.len() < 1 {
+    if opts.champion_files.is_empty() {
         panic!("Require at least 1 champion");
     }
 
-    let players = opts.champion_files.iter()
+    let mut vm = VirtualMachine::new();
+
+    let players: Vec<_> = opts.champion_files.iter()
         .enumerate()
         .map(|(i, file_name)| {
             let champion = read_cor_file(&file_name)?;
             Ok((i as i32 + 1, champion))
         })
-        .collect::<Result<Vec<_>, io::Error>>()?;
+        .collect::<Result<_, io::Error>>()?;
 
-    let mut vm = VirtualMachine::new();
     vm.load_players(&players);
 
     while !vm.processes.is_empty() {

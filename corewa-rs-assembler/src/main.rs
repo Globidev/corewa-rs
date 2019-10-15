@@ -1,6 +1,6 @@
-fn main() {
-    use corewar::language::{read_champion, write_champion};
+use corewa_rs::language::{read_champion, write_champion};
 
+fn main() {
     let champion = read_champion(std::io::stdin())
         .expect("Failed to read champion");
 

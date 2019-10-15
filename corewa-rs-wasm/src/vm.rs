@@ -1,5 +1,5 @@
-use crate::vm::types::*;
-use crate::vm::VirtualMachine as VMImpl;
+use corewa_rs::vm::types::*;
+use corewa_rs::vm::VirtualMachine as VMImpl;
 
 use super::champion::ChampionInfo;
 use super::decoder::DecodeResult;

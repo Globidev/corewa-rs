@@ -1,5 +1,5 @@
-use corewar::language::lexer::{Token, TokenResult, LexerErrorKind::*, NumberBase::*, Term::*};
-use corewar::language;
+use corewa_rs::language::lexer::{Token, TokenResult, LexerErrorKind::*, NumberBase::*, Term::*};
+use corewa_rs::language;
 
 fn tokens(input: &str) -> Vec<TokenResult> {
     language::lexer::Tokenizer::new(input)

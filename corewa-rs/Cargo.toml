@@ -1,0 +1,19 @@
+[package]
+name = "corewa-rs"
+version = "0.1.0"
+authors = ["Guillaume Depardon <guillaume.depardon@gmail.com>"]
+description = "Virtual arena"
+repository = "https://github.com/Globidev/corewar-rs"
+license = "MIT"
+edition = "2018"
+
+[dependencies]
+linked_hash_set = "0.1"
+byteorder = "1.3"
+derive_more = "0.15"
+
+[dev-dependencies]
+rand = "0.7"
+
+[profile.release]
+lto = true

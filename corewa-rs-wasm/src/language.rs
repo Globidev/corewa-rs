@@ -1,4 +1,4 @@
-use crate::language;
+use corewa_rs::language;
 
 use wasm_bindgen::prelude::*;
 

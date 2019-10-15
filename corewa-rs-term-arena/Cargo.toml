@@ -1,0 +1,9 @@
+[package]
+name = "corewa-rs-term-arena"
+version = "0.1.0"
+authors = ["Guillaume Depardon <guillaume.depardon@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+corewa-rs = { path = "../corewa-rs" }
+structopt = "0.3"

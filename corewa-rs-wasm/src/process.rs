@@ -1,6 +1,6 @@
-use crate::vm::process::{Process, ProcessState};
-use crate::vm::types::*;
-use crate::spec::*;
+use corewa_rs::vm::process::{Process, ProcessState};
+use corewa_rs::vm::types::*;
+use corewa_rs::spec::*;
 
 use wasm_bindgen::prelude::*;
 

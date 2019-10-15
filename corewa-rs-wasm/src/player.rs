@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-use crate::vm::types::{Player, PlayerId};
+use corewa_rs::vm::types::{Player, PlayerId};
 
 #[wasm_bindgen]
 pub struct PlayerInfo {

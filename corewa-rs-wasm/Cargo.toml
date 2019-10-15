@@ -1,0 +1,17 @@
+[package]
+name = "corewa-rs-wasm"
+version = "0.1.0"
+authors = ["Guillaume Depardon <guillaume.depardon@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+corewa-rs = { path = "../corewa-rs" }
+cfg-if = "0.1"
+wasm-bindgen = "0.2"
+console_error_panic_hook = { version = "0.1", optional = true }

@@ -1,4 +1,4 @@
-use corewar::language;
+use corewa_rs::language;
 
 use language::ReadError::AssembleError;
 use language::assembler::AssembleError::*;
