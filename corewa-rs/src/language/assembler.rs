@@ -81,25 +81,14 @@ pub enum ParsedInstruction {
     RawCode(Vec<u8>)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Display)]
 pub enum AssembleError {
+    #[display(fmt = "Duplicate '.name' directive: the champion was already named '{}'", _0)]
     NameAlreadySet(String),
+    #[display(fmt = "Duplicate '.comment' directive: the champion already had a comment '{}'", _0)]
     CommentAlreadySet(String),
+    #[display(fmt = "The champion is missing a '.name' directive")]
     MissingName,
+    #[display(fmt = "The champion is missing a '.comment' directive")]
     MissingComment,
-}
-
-use std::fmt;
-
-impl fmt::Display for AssembleError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use AssembleError::*;
-
-        match self {
-            NameAlreadySet(previous_name) => write!(f, "Duplicate '.name' directive: the champion was already named '{}'", previous_name),
-            CommentAlreadySet(previous_comment) => write!(f, "Duplicate '.comment' directive: the champion already had a comment '{}'", previous_comment),
-            MissingName => write!(f, "The champion is missing a '.name' directive"),
-            MissingComment => write!(f, "The champion is missing a '.comment' directive"),
-        }
-    }
 }

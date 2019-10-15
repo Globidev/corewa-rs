@@ -328,29 +328,18 @@ impl Header {
     }
 }
 
-#[derive(Debug, From)]
+#[derive(Debug, From, Display)]
 pub enum CompileError {
+    #[display(fmt = "The champion's name is too long: {} bytes (maximum allowed is {})", _0, PROG_NAME_LENGTH)]
     ProgramNameTooLong(usize),
+    #[display(fmt = "The champion's comment is too long: {} bytes (maximum allowed is {})", _0, PROG_COMMENT_LENGTH)]
     ProgramCommentTooLong(usize),
+    #[display(fmt = "The label '{}' is missing. It is referenced in a parameter but has never been declared", _0)]
     MissingLabel(String),
+    #[display(fmt = "The label '{}' has been declared multiple times. A label can only be declared once", _0)]
     DuplicateLabel(String),
+    #[display(fmt = "The champion's code is too big: {} bytes (maximum allowed is {})", _0, CHAMP_MAX_SIZE)]
     ProgramTooLong(usize),
+    #[display(fmt = "Unexpected IO error: {}", _0)]
     IOError(IOError),
-}
-
-use std::fmt;
-
-impl fmt::Display for CompileError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use CompileError::*;
-
-        match self {
-            ProgramNameTooLong(size) => write!(f, "The champion's name is too long: {} bytes (maximum allowed is {})", size, PROG_NAME_LENGTH),
-            ProgramCommentTooLong(size) => write!(f, "The champion's comment is too long: {} bytes (maximum allowed is {})", size, PROG_COMMENT_LENGTH),
-            MissingLabel(label) => write!(f, "The label '{}' is missing. It is referenced in a parameter but has never been declared", label),
-            DuplicateLabel(label) => write!(f, "The label '{}' has been declared multiple times. A label can only be declared once", label),
-            ProgramTooLong(size) => write!(f, "The champion's code is too big: {} bytes (maximum allowed is {})", size, CHAMP_MAX_SIZE),
-            IOError(err) => write!(f, "Unexpected IO error: {}", err)
-        }
-    }
 }

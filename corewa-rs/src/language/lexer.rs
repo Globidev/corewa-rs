@@ -199,18 +199,29 @@ impl Tokenizer<'_> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Display)]
 pub enum Term {
+    #[display(fmt = "Name directive")]
     ChampionNameCmd,
+    #[display(fmt = "Comment directive")]
     ChampionCommentCmd,
+    #[display(fmt = "Code directive")]
     CodeCmd,
+    #[display(fmt = "Quoted string")]
     QuotedString,
+    #[display(fmt = "Comment")]
     Comment,
+    #[display(fmt = "Label declaration")]
     LabelDef,
+    #[display(fmt = "Label reference")]
     LabelUse,
+    #[display(fmt = "Parameter separator")]
     ParamSeparator,
+    #[display(fmt = "Direct character")]
     DirectChar,
+    #[display(fmt = "Number")]
     Number { base: NumberBase },
+    #[display(fmt = "Identifier")]
     Ident
 }
 
@@ -235,14 +246,21 @@ pub struct LexerError {
     pub at: InputRange
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Display)]
 pub enum LexerErrorKind {
+    #[display(fmt = "No token matched")]
     NoMatch,
+    #[display(fmt = "Unknown directive")]
     InvalidDirective,
+    #[display(fmt = "Missing end quote for string")]
     UnclosedQuotedString,
+    #[display(fmt = "Missing number after minus sign")]
     NoNumberAfterMinus,
+    #[display(fmt = "Invalid number")]
     InvalidNumberAfterBase,
+    #[display(fmt = "Invalid number base: {}", _0)]
     InvalidNumberBase(char),
+    #[display(fmt = "Missing label name")]
     EmptyLabel
 }
 
@@ -255,43 +273,5 @@ impl LexerErrorKind {
 impl Term {
     pub fn at(self, range: InputRange) -> Token {
         Token { term: self, range }
-    }
-}
-
-use std::fmt;
-
-impl fmt::Display for Term {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Term::*;
-
-        match self {
-            ChampionNameCmd => write!(f, "Name directive"),
-            ChampionCommentCmd => write!(f, "Comment directive"),
-            CodeCmd => write!(f, "Code directive"),
-            QuotedString => write!(f, "Quoted string"),
-            Comment => write!(f, "Comment"),
-            LabelDef => write!(f, "Label declaration"),
-            LabelUse => write!(f, "Label reference"),
-            ParamSeparator => write!(f, "Parameter separator"),
-            DirectChar => write!(f, "Direct character"),
-            Number { .. } => write!(f, "Number"),
-            Ident => write!(f, "Identifier"),
-        }
-    }
-}
-
-impl fmt::Display for LexerErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use LexerErrorKind::*;
-
-        match self {
-            NoMatch => write!(f, "No token matched"),
-            InvalidDirective => write!(f, "Unknown directive"),
-            UnclosedQuotedString => write!(f, "Missing end quote for string"),
-            NoNumberAfterMinus => write!(f, "Missing number after minus sign"),
-            InvalidNumberAfterBase => write!(f, "Invalid number"),
-            InvalidNumberBase(invalid) => write!(f, "Invalid number base: {}", invalid),
-            EmptyLabel => write!(f, "Missing label name"),
-        }
     }
 }
