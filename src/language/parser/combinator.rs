@@ -2,7 +2,7 @@ pub trait Parser<I>: Sized {
     type Output;
     type Err;
 
-    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err>;
+    fn parse(&mut self, input: &mut I) -> Result<Self::Output, Self::Err>;
 
     fn map<F>(self, f: F) -> Map<Self, F> {
         Map(self, f)
@@ -26,26 +26,30 @@ pub struct Many<P>(P);
 impl<I, E, T, U, P, F> Parser<I> for Map<P, F>
 where
     P: Parser<I, Output = T, Err = E>,
-    F: FnOnce(T) -> U,
+    F: FnMut(T) -> U,
 {
     type Output = U;
     type Err = E;
 
-    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
-        self.0.parse(input).map(self.1)
+    fn parse(&mut self, input: &mut I) -> Result<Self::Output, Self::Err> {
+        let Self(parser, transform) = self;
+
+        parser.parse(input).map(transform)
     }
 }
 
 impl<I, E, T, G, P, F> Parser<I> for MapErr<P, F>
 where
     P: Parser<I, Output = T, Err = E>,
-    F: FnOnce(E) -> G,
+    F: FnMut(E) -> G,
 {
     type Output = T;
     type Err = G;
 
-    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
-        self.0.parse(input).map_err(self.1)
+    fn parse(&mut self, input: &mut I) -> Result<Self::Output, Self::Err> {
+        let Self(parser, on_err) = self;
+
+        parser.parse(input).map_err(on_err)
     }
 }
 
@@ -58,12 +62,12 @@ where
     type Output = T;
     type Err = (E1, E2);
 
-    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
-        let (p1, p2) = (self.0, self.1);
+    fn parse(&mut self, input: &mut I) -> Result<Self::Output, Self::Err> {
+        let Self(p1, p2) = self;
         let saved = input.clone();
 
         p1.parse(input).or_else(|e1| {
-            std::mem::replace(input, saved);
+            *input = saved;
             p2.parse(input).map_err(|e2| (e1, e2))
         })
     }
@@ -77,15 +81,15 @@ where
     type Output = Vec<T>;
     type Err = E;
 
-    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
+    fn parse(&mut self, input: &mut I) -> Result<Self::Output, Self::Err> {
         let mut out = Vec::new();
 
         loop {
             let saved = input.clone();
-            match self.0.clone().parse(input) {
+            match self.0.parse(input) {
                 Ok(x) => out.push(x),
                 Err(_) => {
-                    std::mem::replace(input, saved);
+                    *input = saved;
                     break
                 }
             }
@@ -97,12 +101,12 @@ where
 
 impl<I, T, E, F> Parser<I> for F
 where
-    F: FnOnce(&mut I) -> Result<T, E>,
+    F: FnMut(&mut I) -> Result<T, E>,
 {
     type Output = T;
     type Err = E;
 
-    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Err> {
+    fn parse(&mut self, input: &mut I) -> Result<Self::Output, Self::Err> {
         self(input)
     }
 }
