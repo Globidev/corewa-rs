@@ -2,13 +2,12 @@ import * as React from 'react'
 import { observer } from 'mobx-react'
 
 import { VirtualMachine, Player } from '../../virtual_machine'
-import { ProcessCollection, ExecutingState } from '../../corewar'
 import { toCssColor, Info } from './common'
 
 const MAX_PROCESS_DISPLAYED = 32
 
 interface IProcessPanelProps {
-  processes: ProcessCollection
+  processes: import('corewa-rs').ProcessCollection
   vm: VirtualMachine
 }
 
@@ -23,7 +22,7 @@ export class ProcessPanel extends React.Component<IProcessPanelProps> {
       .fill(0)
       .map((_, i) => {
         const process = processes.at(i)
-        const state = process.executing() as ExecutingState | null
+        const state = process.executing() as import('corewa-rs').ExecutingState | null
         const playerColor = (vm.playersById.get(process.player_id) as Player).color
 
         const coloredPlayerId = (

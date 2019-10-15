@@ -1,14 +1,13 @@
 import * as React from 'react'
 import { observer } from 'mobx-react'
 
-import { DecodeResult } from '../../corewar'
 import { ASM_LANGUAGE_ID } from '../editor'
 import { autorun } from 'mobx'
 
 interface ICellPanelProps {
   idx: number
   previousIdx: number | null
-  decoded: DecodeResult
+  decoded: import('corewa-rs').DecodeResult
   onDiscard: () => void
 }
 
@@ -61,7 +60,7 @@ export class CellPanel extends React.Component<ICellPanelProps> {
   }
 }
 
-const cellString = (decoded: DecodeResult) => {
+const cellString = (decoded: import('corewa-rs').DecodeResult) => {
   let str = decoded.to_string()
   let length = decoded.byte_size()
 

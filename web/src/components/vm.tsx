@@ -3,7 +3,6 @@ import { observer } from 'mobx-react'
 import { observable, observe, reaction } from 'mobx'
 
 import { VirtualMachine } from '../virtual_machine'
-import { DecodeResult, ProcessCollection } from '../corewar'
 import { PIXIRenderer, MARGIN, MEM_HEIGHT, MEM_WIDTH } from '../renderer'
 
 import { ProcessPanel } from './panels/process'
@@ -20,8 +19,8 @@ interface IVMProps {
 }
 
 type Selection = {
-  decoded: DecodeResult
-  processes: ProcessCollection
+  decoded: import('corewa-rs').DecodeResult
+  processes: import('corewa-rs').ProcessCollection
 }
 
 @observer

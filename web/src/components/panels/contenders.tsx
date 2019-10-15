@@ -2,7 +2,6 @@ import * as React from 'react'
 import { observer } from 'mobx-react'
 
 import { VirtualMachine } from '../../virtual_machine'
-import { PlayerInfo } from '../../corewar'
 import { toCssColor, Info } from './common'
 
 interface IContendersPanelProps {
@@ -29,7 +28,7 @@ export class ContendersPanel extends React.Component<IContendersPanelProps> {
         {Array.from(vm.playersById.values()).map((player, i) => {
           if (vm.cycles === null) return null
 
-          let playerInfo = vm.engine.player_info(player.id) as PlayerInfo | null
+          let playerInfo = vm.engine.player_info(player.id) as import('corewa-rs').PlayerInfo | null
           if (playerInfo === null) return null
 
           let championInfo = vm.engine.champion_info(player.id)

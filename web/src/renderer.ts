@@ -1,6 +1,5 @@
 import * as PIXI from 'pixi.js'
 
-import { Memory } from './corewar'
 import { Player } from './virtual_machine'
 
 // @ts-ignore
@@ -34,7 +33,7 @@ interface RendererSetup {
 }
 
 interface RenderContext {
-  memory: Memory
+  memory: import('corewa-rs').Memory
   selections: { idx: number; length: number }[]
   playersById: Map<number, Player>
 }
