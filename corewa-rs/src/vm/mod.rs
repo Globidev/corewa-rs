@@ -110,17 +110,18 @@ impl VirtualMachine {
 
         self.memory.tick();
 
-        forks.iter().for_each(|p| {
-            self.process_count_per_cells[*p.pc] += 1;
-            self.process_count_by_player_id.entry(p.player_id)
-                .and_modify(|count| *count += 1);
-        });
+        for process in &forks {
+            self.process_count_per_cells[*process.pc] += 1;
+            if let Some(count) = self.process_count_by_player_id.get_mut(&process.player_id) {
+                *count += 1;
+            }
+        }
 
         self.processes.append(&mut forks);
 
-        for process in &self.players {
-            if lives.contains(&process.id) {
-                self.last_lives.insert(process.id, self.cycles);
+        for player in &self.players {
+            if lives.contains(&player.id) {
+                self.last_lives.insert(player.id, self.cycles);
             }
         }
 
@@ -134,8 +135,9 @@ impl VirtualMachine {
 
             for process in process_killed {
                 self.process_count_per_cells[*process.pc] -= 1;
-                self.process_count_by_player_id.entry(process.player_id)
-                    .and_modify(|count| *count -= 1);
+                if let Some(count) = self.process_count_by_player_id.get_mut(&process.player_id) {
+                    *count -= 1;
+                }
             }
 
             if self.live_count_since_last_check >= NBR_LIVE {
