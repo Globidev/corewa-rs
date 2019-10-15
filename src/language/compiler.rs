@@ -274,13 +274,13 @@ impl<W: Write + Seek> State<W> {
     }
 }
 
-fn write_numeric(out: &mut impl Write, n: u32, size: usize)
+fn write_numeric(mut out: impl Write, n: u32, size: usize)
     -> CompileResult<usize>
 {
-    let as_be = n.to_be() >> ((4 - size) * 8);
-    let as_array: [u8; 4] = unsafe { mem::transmute(as_be) };
+    let truncated = n << ((4 - size) * 8);
+    let be_bytes = truncated.to_be_bytes();
 
-    Ok(out.write(&as_array[..size])?)
+    Ok(out.write(&be_bytes[..size])?)
 }
 
 #[derive(Debug)]
@@ -295,22 +295,24 @@ const IND_SIZE: usize = 2;
 
 impl Header {
     fn new(champion: &Champion, prog_size: u32)-> CompileResult<Self> {
-        let mut header: Self = unsafe { mem::zeroed() };
-
-        header.magic = spec::COREWAR_MAGIC.to_be();
-        header.prog_size = prog_size.to_be();
-
+        let mut prog_name = [0; PROG_NAME_LENGTH + 1];
         let name = champion.name.as_bytes();
-        header.prog_name.get_mut(..name.len())
+        prog_name.get_mut(..name.len())
             .ok_or_else(|| CompileError::ProgramNameTooLong(name.len()))?
             .copy_from_slice(name);
 
+        let mut prog_comment = [0; PROG_COMMENT_LENGTH + 1];
         let comment = champion.comment.as_bytes();
-        header.prog_comment.get_mut(..comment.len())
+        prog_comment.get_mut(..comment.len())
             .ok_or_else(|| CompileError::ProgramCommentTooLong(comment.len()))?
             .copy_from_slice(comment);
 
-        Ok(header)
+        Ok(Header {
+            magic: spec::COREWAR_MAGIC.to_be(),
+            prog_size: prog_size.to_be(),
+            prog_name,
+            prog_comment
+        })
     }
 }
 
