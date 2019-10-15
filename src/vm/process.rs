@@ -36,10 +36,10 @@ impl Process {
     pub fn fork(pid: Pid, pc: ProgramCounter, ctx: &ExecutionContext<'_>) -> Self {
         Self {
             pid,
-            player_id: ctx.player_id,
+            player_id: ctx.process.player_id,
             pc,
-            registers: *ctx.registers,
-            zf: *ctx.zf,
+            registers: ctx.process.registers,
+            zf: ctx.process.zf,
             state: ProcessState::Idle,
             last_live_cycle: 0
         }

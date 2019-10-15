@@ -65,7 +65,7 @@ impl VirtualMachine {
         let mut forks = Vec::with_capacity(8192);
         let mut lives = linked_hash_set::LinkedHashSet::new();
 
-        for process in self.processes.iter_mut().rev() {
+        for mut process in self.processes.iter_mut().rev() {
             match process.state {
                 // Attempt to read instruction
                 ProcessState::Idle => {
@@ -86,11 +86,7 @@ impl VirtualMachine {
                         Ok(instr) => {
                             let execution_context = ExecutionContext {
                                 memory: &mut self.memory,
-                                player_id: process.player_id,
-                                pc: &mut process.pc,
-                                registers: &mut process.registers,
-                                zf: &mut process.zf,
-                                last_live_cycle: &mut process.last_live_cycle,
+                                process: &mut process,
                                 forks: &mut forks,
                                 cycle: self.cycles,
                                 live_count: &mut self.live_count_since_last_check,
@@ -215,7 +211,7 @@ fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext<'_>) {
     };
 
     exec(&instr, &mut ctx);
-    ctx.pc.advance(instr.byte_size as isize);
+    ctx.process.pc.advance(instr.byte_size as isize);
 }
 
 impl Header {
