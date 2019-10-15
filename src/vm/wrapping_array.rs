@@ -13,7 +13,7 @@ impl<T> WrappingArray<T> {
 
 impl<T> std::iter::FromIterator<T> for WrappingArray<T> {
     fn from_iter<It: IntoIterator<Item = T>>(iter: It) -> Self {
-        Self(Vec::from_iter(iter).into_boxed_slice())
+        Self(iter.into_iter().collect())
     }
 }
 
