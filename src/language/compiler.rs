@@ -124,16 +124,10 @@ impl<W: Write + Seek> State<W> {
     }
 
     fn write_header(&mut self, champion: &Champion) -> CompileResult<()> {
-        let header = Header::new(champion, self.size as u32)?;
-
-        let header_data = {
-            let raw_header = &header as *const Header;
-            let header_len = mem::size_of::<Header>();
-            unsafe { ::std::slice::from_raw_parts(raw_header as *const u8, header_len) }
-        };
+        let header = Header::from_champion(champion, self.size as u32)?;
 
         self.out.seek(SeekFrom::Start(0))?;
-        self.out.write_all(header_data)?;
+        header.write_packed_bytes(&mut self.out)?;
 
         Ok(())
     }
@@ -294,7 +288,7 @@ struct LabelPlaceholder {
 const IND_SIZE: usize = 2;
 
 impl Header {
-    fn new(champion: &Champion, prog_size: u32)-> CompileResult<Self> {
+    fn from_champion(champion: &Champion, prog_size: u32)-> CompileResult<Self> {
         let mut prog_name = [0; PROG_NAME_LENGTH + 1];
         let name = champion.name.as_bytes();
         prog_name.get_mut(..name.len())
@@ -307,12 +301,30 @@ impl Header {
             .ok_or_else(|| CompileError::ProgramCommentTooLong(comment.len()))?
             .copy_from_slice(comment);
 
-        Ok(Header {
-            magic: spec::COREWAR_MAGIC.to_be(),
-            prog_size: prog_size.to_be(),
+        Ok(Self {
+            magic: spec::COREWAR_MAGIC,
+            prog_size,
             prog_name,
             prog_comment
         })
+    }
+
+    fn write_packed_bytes(&self, mut out: impl Write) -> Result<(), IOError> {
+        let magic_bytes = self.magic.to_be_bytes();
+        let prog_size_bytes = self.prog_size.to_be_bytes();
+
+        let parts: [&[u8]; 4] = [
+            &magic_bytes,
+            &self.prog_name,
+            &prog_size_bytes,
+            &self.prog_comment
+        ];
+
+        for part in &parts {
+            out.write_all(part)?;
+        }
+
+        Ok(())
     }
 }
 

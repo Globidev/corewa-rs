@@ -16,6 +16,7 @@ use memory::Memory;
 use types::*;
 
 use std::collections::HashMap;
+use std::ffi::CStr;
 
 pub struct VirtualMachine {
     pub players: Vec<Player>,
@@ -159,20 +160,19 @@ impl VirtualMachine {
     }
 
     pub fn load_players(&mut self, players: &[(PlayerId, Vec<u8>)]) {
-        let player_spacing = MEM_SIZE / ::std::cmp::max(1, players.len());
+        let player_spacing = MEM_SIZE / players.len().max(1);
         for (i, (player_id, program)) in players.iter().enumerate() {
             let header_bytes = &program[..HEADER_SIZE];
+            let header = Header::from_bytes(header_bytes);
 
-            unsafe {
-                let header_ptr = header_bytes.as_ptr() as * const Header;
-
-                self.players.push(Player {
-                    id: *player_id,
-                    name: from_nul_bytes(&(*header_ptr).prog_name),
-                    comment: from_nul_bytes(&(*header_ptr).prog_comment),
-                    size: program.len() - HEADER_SIZE
-                });
-            };
+            self.players.push(Player {
+                id: *player_id,
+                name: header.name().to_owned().into_string()
+                    .expect("Invalid UTF8 in program name"),
+                comment: header.comment().to_owned().into_string()
+                    .expect("Invalid UTF8 in program comment"),
+                size: program.len() - HEADER_SIZE
+            });
 
             let champion = &program[HEADER_SIZE..];
             self.load_champion(champion, *player_id, i * player_spacing);
@@ -218,17 +218,44 @@ fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext<'_>) {
     ctx.pc.advance(instr.byte_size as isize);
 }
 
-fn from_nul_bytes(bytes: &[u8]) -> String {
-    use std::str::from_utf8;
+impl Header {
+    fn from_bytes(bytes: &[u8]) -> Self {
+        use std::io::{Read, Cursor};
+        use byteorder::{ReadBytesExt, BigEndian};
 
-    let nul = bytes.iter()
-        .position(|c| *c == 0)
-        .expect("String not null terminated!");
+        let mut reader = Cursor::new(bytes);
 
-    let as_str = from_utf8(&bytes[..nul])
-        .expect("Invalid UTF8 string");
+        let magic = reader.read_u32::<BigEndian>()
+            .expect("Failed to read Magic");
 
-    String::from(as_str)
+        let mut prog_name = [0; PROG_NAME_LENGTH + 1];
+        reader.read_exact(&mut prog_name)
+            .expect("Failed to read program name");
+
+        let prog_size = reader.read_u32::<BigEndian>()
+            .expect("Failed to read program size");
+
+        let mut prog_comment = [0; PROG_COMMENT_LENGTH + 1];
+        reader.read_exact(&mut prog_comment)
+            .expect("Failed to read program name");
+
+        Self {
+            magic,
+            prog_name,
+            prog_size,
+            prog_comment,
+        }
+    }
+
+    fn name(&self) -> &CStr {
+        CStr::from_bytes_with_nul(&self.prog_name)
+            .expect("Invalid program name")
+    }
+
+    fn comment(&self) -> &CStr {
+        CStr::from_bytes_with_nul(&self.prog_comment)
+            .expect("Invalid program comment")
+    }
 }
 
 #[derive(Debug, Default)]
