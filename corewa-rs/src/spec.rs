@@ -44,10 +44,19 @@ pub struct OpSpec {
     pub dir_size: DirectSize
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum DirectSize {
     TwoBytes,
     FourBytes
+}
+
+impl From<DirectSize> for usize {
+    fn from(dir_size: DirectSize) -> Self {
+        match dir_size {
+            DirectSize::TwoBytes => 2,
+            DirectSize::FourBytes => 4,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

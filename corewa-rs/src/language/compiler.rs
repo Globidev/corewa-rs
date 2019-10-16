@@ -208,19 +208,22 @@ impl<W: Write + Seek> State<W> {
         self.write(&[reg.0])
     }
 
-    fn write_dir(&mut self, dir: Direct, size: usize) -> CompileResult<()> {
+    fn write_dir(&mut self, dir: Direct, dir_size: DirectSize) -> CompileResult<()> {
         match dir {
             Direct::Label(label) => {
                 self.labels_to_fill.push(LabelPlaceholder {
                     write_pos: self.size,
                     op_pos: self.current_op_pos,
                     name: label,
-                    size,
+                    size: dir_size.into(),
                 });
-                self.write(&vec![0; size])
+                self.write(match dir_size {
+                    DirectSize::TwoBytes => &[0; 2],
+                    DirectSize::FourBytes => &[0; 4],
+                })
             },
-            Direct::Numeric(n)   => {
-                self.size += write_numeric(&mut self.out, n as u32, size)?;
+            Direct::Numeric(n) => {
+                self.size += write_numeric(&mut self.out, n as u32, dir_size.into())?;
                 Ok(())
             },
         }
@@ -237,17 +240,17 @@ impl<W: Write + Seek> State<W> {
                 });
                 self.write(&[0, 0])
             },
-            Indirect::Numeric(n)   => {
+            Indirect::Numeric(n) => {
                 self.size += write_numeric(&mut self.out, n as u32, IND_SIZE)?;
                 Ok(())
             }
         }
     }
 
-    fn write_rd(&mut self, rd: RegDir, size: usize) -> CompileResult<()> {
+    fn write_rd(&mut self, rd: RegDir, dir_size: DirectSize) -> CompileResult<()> {
         match rd {
             RegDir::Reg(reg) => self.write_reg(reg),
-            RegDir::Dir(dir) => self.write_dir(dir, size)
+            RegDir::Dir(dir) => self.write_dir(dir, dir_size)
         }
     }
 
@@ -258,28 +261,28 @@ impl<W: Write + Seek> State<W> {
         }
     }
 
-    fn write_di(&mut self, di: DirInd, size: usize) -> CompileResult<()> {
+    fn write_di(&mut self, di: DirInd, dir_size: DirectSize) -> CompileResult<()> {
         match di {
-            DirInd::Dir(dir) => self.write_dir(dir, size),
+            DirInd::Dir(dir) => self.write_dir(dir, dir_size),
             DirInd::Ind(ind) => self.write_ind(ind)
         }
     }
 
-    fn write_any(&mut self, any: AnyParam, size: usize) -> CompileResult<()> {
+    fn write_any(&mut self, any: AnyParam, dir_size: DirectSize) -> CompileResult<()> {
         match any {
             AnyParam::Reg(reg) => self.write_reg(reg),
-            AnyParam::Dir(dir) => self.write_dir(dir, size),
+            AnyParam::Dir(dir) => self.write_dir(dir, dir_size),
             AnyParam::Ind(ind) => self.write_ind(ind),
         }
     }
 }
 
-fn write_numeric(mut out: impl Write, n: u32, size: usize)
+fn write_numeric(mut out: impl Write, n: u32, write_size: usize)
     -> CompileResult<usize>
 {
-    let truncated = n << ((4 - size) * 8);
+    let truncated = n << ((4 - write_size) * 8);
     let be_bytes = truncated.to_be_bytes();
-    let bytes_to_write = &be_bytes[..size];
+    let bytes_to_write = &be_bytes[..write_size];
 
     out.write_all(bytes_to_write)?;
     Ok(bytes_to_write.len())
@@ -321,8 +324,8 @@ impl Header {
         let magic_bytes = self.magic.to_be_bytes();
         let prog_size_bytes = self.prog_size.to_be_bytes();
 
-        let parts: [&[u8]; 4] = [
-            &magic_bytes,
+        let parts = [
+            &magic_bytes[..],
             &self.prog_name,
             &prog_size_bytes,
             &self.prog_comment
