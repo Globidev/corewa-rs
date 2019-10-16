@@ -1,14 +1,13 @@
-use crate::spec::{self, Header, OpSpec, OpType, DirectSize, PROG_NAME_LENGTH, PROG_COMMENT_LENGTH, CHAMP_MAX_SIZE};
-use super::assembler::{Champion, ParsedInstruction};
+use crate::spec::*;
 use super::types::*;
+use super::assembler::{Champion, ParsedInstruction};
 
 use std::collections::HashMap;
 use std::io::{Write, Seek, SeekFrom, Error as IOError};
-use std::mem;
 
 type CompileResult<T> = Result<T, CompileError>;
 
-pub fn compile_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
+pub fn compile_champion(out: impl Write + Seek, champion: &Champion)
     -> CompileResult<usize>
 {
     let mut state = State::new(out)?;
@@ -33,7 +32,6 @@ pub fn compile_champion<W: Write + Seek>(out: &mut W, champion: &Champion)
 
 fn pcb(op: &Op) -> u8 {
     use Op::*;
-    use spec::{REG_PARAM_CODE, DIR_PARAM_CODE, IND_PARAM_CODE};
 
     let combine1 = |a|       a << 6;
     let combine2 = |a, b|    a << 6 | b << 4;
@@ -113,7 +111,7 @@ struct State<W> {
 
 impl<W: Write + Seek> State<W> {
     fn new(mut out: W) -> CompileResult<Self> {
-        out.seek(SeekFrom::Start(mem::size_of::<Header>() as u64))?;
+        out.seek(SeekFrom::Start(HEADER_SIZE as u64))?;
         Ok(Self {
             out,
             size: 0,
@@ -134,8 +132,7 @@ impl<W: Write + Seek> State<W> {
 
     fn register_label(&mut self, label: &str) -> CompileResult<()> {
         self.label_positions.insert(String::from(label), self.size)
-            .map(|_| Err(CompileError::DuplicateLabel(String::from(label))))
-            .unwrap_or_else(|| Ok(()))
+            .map_or(Ok(()), |_| Err(CompileError::DuplicateLabel(String::from(label))))
     }
 
     fn add_raw_code(&mut self, bytes: &[u8]) -> CompileResult<()> {
@@ -146,7 +143,7 @@ impl<W: Write + Seek> State<W> {
         for placeholder in &self.labels_to_fill {
             let position = *self.label_positions.get(&placeholder.name)
                 .ok_or_else(|| CompileError::MissingLabel(placeholder.name.clone()))?;
-            self.out.seek(SeekFrom::Start((mem::size_of::<spec::Header>() + placeholder.write_pos) as u64))?;
+            self.out.seek(SeekFrom::Start((HEADER_SIZE + placeholder.write_pos) as u64))?;
             write_numeric(&mut self.out, ((position as isize) - (placeholder.op_pos as isize)) as u32, placeholder.size)?;
         }
 
@@ -154,7 +151,8 @@ impl<W: Write + Seek> State<W> {
     }
 
     fn write(&mut self, buf: &[u8]) -> CompileResult<()> {
-        self.size += self.out.write(buf)?;
+        self.out.write_all(buf)?;
+        self.size += buf.len();
         Ok(())
     }
 
@@ -170,7 +168,7 @@ impl<W: Write + Seek> State<W> {
             DirectSize::TwoBytes => 2,
             DirectSize::FourBytes => 4,
         };
-        self.write_params(&op, size)
+        self.write_params(op, size)
     }
 
     fn write_params(&mut self, op: &Op, size: usize) -> CompileResult<()> {
@@ -211,7 +209,7 @@ impl<W: Write + Seek> State<W> {
                     name: label.clone(),
                     size,
                 });
-                self.write(&::std::iter::repeat(0).take(size).collect::<Vec<_>>())
+                self.write(&vec![0; size])
             },
             Direct::Numeric(n)   => {
                 self.size += write_numeric(&mut self.out, *n as u32, size)?;
@@ -273,8 +271,10 @@ fn write_numeric(mut out: impl Write, n: u32, size: usize)
 {
     let truncated = n << ((4 - size) * 8);
     let be_bytes = truncated.to_be_bytes();
+    let bytes_to_write = &be_bytes[..size];
 
-    Ok(out.write(&be_bytes[..size])?)
+    out.write_all(bytes_to_write)?;
+    Ok(bytes_to_write.len())
 }
 
 #[derive(Debug)]
@@ -302,7 +302,7 @@ impl Header {
             .copy_from_slice(comment);
 
         Ok(Self {
-            magic: spec::COREWAR_MAGIC,
+            magic: COREWAR_MAGIC,
             prog_size,
             prog_name,
             prog_comment
