@@ -14,7 +14,7 @@ fn compile_champion_impl(input: &str) -> Result<Vec<u8>, CompileError> {
     let parsed_champion = language::read_champion(input.as_bytes())?;
 
     let mut byte_code = Vec::new();
-    language::write_champion(&mut byte_code, &parsed_champion)?;
+    language::write_champion(&mut byte_code, parsed_champion)?;
 
     Ok(byte_code)
 }

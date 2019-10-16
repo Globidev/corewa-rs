@@ -2,25 +2,25 @@ use crate::spec::*;
 use super::types::*;
 use super::assembler::{Champion, ParsedInstruction};
 
-use std::collections::HashMap;
+use std::collections::{HashMap, hash_map::Entry};
 use std::io::{Write, Seek, SeekFrom, Error as IOError};
 
 type CompileResult<T> = Result<T, CompileError>;
 
-pub fn compile_champion(out: impl Write + Seek, champion: &Champion)
+pub fn compile_champion(out: impl Write + Seek, mut champion: Champion)
     -> CompileResult<usize>
 {
     let mut state = State::new(out)?;
 
-    for instr in &champion.instructions {
+    for instr in champion.instructions.drain(..) {
         match instr {
             ParsedInstruction::Op(op)         => state.write_op(op)?,
             ParsedInstruction::Label(label)   => state.register_label(label)?,
-            ParsedInstruction::RawCode(bytes) => state.add_raw_code(bytes)?,
+            ParsedInstruction::RawCode(bytes) => state.add_raw_code(&bytes)?,
         }
     }
 
-    state.write_header(champion)?;
+    state.write_header(&champion)?;
     state.resolve_labels()?;
 
     if state.size > CHAMP_MAX_SIZE {
@@ -130,13 +130,21 @@ impl<W: Write + Seek> State<W> {
         Ok(())
     }
 
-    fn register_label(&mut self, label: &str) -> CompileResult<()> {
-        self.label_positions.insert(String::from(label), self.size)
-            .map_or(Ok(()), |_| Err(CompileError::DuplicateLabel(String::from(label))))
+    fn register_label(&mut self, label: String) -> CompileResult<()> {
+        match self.label_positions.entry(label) {
+            Entry::Occupied(entry) => {
+                let (label, _) = entry.remove_entry();
+                Err(CompileError::DuplicateLabel(label))
+            },
+            Entry::Vacant(entry) => {
+                entry.insert(self.size);
+                Ok(())
+            }
+        }
     }
 
     fn add_raw_code(&mut self, bytes: &[u8]) -> CompileResult<()> {
-        self.write(bytes)
+        self.write(&bytes)
     }
 
     fn resolve_labels(&mut self) -> CompileResult<()> {
@@ -156,12 +164,12 @@ impl<W: Write + Seek> State<W> {
         Ok(())
     }
 
-    fn write_op(&mut self, op: &Op) -> CompileResult<()> {
-        let OpSpec { code, has_pcb, dir_size, .. } = op_spec(op);
+    fn write_op(&mut self, op: Op) -> CompileResult<()> {
+        let OpSpec { code, has_pcb, dir_size, .. } = op_spec(&op);
 
         self.current_op_pos = self.size;
 
-        if has_pcb { self.write(&[code, pcb(op)])?; }
+        if has_pcb { self.write(&[code, pcb(&op)])?; }
         else       { self.write(&[code])?; }
 
         let size = match dir_size {
@@ -171,7 +179,7 @@ impl<W: Write + Seek> State<W> {
         self.write_params(op, size)
     }
 
-    fn write_params(&mut self, op: &Op, size: usize) -> CompileResult<()> {
+    fn write_params(&mut self, op: Op, size: usize) -> CompileResult<()> {
         use Op::*;
 
         match op {
@@ -196,68 +204,68 @@ impl<W: Write + Seek> State<W> {
         Ok(())
     }
 
-    fn write_reg(&mut self, reg: &Register) -> CompileResult<()> {
+    fn write_reg(&mut self, reg: Register) -> CompileResult<()> {
         self.write(&[reg.0])
     }
 
-    fn write_dir(&mut self, dir: &Direct, size: usize) -> CompileResult<()> {
+    fn write_dir(&mut self, dir: Direct, size: usize) -> CompileResult<()> {
         match dir {
             Direct::Label(label) => {
                 self.labels_to_fill.push(LabelPlaceholder {
                     write_pos: self.size,
                     op_pos: self.current_op_pos,
-                    name: label.clone(),
+                    name: label,
                     size,
                 });
                 self.write(&vec![0; size])
             },
             Direct::Numeric(n)   => {
-                self.size += write_numeric(&mut self.out, *n as u32, size)?;
+                self.size += write_numeric(&mut self.out, n as u32, size)?;
                 Ok(())
             },
         }
     }
 
-    fn write_ind(&mut self, ind: &Indirect) -> CompileResult<()> {
+    fn write_ind(&mut self, ind: Indirect) -> CompileResult<()> {
         match ind {
             Indirect::Label(label) => {
                 self.labels_to_fill.push(LabelPlaceholder {
                     write_pos: self.size,
                     op_pos: self.current_op_pos,
-                    name: label.clone(),
+                    name: label,
                     size: IND_SIZE,
                 });
                 self.write(&[0, 0])
             },
             Indirect::Numeric(n)   => {
-                self.size += write_numeric(&mut self.out, *n as u32, IND_SIZE)?;
+                self.size += write_numeric(&mut self.out, n as u32, IND_SIZE)?;
                 Ok(())
             }
         }
     }
 
-    fn write_rd(&mut self, rd: &RegDir, size: usize) -> CompileResult<()> {
+    fn write_rd(&mut self, rd: RegDir, size: usize) -> CompileResult<()> {
         match rd {
             RegDir::Reg(reg) => self.write_reg(reg),
             RegDir::Dir(dir) => self.write_dir(dir, size)
         }
     }
 
-    fn write_ri(&mut self, ri: &RegInd) -> CompileResult<()> {
+    fn write_ri(&mut self, ri: RegInd) -> CompileResult<()> {
         match ri {
             RegInd::Reg(reg) => self.write_reg(reg),
             RegInd::Ind(ind) => self.write_ind(ind)
         }
     }
 
-    fn write_di(&mut self, di: &DirInd, size: usize) -> CompileResult<()> {
+    fn write_di(&mut self, di: DirInd, size: usize) -> CompileResult<()> {
         match di {
             DirInd::Dir(dir) => self.write_dir(dir, size),
             DirInd::Ind(ind) => self.write_ind(ind)
         }
     }
 
-    fn write_any(&mut self, any: &AnyParam, size: usize) -> CompileResult<()> {
+    fn write_any(&mut self, any: AnyParam, size: usize) -> CompileResult<()> {
         match any {
             AnyParam::Reg(reg) => self.write_reg(reg),
             AnyParam::Dir(dir) => self.write_dir(dir, size),

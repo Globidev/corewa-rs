@@ -26,12 +26,12 @@ pub fn read_champion(input: impl Read) -> Result<Champion, ReadError> {
     Ok(champ_builder.finish()?)
 }
 
-pub fn write_champion(mut output: impl Write, champion: &Champion)
+pub fn write_champion(mut output: impl Write, champion: Champion)
     -> Result<(), WriteError>
 {
     let mut seek_vec = Cursor::new(Vec::with_capacity(8192));
 
-    compile_champion(&mut seek_vec, &champion)?;
+    compile_champion(&mut seek_vec, champion)?;
 
     Ok(output.write_all(&seek_vec.into_inner())?)
 }
