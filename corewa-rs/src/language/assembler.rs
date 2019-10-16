@@ -1,5 +1,5 @@
 use super::parser::ParsedLine;
-use super::types::*;
+use super::types::Op;
 
 #[derive(Debug)]
 pub struct Champion {
@@ -15,66 +15,64 @@ pub struct ChampionBuilder {
     instructions: Vec<ParsedInstruction>
 }
 
-pub fn assemble_line(builder: ChampionBuilder, parsed_line: ParsedLine)
-    -> Result<ChampionBuilder, AssembleError>
-{
-    use ParsedLine::*;
-
-    match parsed_line {
-        ChampionName(name)       => builder.with_name(name),
-        ChampionComment(comment) => builder.with_comment(comment),
-        Code(bytes)              => Ok(builder.add_bytes(bytes)),
-
-        Op(op)                => Ok(builder.add_op(op)),
-        Label(label)          => Ok(builder.add_label(label)),
-        LabelAndOp(label, op) => Ok(builder.add_label(label).add_op(op)),
-
-        Empty => Ok(builder),
-    }
-}
-
 impl ChampionBuilder {
-    fn with_name(self, name: String) -> Result<Self, AssembleError> {
-        match self.name {
+    fn with_name(&mut self, name: String) -> AssembleResult<&mut Self> {
+        match self.name.take() {
             Some(name) => Err(AssembleError::NameAlreadySet(name)),
-            None       => Ok(Self { name: Some(name), ..self })
+            None => {
+                self.name = Some(name);
+                Ok(self)
+            }
         }
     }
 
-    fn with_comment(self, comment: String) -> Result<Self, AssembleError> {
-        match self.comment {
+    fn with_comment(&mut self, comment: String) -> AssembleResult<&mut Self> {
+        match self.comment.take() {
             Some(comment) => Err(AssembleError::CommentAlreadySet(comment)),
-            None          => Ok(Self { comment: Some(comment), ..self })
+            None => {
+                self.comment = Some(comment);
+                Ok(self)
+            }
         }
     }
 
-    fn add_bytes(mut self, bytes: Vec<u8>) -> Self {
-        self.instructions.push(ParsedInstruction::RawCode(bytes));
+    fn add_instr(&mut self, instr_data: impl Into<ParsedInstruction>) -> &mut Self {
+        self.instructions.push(instr_data.into());
         self
     }
 
-    fn add_label(mut self, label: String) -> Self {
-        self.instructions.push(ParsedInstruction::Label(label));
-        self
+    pub fn assemble(&mut self, parsed_line: ParsedLine) -> AssembleResult<&mut Self> {
+        use ParsedLine::*;
+
+        match parsed_line {
+            ChampionName(name)       => self.with_name(name),
+            ChampionComment(comment) => self.with_comment(comment),
+
+            Code(bytes)           => Ok(self.add_instr(bytes)),
+            Op(op)                => Ok(self.add_instr(op)),
+            Label(label)          => Ok(self.add_instr(label)),
+            LabelAndOp(label, op) => Ok(self.add_instr(label).add_instr(op)),
+
+            Empty => Ok(self),
+        }
     }
 
-    fn add_op(mut self, op: Op) -> Self {
-        self.instructions.push(ParsedInstruction::Op(op));
-        self
-    }
-
-    pub fn finish(self) -> Result<Champion, AssembleError> {
+    pub fn finish(self) -> AssembleResult<Champion> {
         match (self.name, self.comment) {
             (None, _) => Err(AssembleError::MissingName),
             (_, None) => Err(AssembleError::MissingComment),
             (Some(name), Some(comment)) => Ok(Champion {
-                name, comment, instructions: self.instructions
+                name,
+                comment,
+                instructions: self.instructions
             })
         }
     }
 }
 
-#[derive(Debug)]
+type AssembleResult<T> = Result<T, AssembleError>;
+
+#[derive(Debug, From)]
 pub enum ParsedInstruction {
     Label(String),
     Op(Op),

@@ -6,31 +6,24 @@ pub mod types;
 
 pub use parser::error_range;
 
-use assembler::{ChampionBuilder, Champion, AssembleError, assemble_line};
+use assembler::{ChampionBuilder, Champion, AssembleError};
 use compiler::{CompileError, compile_champion};
 use parser::{ParseError, parse_line};
 
 use std::io::{Read, Write, BufRead, BufReader, Cursor, Error as IOError};
 
 pub fn read_champion(input: impl Read) -> Result<Champion, ReadError> {
-    let mut parsed_lines = BufReader::new(input)
-        .lines()
-        .enumerate()
-        .map(|(line_no, read_result)| {
-            let line = read_result?;
+    let numbered_lines = BufReader::new(input).lines().zip(1..);
+    let mut champ_builder = ChampionBuilder::default();
 
-            parse_line(&line)
-                .map_err(|e| ReadError::ParseError(e, line_no + 1))
-        });
+    for (line_result, line_no) in numbered_lines {
+        let parsed_line = parse_line(&line_result?)
+            .map_err(|e| ReadError::ParseError(e, line_no))?;
 
-    let champion_assembler = parsed_lines
-        .try_fold(ChampionBuilder::default(), |builder, line_result| {
-            let parsed_line = line_result?;
+        champ_builder.assemble(parsed_line)?;
+    }
 
-            Ok::<_, ReadError>(assemble_line(builder, parsed_line)?)
-        })?;
-
-    Ok(champion_assembler.finish()?)
+    Ok(champ_builder.finish()?)
 }
 
 pub fn write_champion(mut output: impl Write, champion: &Champion)
