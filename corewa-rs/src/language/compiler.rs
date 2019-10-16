@@ -33,44 +33,25 @@ pub fn compile_champion(out: impl Write + Seek, mut champion: Champion)
 fn pcb(op: &Op) -> u8 {
     use Op::*;
 
-    let combine1 = |a|       a << 6;
-    let combine2 = |a, b|    a << 6 | b << 4;
-    let combine3 = |a, b, c| a << 6 | b << 4 | c << 2;
-
-    let rd_code = |rd| match rd {
-        &RegDir::Dir (..) => DIR_PARAM_CODE,
-        RegDir::Reg (..) => REG_PARAM_CODE,
-    };
-
-    let ri_code = |ri| match ri {
-        &RegInd::Reg (..) => REG_PARAM_CODE,
-        RegInd::Ind (..) => IND_PARAM_CODE,
-    };
-
-    let di_code = |di| match di {
-        &DirInd::Dir (..) => DIR_PARAM_CODE,
-        DirInd::Ind (..) => IND_PARAM_CODE,
-    };
-
-    let any_code = |any| match any {
-        &AnyParam::Reg (..) => REG_PARAM_CODE,
-        AnyParam::Dir (..) => DIR_PARAM_CODE,
-        AnyParam::Ind (..) => IND_PARAM_CODE,
-    };
+    macro_rules! pcb {
+        ($p1:expr) => { $p1.param_code() << 6 };
+        ($p1:expr, $p2:expr) => { $p1.param_code() << 6 | $p2.param_code() << 4 };
+        ($p1:expr, $p2:expr, $p3:expr) => { $p1.param_code() << 6 | $p2.param_code() << 4 | $p3.param_code() << 2 };
+    }
 
     match op {
-        Ld    ( di,   _        ) => combine2(di_code(di),    REG_PARAM_CODE,               ),
-        St    ( _,    ri       ) => combine2(REG_PARAM_CODE, ri_code(ri),                  ),
-        Add   ( _,    _,    _  ) => combine3(REG_PARAM_CODE, REG_PARAM_CODE, REG_PARAM_CODE),
-        Sub   ( _,    _,    _  ) => combine3(REG_PARAM_CODE, REG_PARAM_CODE, REG_PARAM_CODE),
-        And   ( any1, any2, _  ) => combine3(any_code(any1), any_code(any2), REG_PARAM_CODE),
-        Or    ( any1, any2, _  ) => combine3(any_code(any1), any_code(any2), REG_PARAM_CODE),
-        Xor   ( any1, any2, _  ) => combine3(any_code(any1), any_code(any2), REG_PARAM_CODE),
-        Ldi   ( any,  rd,   _  ) => combine3(any_code(any),  rd_code(rd),    REG_PARAM_CODE),
-        Sti   ( _,    any,  rd ) => combine3(REG_PARAM_CODE, any_code(any),  rd_code(rd)   ),
-        Lld   ( di,   _        ) => combine2(di_code(di),    REG_PARAM_CODE,               ),
-        Lldi  ( any,  rd,    _ ) => combine3(any_code(any),  rd_code(rd),    REG_PARAM_CODE),
-        Aff   ( _              ) => combine1(REG_PARAM_CODE,                               ),
+        Ld    ( di, r      ) => pcb!(di, r),
+        St    ( r,  ri     ) => pcb!(r, ri),
+        Add   ( r1, r2, r3 ) => pcb!(r1, r2, r3),
+        Sub   ( r1, r2, r3 ) => pcb!(r1, r2, r3),
+        And   ( a1, a2, r  ) => pcb!(a1, a2, r),
+        Or    ( a1, a2, r  ) => pcb!(a1, a2, r),
+        Xor   ( a1, a2, r  ) => pcb!(a1, a2, r),
+        Ldi   ( a,  rd, r  ) => pcb!(a, rd, r),
+        Sti   ( r,  a,  rd ) => pcb!(r, a, rd),
+        Lld   ( di, r      ) => pcb!(di, r),
+        Lldi  ( a,  rd, r  ) => pcb!(a, rd, r),
+        Aff   ( r          ) => pcb!(r),
 
         _ => unreachable!("has_pcb invariant broken!")
     }
@@ -172,33 +153,39 @@ impl<W: Write + Seek> State<W> {
         if has_pcb { self.write(&[code, pcb(&op)])?; }
         else       { self.write(&[code])?; }
 
-        let size = match dir_size {
-            DirectSize::TwoBytes => 2,
-            DirectSize::FourBytes => 4,
-        };
-        self.write_params(op, size)
+        self.write_params(op, dir_size)
     }
 
-    fn write_params(&mut self, op: Op, size: usize) -> CompileResult<()> {
+    fn write_params(&mut self, op: Op, dir_size: DirectSize) -> CompileResult<()> {
         use Op::*;
 
+        macro_rules! w {
+            (di:$di:expr) => { self.write_di($di, dir_size)? };
+            (ri:$ri:expr) => { self.write_ri($ri)? };
+            (rd:$rd:expr) => { self.write_rd($rd, dir_size)? };
+            (reg:$reg:expr) => { self.write_reg($reg)? };
+            (dir:$dir:expr) => { self.write_dir($dir, dir_size)? };
+            (any:$any:expr) => { self.write_any($any, dir_size)? };
+            ($($typ:tt:$exp:expr),*) => {{ $(w!($typ:$exp));* }}
+        }
+
         match op {
-            Live  ( dir,             ) => { self.write_dir(dir, size)?                                                         },
-            Ld    ( di,   reg,       ) => { self.write_di(di, size)?;    self.write_reg(reg)?                                  },
-            St    ( reg,  ri,        ) => { self.write_reg(reg)?;        self.write_ri(ri)?                                    },
-            Add   ( reg1, reg2, reg3 ) => { self.write_reg(reg1)?;       self.write_reg(reg2)?;       self.write_reg(reg3)?    },
-            Sub   ( reg1, reg2, reg3 ) => { self.write_reg(reg1)?;       self.write_reg(reg2)?;       self.write_reg(reg3)?    },
-            And   ( any1, any2, reg  ) => { self.write_any(any1, size)?; self.write_any(any2, size)?; self.write_reg(reg)?     },
-            Or    ( any1, any2, reg  ) => { self.write_any(any1, size)?; self.write_any(any2, size)?; self.write_reg(reg)?     },
-            Xor   ( any1, any2, reg  ) => { self.write_any(any1, size)?; self.write_any(any2, size)?; self.write_reg(reg)?     },
-            Zjmp  ( dir,             ) => { self.write_dir(dir, size)?;                                                        },
-            Ldi   ( any,  rd,   reg  ) => { self.write_any(any, size)?;  self.write_rd(rd, size)?;    self.write_reg(reg)?     },
-            Sti   ( reg,  any,  rd   ) => { self.write_reg(reg)?;        self.write_any(any, size)?;  self.write_rd(rd, size)? },
-            Fork  ( dir,             ) => { self.write_dir(dir, size)?                                                         },
-            Lld   ( di,   reg,       ) => { self.write_di(di, size)?;    self.write_reg(reg)?                                  },
-            Lldi  ( any,  rd,   reg  ) => { self.write_any(any, size)?;  self.write_rd(rd, size)?;    self.write_reg(reg)?     },
-            Lfork ( dir,             ) => { self.write_dir(dir, size)?                                                         },
-            Aff   ( reg,             ) => { self.write_reg(reg)?                                                               },
+            Live  ( d,         ) => w!(dir:d),
+            Ld    ( di, r,     ) => w!(di:di, reg:r),
+            St    ( r,  ri,    ) => w!(reg:r, ri:ri),
+            Add   ( r1, r2, r3 ) => w!(reg:r1, reg:r2, reg:r3),
+            Sub   ( r1, r2, r3 ) => w!(reg:r1, reg:r2, reg:r3),
+            And   ( a1, a2, r  ) => w!(any:a1, any:a2, reg:r),
+            Or    ( a1, a2, r  ) => w!(any:a1, any:a2, reg:r),
+            Xor   ( a1, a2, r  ) => w!(any:a1, any:a2, reg:r),
+            Zjmp  ( d,         ) => w!(dir:d),
+            Ldi   ( a,  rd, r  ) => w!(any:a, rd:rd, reg:r),
+            Sti   ( r,  a,  rd ) => w!(reg:r, any:a, rd:rd),
+            Fork  ( d,         ) => w!(dir:d),
+            Lld   ( di, r,     ) => w!(di:di, reg:r),
+            Lldi  ( a,  rd, r  ) => w!(any:a, rd:rd, reg:r),
+            Lfork ( d,         ) => w!(dir:d),
+            Aff   ( r,         ) => w!(reg:r),
         };
 
         Ok(())
