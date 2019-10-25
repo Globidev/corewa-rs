@@ -38,14 +38,15 @@ pub fn write_champion(mut output: impl Write, champion: Champion)
     Ok(data.len())
 }
 
-#[derive(Debug, From)]
+#[derive(Debug, From, Display)]
 pub enum ReadError {
     IOError(IOError),
+    #[display(fmt = "Parse error on line {}: {}", _1, _0)]
     ParseError(ParseError, usize),
     AssembleError(AssembleError),
 }
 
-#[derive(Debug, From)]
+#[derive(Debug, From, Display)]
 pub enum WriteError {
     IOError(IOError),
     CompileError(CompileError),
