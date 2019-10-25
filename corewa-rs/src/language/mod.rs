@@ -27,13 +27,15 @@ pub fn read_champion(input: impl Read) -> Result<Champion, ReadError> {
 }
 
 pub fn write_champion(mut output: impl Write, champion: Champion)
-    -> Result<(), WriteError>
+    -> Result<usize, WriteError>
 {
     let mut seek_vec = Cursor::new(Vec::with_capacity(8192));
 
     compile_champion(&mut seek_vec, champion)?;
 
-    Ok(output.write_all(&seek_vec.into_inner())?)
+    let data = seek_vec.get_ref();
+    output.write_all(data)?;
+    Ok(data.len())
 }
 
 #[derive(Debug, From)]
