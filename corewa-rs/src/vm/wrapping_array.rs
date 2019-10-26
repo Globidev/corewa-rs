@@ -13,6 +13,10 @@ impl<T> WrappingArray<T> {
     pub fn as_slice(&self) -> &[T] {
         &self.0
     }
+
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        &mut self.0
+    }
 }
 
 impl<T> std::iter::FromIterator<T> for WrappingArray<T> {

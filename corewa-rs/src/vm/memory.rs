@@ -95,12 +95,20 @@ impl super::decoder::Read for Memory {
 mod test {
     extern crate test;
     use super::*;
+    use rand::{Rng, rngs::StdRng, SeedableRng};
 
-    #[bench]
-    fn i32_reads(bencher: &mut test::Bencher) {
+    fn random_memory(mut rng: impl Rng) -> Memory {
         let mut mem = Memory::default();
 
-        mem.values.iter_mut().for_each(|x| *x = rand::random());
+        rng.fill_bytes(mem.values.as_mut_slice());
+
+        mem
+    }
+
+    #[bench]
+    fn i32_reads_byteorder(bencher: &mut test::Bencher) {
+        let rng = StdRng::seed_from_u64(0xDEADBEEF);
+        let mem = random_memory(rng);
 
         bencher.iter(|| {
             (0..MEM_SIZE).fold(0, |h, idx| h ^ mem.read_i32(idx))
@@ -108,10 +116,9 @@ mod test {
     }
 
     #[bench]
-    fn i16_reads(bencher: &mut test::Bencher) {
-        let mut mem = Memory::default();
-
-        mem.values.iter_mut().for_each(|x| *x = rand::random());
+    fn i16_reads_byteorder(bencher: &mut test::Bencher) {
+        let rng = StdRng::seed_from_u64(0xDEADBEEF);
+        let mem = random_memory(rng);
 
         bencher.iter(move || {
             (0..MEM_SIZE).fold(0, |h, idx| h ^ mem.read_i16(idx))
