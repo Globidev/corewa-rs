@@ -6,9 +6,9 @@ use std::{iter, mem};
 use byteorder::{ByteOrder, BigEndian};
 
 pub struct Memory {
-    values: WrappingArray<u8>,
-    ages: WrappingArray<u16>,
-    owners: WrappingArray<PlayerId>
+    pub values: WrappingArray<u8>,
+    pub ages: WrappingArray<u16>,
+    pub owners: WrappingArray<PlayerId>
 }
 
 impl Default for Memory {
@@ -24,18 +24,6 @@ impl Default for Memory {
 impl Memory {
     pub fn size(&self) -> usize {
         MEM_SIZE
-    }
-
-    pub fn values_ptr(&self) -> *const u8 {
-        self.values.as_ptr()
-    }
-
-    pub fn ages_ptr(&self) -> *const u16 {
-        self.ages.as_ptr()
-    }
-
-    pub fn owners_ptr(&self) -> *const PlayerId {
-        self.owners.as_ptr()
     }
 
     pub fn tick(&mut self) {

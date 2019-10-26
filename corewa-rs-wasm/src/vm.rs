@@ -76,9 +76,9 @@ impl VirtualMachine {
         let mem = &self.0.memory;
 
         Memory {
-            values_ptr: mem.values_ptr(),
-            ages_ptr: mem.ages_ptr(),
-            owners_ptr: mem.owners_ptr(),
+            values_ptr: mem.values.as_ptr(),
+            ages_ptr: mem.ages.as_ptr(),
+            owners_ptr: mem.owners.as_ptr(),
             pc_count_ptr: self.0.process_count_per_cells.as_ptr(),
         }
     }
