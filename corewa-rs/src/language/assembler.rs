@@ -57,15 +57,11 @@ impl ChampionBuilder {
     }
 
     pub fn finish(self) -> AssembleResult<Champion> {
-        match (self.name, self.comment) {
-            (None, _) => Err(AssembleError::MissingName),
-            (_, None) => Err(AssembleError::MissingComment),
-            (Some(name), Some(comment)) => Ok(Champion {
-                name,
-                comment,
-                instructions: self.instructions,
-            }),
-        }
+        Ok(Champion {
+            name: self.name.ok_or(AssembleError::MissingName)?,
+            comment: self.comment.ok_or(AssembleError::MissingComment)?,
+            instructions: self.instructions,
+        })
     }
 }
 

@@ -33,33 +33,6 @@ pub type Pid = u32;
 pub type Registers = [Register; REG_COUNT];
 pub type PlayerId = i32;
 
-impl fmt::Display for OpType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use OpType::*;
-
-        let mnemonic = match self {
-            Live => "live",
-            Ld => "ld",
-            St => "st",
-            Add => "add",
-            Sub => "sub",
-            And => "and",
-            Or => "or",
-            Xor => "xor",
-            Zjmp => "zjmp",
-            Ldi => "ldi",
-            Sti => "sti",
-            Fork => "fork",
-            Lld => "lld",
-            Lldi => "lldi",
-            Lfork => "lfork",
-            Aff => "aff",
-        };
-
-        write!(f, "{}", mnemonic)
-    }
-}
-
 impl fmt::Display for Param {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind {

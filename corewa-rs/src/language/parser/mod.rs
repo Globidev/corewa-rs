@@ -269,7 +269,7 @@ impl TokenStream<'_> {
         let token_result = self
             .tokens
             .next()
-            .ok_or_else(|| ParseError::ExpectedButGotEof(term.clone()))?;
+            .ok_or(ParseError::ExpectedButGotEof(term))?;
 
         let token = token_result?;
 
@@ -363,10 +363,7 @@ pub fn error_range(err: &ParseError) -> (usize, Option<usize>) {
     use ParseError::*;
 
     match err {
-        RemainingInput(token) => (token.range.start, Some(token.range.end)),
         LexerError(err) => (err.at.start, Some(err.at.end)),
-        Unexpected(token) => (token.range.start, Some(token.range.end)),
-        ExpectedButGot(_, token) => (token.range.start, Some(token.range.end)),
         ExpectedButGotEof(_) => (0, None),
         ExpectedOneOf(errors) => {
             let ranges = errors.iter().map(error_range).collect::<Vec<_>>();
@@ -381,11 +378,14 @@ pub fn error_range(err: &ParseError) -> (usize, Option<usize>) {
 
             (min_start, max_end)
         }
-        InvalidRegisterCount(_, token) => (token.range.start, Some(token.range.end)),
-        InvalidRegisterPrefix(_, token) => (token.range.start, Some(token.range.end)),
-        MissingRegisterPrefix(token) => (token.range.start, Some(token.range.end)),
-        ParseIntError(_, token) => (token.range.start, Some(token.range.end)),
-        RegisterParseIntError(_, token) => (token.range.start, Some(token.range.end)),
-        InvalidOpMnemonic(_, token) => (token.range.start, Some(token.range.end)),
+        RemainingInput(token)
+        | Unexpected(token)
+        | ExpectedButGot(_, token)
+        | InvalidRegisterCount(_, token)
+        | InvalidRegisterPrefix(_, token)
+        | MissingRegisterPrefix(token)
+        | ParseIntError(_, token)
+        | RegisterParseIntError(_, token)
+        | InvalidOpMnemonic(_, token) => (token.range.start, Some(token.range.end)),
     }
 }

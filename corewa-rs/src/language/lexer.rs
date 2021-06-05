@@ -98,7 +98,6 @@ impl Tokenizer<'_> {
             }
             Some((cmd, term)) => {
                 let next = self.chars.by_ref().nth(cmd.len());
-                let term = term.clone();
 
                 match next {
                     Some((idx_end, chr)) if chr.is_whitespace() => Ok(term.at(idx_start..idx_end)),
@@ -181,7 +180,7 @@ impl Tokenizer<'_> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
 pub enum Term {
     #[display(fmt = "Name directive")]
     ChampionNameCmd,
@@ -207,7 +206,7 @@ pub enum Term {
     Ident,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumberBase {
     Decimal,
     Hexadecimal,

@@ -226,7 +226,7 @@ impl<W: Write + Seek> State<W> {
                     write_pos: self.size,
                     op_pos: self.current_op_pos,
                     name: label,
-                    size: dir_size.into(),
+                    size: dir_size as _,
                 });
                 self.write(match dir_size {
                     DirectSize::TwoBytes => &[0; 2],
@@ -234,7 +234,7 @@ impl<W: Write + Seek> State<W> {
                 })
             }
             Direct::Numeric(n) => {
-                self.size += write_numeric(&mut self.out, n as u32, dir_size.into())?;
+                self.size += write_numeric(&mut self.out, n as u32, dir_size as _)?;
                 Ok(())
             }
         }
@@ -363,8 +363,7 @@ pub enum CompileError {
     )]
     ProgramCommentTooLong(usize),
     #[error(
-        "The label '{0}' is missing. It is referenced in a parameter but has never been \
-               declared"
+        "The label '{0}' is missing. It is referenced in a parameter but has never been declared"
     )]
     MissingLabel(String),
     #[error("The label '{0}' has been declared multiple times. A label can only be declared once")]
