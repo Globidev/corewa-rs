@@ -1,7 +1,7 @@
 use super::{process::Process, types::*, PidPool};
 use crate::spec::{ParamType, MEM_SIZE};
 
-use std::collections::HashSet;
+use fxhash::FxHashSet as HashSet;
 
 pub struct ExecutionContext<'a> {
     pub memory: &'a mut super::memory::Memory<MEM_SIZE>,

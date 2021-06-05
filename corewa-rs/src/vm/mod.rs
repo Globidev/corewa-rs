@@ -15,10 +15,9 @@ use memory::Memory;
 use process::{Process, ProcessState};
 use types::*;
 
-use std::{
-    collections::{HashMap, HashSet},
-    ffi::CStr,
-};
+use std::ffi::CStr;
+
+use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub struct VirtualMachine {
     pub players: Vec<Player>,
@@ -49,7 +48,7 @@ impl VirtualMachine {
             processes: Vec::with_capacity(65536),
             pid_pool: PidPool::default(),
 
-            last_lives: HashMap::with_capacity(MAX_PLAYERS),
+            last_lives: HashMap::with_capacity_and_hasher(MAX_PLAYERS, Default::default()),
 
             cycles: 0,
             last_live_check: 0,
@@ -58,7 +57,10 @@ impl VirtualMachine {
             checks_without_cycle_decrement: 0,
 
             process_count_per_cells: [0; MEM_SIZE],
-            process_count_by_player_id: HashMap::with_capacity(MAX_PLAYERS),
+            process_count_by_player_id: HashMap::with_capacity_and_hasher(
+                MAX_PLAYERS,
+                Default::default(),
+            ),
         }
     }
 
@@ -118,7 +120,7 @@ impl VirtualMachine {
 
     fn run_processes(&mut self) {
         let mut forks = Vec::with_capacity(8192);
-        let mut lives = HashSet::new();
+        let mut lives = HashSet::with_hasher(Default::default());
 
         for process in self.processes.iter_mut().rev() {
             match process.state {
