@@ -1,39 +1,42 @@
-import * as React from 'react'
-import { observer } from 'mobx-react'
+import * as React from "react";
+import { observer } from "mobx-react";
 
-import { VirtualMachine, Player } from '../../virtual_machine'
-import { toCssColor, Info } from './common'
+import { VirtualMachine, Player } from "../../virtual_machine";
+import { toCssColor, Info } from "./common";
 
-const MAX_PROCESS_DISPLAYED = 32
+const MAX_PROCESS_DISPLAYED = 32;
 
 interface IProcessPanelProps {
-  processes: import('corewa-rs').ProcessCollection
-  vm: VirtualMachine
+  processes: import("corewa-rs").ProcessCollection;
+  vm: VirtualMachine;
 }
 
 @observer
 export class ProcessPanel extends React.Component<IProcessPanelProps> {
   render() {
-    const vm = this.props.vm
-    const processes = this.props.processes
-    const len = processes.len()
+    const vm = this.props.vm;
+    const processes = this.props.processes;
+    const len = processes.len();
 
     const details = Array(Math.min(len, MAX_PROCESS_DISPLAYED))
       .fill(0)
       .map((_, i) => {
-        const process = processes.at(i)
-        const state = process.executing() as import('corewa-rs').ExecutingState | null
-        const playerColor = (vm.playersById.get(process.player_id) as Player).color
+        const process = processes.at(i);
+        const state = process.executing() as
+          | import("corewa-rs").ExecutingState
+          | null;
+        const playerColor = (vm.playersById.get(process.player_id) as Player)
+          .color;
 
         const coloredPlayerId = (
           <div
             style={{
-              backgroundColor: toCssColor(playerColor)
+              backgroundColor: toCssColor(playerColor),
             }}
           >
             {process.player_id}
           </div>
-        )
+        );
 
         const registers = (
           <details className="pad-left">
@@ -44,7 +47,7 @@ export class ProcessPanel extends React.Component<IProcessPanelProps> {
               </Info>
             ))}
           </details>
-        )
+        );
 
         return (
           <details key={i} className="pad-left">
@@ -55,23 +58,23 @@ export class ProcessPanel extends React.Component<IProcessPanelProps> {
             <Info title="State">
               {state
                 ? `${state.op()} (${state.exec_at - (vm.cycles as number) + 1})`
-                : 'Idle'}
+                : "Idle"}
             </Info>
             {registers}
           </details>
-        )
-      })
+        );
+      });
 
     return len == 0 ? null : (
       <div>
         <details>
           <summary>
             {len} process
-            {len >= 2 ? 'es' : ''}
+            {len >= 2 ? "es" : ""}
           </summary>
           {details}
         </details>
       </div>
-    )
+    );
   }
 }

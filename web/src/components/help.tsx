@@ -1,28 +1,28 @@
-import * as React from 'react'
-import * as Showdown from 'showdown'
+import * as React from "react";
+import * as Showdown from "showdown";
 
-import { observable } from 'mobx'
-import { observer } from 'mobx-react'
+import { observable } from "mobx";
+import { observer } from "mobx-react";
 
 // @ts-ignore
-import documentation from '../../README.md'
+import documentation from "../../README.md";
 
-Showdown.setOption('tables', true)
+Showdown.setOption("tables", true);
 
 @observer
 export class Help extends React.Component {
-  mdBuilder = new Showdown.Converter()
+  mdBuilder = new Showdown.Converter();
   @observable
-  markdown = ''
+  markdown = "";
 
   constructor(props: {}) {
-    super(props)
+    super(props);
 
     fetch(documentation)
-      .then(r => r.text())
-      .then(md => {
-        this.markdown = this.mdBuilder.makeHtml(md)
-      })
+      .then((r) => r.text())
+      .then((md) => {
+        this.markdown = this.mdBuilder.makeHtml(md);
+      });
   }
 
   render() {
@@ -30,6 +30,6 @@ export class Help extends React.Component {
       <div className="markdown-body">
         <div dangerouslySetInnerHTML={{ __html: this.markdown }} />
       </div>
-    )
+    );
   }
 }

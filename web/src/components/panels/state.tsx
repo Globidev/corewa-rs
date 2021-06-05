@@ -1,19 +1,19 @@
-import * as React from 'react'
-import { observer } from 'mobx-react'
+import * as React from "react";
+import { observer } from "mobx-react";
 
-import { VirtualMachine } from '../../virtual_machine'
-import { Info } from './common'
+import { VirtualMachine } from "../../virtual_machine";
+import { Info } from "./common";
 
 interface IStatePanelProps {
-  vm: VirtualMachine
+  vm: VirtualMachine;
 }
 
 @observer
 export class StatePanel extends React.Component<IStatePanelProps> {
   render() {
-    const vm = this.props.vm
+    const vm = this.props.vm;
 
-    if (vm.cycles === null) return null
+    if (vm.cycles === null) return null;
 
     const engine = vm.engine,
       cycles = engine.cycles(),
@@ -22,7 +22,7 @@ export class StatePanel extends React.Component<IStatePanelProps> {
       lastLive = engine.last_live_check(),
       nextCheck = interval - (vm.cycles - lastLive),
       liveCount = engine.live_count_since_last_check(),
-      checksPassed = engine.checks_without_cycle_decrement()
+      checksPassed = engine.checks_without_cycle_decrement();
 
     return (
       <div>
@@ -31,7 +31,7 @@ export class StatePanel extends React.Component<IStatePanelProps> {
             className="cycle-input"
             type="number"
             value={cycles}
-            onChange={ev => vm.setCycle(parseInt(ev.target.value))}
+            onChange={(ev) => vm.setCycle(parseInt(ev.target.value))}
           />
         </StateInfo>
         <StateInfo title="Processes">{processes}</StateInfo>
@@ -41,17 +41,17 @@ export class StatePanel extends React.Component<IStatePanelProps> {
         <StateInfo title="Live count">{liveCount}</StateInfo>
         <StateInfo title="Checks passed">{checksPassed}</StateInfo>
       </div>
-    )
+    );
   }
 }
 
 interface IStateInfoProps {
-  title: string
-  children: React.ReactNode
+  title: string;
+  children: React.ReactNode;
 }
 
 const StateInfo = ({ title, children }: IStateInfoProps) => (
   <Info title={title} minWidth={100}>
     {children}
   </Info>
-)
+);

@@ -1,16 +1,16 @@
-import { observable, action } from 'mobx'
+import { observable, action } from "mobx";
 
 export type Player = {
-  id: number
-  color: number
-  champion: CompiledChampion | null
-}
+  id: number;
+  color: number;
+  champion: CompiledChampion | null;
+};
 
-export type MatchResult = import('corewa-rs').PlayerInfo[]
+export type MatchResult = import("corewa-rs").PlayerInfo[];
 
-const MAX_SPEED = 32
-const TARGET_UPS = 60
-const PLAYER_COLORS = [0x0fd5ff, 0xffa517, 0x7649cc, 0x14cc57]
+const MAX_SPEED = 32;
+const TARGET_UPS = 60;
+const PLAYER_COLORS = [0x0fd5ff, 0xffa517, 0x7649cc, 0x14cc57];
 
 // Webassembly memory can only grow (for now). Pages cannot be reclaimed which
 // can lead to leaks overtime. The only way to effectively free the memory is
@@ -29,125 +29,129 @@ export class VirtualMachine {
   // the vm's cycle count and use it as a notifier for components that want to
   // observe the vm.
   // INVARIANT TO MAINTAIN: cycles === engine.cycles
-  engine = new corewar.VMBuilder().finish()
+  engine = new corewar.VMBuilder().finish();
   @observable
-  cycles: number | null = null
+  cycles: number | null = null;
 
   @observable
-  playing: boolean = false
+  playing: boolean = false;
   @observable
-  speed: number = 1
+  speed: number = 1;
 
-  timeoutId: number | null = null
-  lastFrameTime = 0
-
-  @observable
-  playersById = new Map<number, Player>()
+  timeoutId: number | null = null;
+  lastFrameTime = 0;
 
   @observable
-  matchResult: MatchResult | null = null
+  playersById = new Map<number, Player>();
+
+  @observable
+  matchResult: MatchResult | null = null;
 
   randomPlayerId() {
-    let id = undefined
+    let id = undefined;
 
     do {
-      const randomIds = new Int32Array(8)
-      crypto.getRandomValues(randomIds)
-      id = randomIds.find(n => n != 0 && !this.playersById.has(n))
-    } while (id === undefined)
+      const randomIds = new Int32Array(8);
+      crypto.getRandomValues(randomIds);
+      id = randomIds.find((n) => n != 0 && !this.playersById.has(n));
+    } while (id === undefined);
 
-    return id
+    return id;
   }
 
   @action
   newPlayer() {
-    const id = this.randomPlayerId()
-    const color = PLAYER_COLORS[this.playersById.size]
-    const player = { id, color, champion: null }
-    this.playersById.set(id, player)
+    const id = this.randomPlayerId();
+    const color = PLAYER_COLORS[this.playersById.size];
+    const player = { id, color, champion: null };
+    this.playersById.set(id, player);
     // ⚠ cannot return player directly because of the observable map
-    return this.playersById.get(id) as Player
+    return this.playersById.get(id) as Player;
   }
 
   @action
   changePlayerId(oldId: number, newId: number) {
     // Already taken
-    if (this.playersById.has(newId)) return
+    if (this.playersById.has(newId)) return;
     // Must not be NaN, must be non zero and must fit on a signed 32bit integer
-    if (Number.isNaN(newId) || newId == 0 || newId < -(2 ** 31) || newId >= 2 ** 31)
-      return
+    if (
+      Number.isNaN(newId) ||
+      newId == 0 ||
+      newId < -(2 ** 31) ||
+      newId >= 2 ** 31
+    )
+      return;
 
-    let player = this.playersById.get(oldId)
-    if (player === undefined) return
+    let player = this.playersById.get(oldId);
+    if (player === undefined) return;
 
-    player.id = newId
-    const players = Array.from(this.playersById.values())
+    player.id = newId;
+    const players = Array.from(this.playersById.values());
 
-    this.playersById = new Map(players.map(p => [p.id, p] as [number, Player]))
-    this.compile()
+    this.playersById = new Map(
+      players.map((p) => [p.id, p] as [number, Player])
+    );
+    this.compile();
   }
 
   @action
   tick(n: number) {
-    let before = performance.now()
-    let processes = 0
+    let before = performance.now();
+    let processes = 0;
     for (let i = 0; i < n; ++i) {
       if (this.engine.tick()) {
-        this.updateMatchResult()
-        this.pause()
-        break
+        this.updateMatchResult();
+        this.pause();
+        break;
       }
-      processes += this.engine.process_count()
+      processes += this.engine.process_count();
     }
 
-    this.cycles = this.engine.cycles()
+    this.cycles = this.engine.cycles();
 
-    let duration = performance.now() - before
+    let duration = performance.now() - before;
     if (duration > 16)
       console.warn(
         `${n} cycles took too long to compute:\n${duration} ms | ${processes} procs`
-      )
+      );
   }
 
   @action
   updateMatchResult() {
-    const info = Array.from(this.playersById.keys()).map(
-      playerId =>
-        [this.engine.player_info(playerId), this.engine.champion_info(playerId)] as [
-          import('corewa-rs').PlayerInfo,
-          import('corewa-rs').ChampionInfo
-        ]
-    )
+    const info = Array.from(this.playersById.keys()).map((playerId) => [
+      this.engine.player_info(playerId),
+      this.engine.champion_info(playerId),
+    ]);
 
     const latestLive = Math.max(
       ...info.map(([_, championInfo]) => championInfo.last_live)
-    )
+    );
 
     const playersWithLatestLives = info
       .filter(([_, championInfo]) => championInfo.last_live == latestLive)
-      .map(([playerInfo, _]) => playerInfo)
+      .map(([playerInfo, _]) => playerInfo);
 
-    this.matchResult = playersWithLatestLives
+    this.matchResult = playersWithLatestLives;
   }
 
   @action
   playLoop() {
-    this.tick(this.speed)
-    const now = performance.now()
-    const dt = now - this.lastFrameTime
-    this.lastFrameTime = now
-    const delta = Math.max(0, 1000 / TARGET_UPS - dt)
+    this.tick(this.speed);
+    const now = performance.now();
+    const dt = now - this.lastFrameTime;
+    this.lastFrameTime = now;
+    const delta = Math.max(0, 1000 / TARGET_UPS - dt);
     if (this.playing) {
-      this.timeoutId = window.setTimeout(() => this.playLoop(), delta)
+      this.timeoutId = window.setTimeout(() => this.playLoop(), delta);
     }
   }
 
   @action
   compile() {
-    this.pause()
-    this.matchResult = null
-    this.cycles = null // effectively resets the VM observe
-    this.compileImpl()
+    this.pause();
+    this.matchResult = null;
+    this.cycles = null; // effectively resets the VM observe
+    this.compileImpl();
   }
 
   @action
@@ -155,75 +159,77 @@ export class VirtualMachine {
     this.engine = Array.from(this.playersById.values())
       .reduce(
         (builder, player) =>
-          player.champion ? builder.with_player(player.id, player.champion) : builder,
+          player.champion
+            ? builder.with_player(player.id, player.champion)
+            : builder,
         new corewar.VMBuilder()
       )
-      .finish()
+      .finish();
 
-    this.cycles = this.engine.cycles()
+    this.cycles = this.engine.cycles();
   }
 
   @action
   removePlayer(playerId: number) {
-    this.playersById.delete(playerId)
+    this.playersById.delete(playerId);
     Array.from(this.playersById.values()).forEach((player, idx) => {
-      player.color = PLAYER_COLORS[idx]
-    })
-    this.compile()
+      player.color = PLAYER_COLORS[idx];
+    });
+    this.compile();
   }
 
   @action
   togglePlay() {
     if (this.playing) {
-      this.pause()
+      this.pause();
     } else {
-      this.play()
+      this.play();
     }
   }
 
   @action
   play() {
-    this.playing = true
-    this.lastFrameTime = performance.now()
-    this.playLoop()
+    this.playing = true;
+    this.lastFrameTime = performance.now();
+    this.playLoop();
   }
 
   @action
   pause() {
-    this.playing = false
+    this.playing = false;
     if (this.timeoutId) {
-      clearTimeout(this.timeoutId)
+      clearTimeout(this.timeoutId);
     }
   }
 
   @action
   stop() {
-    this.pause()
-    this.compile()
+    this.pause();
+    this.compile();
   }
 
   @action
   step() {
-    this.pause()
-    this.tick(1)
+    this.pause();
+    this.tick(1);
   }
 
   @action
   nextSpeed() {
-    this.speed *= 2
+    this.speed *= 2;
 
-    if (this.speed > MAX_SPEED) this.speed = 1
+    if (this.speed > MAX_SPEED) this.speed = 1;
   }
 
   @action
   setCycle(cycle: number) {
-    this.pause()
-    const cycles = this.engine.cycles()
+    this.pause();
+    const cycles = this.engine.cycles();
     if (cycles <= cycle) {
-      this.tick(cycle - cycles)
+      this.tick(cycle - cycles);
     } else {
-      this.compile()
-      this.tick(cycle)
+      this.compile();
+      this.tick(cycle);
     }
   }
 }
