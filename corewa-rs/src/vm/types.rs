@@ -46,7 +46,12 @@ impl fmt::Display for Param {
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let spec = op_spec(self.kind);
-        write!(f, "{} {}", self.kind, self.params[0])?;
+        write!(
+            f,
+            "{} {}",
+            self.kind.to_string().to_lowercase(),
+            self.params[0]
+        )?;
         for i in 1..spec.param_count {
             write!(f, ", {}", self.params[i])?;
         }
