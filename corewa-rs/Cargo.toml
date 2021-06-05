@@ -13,3 +13,10 @@ derive_more = "0.99"
 thiserror = "1.0"
 enum_dispatch = "0.3"
 fxhash = "0.2"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "corewa-rs-benchmark"
+harness = false

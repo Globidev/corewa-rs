@@ -8,3 +8,4 @@ macro_rules! assert_matches {
 }
 
 mod language;
+mod vm;
