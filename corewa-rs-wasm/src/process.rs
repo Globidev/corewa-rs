@@ -59,7 +59,7 @@ impl ProcessInfo {
     }
 
     pub fn registers(&self) -> Vec<Register> {
-        self.registers.iter().cloned().collect()
+        self.registers.to_vec()
     }
 }
 
@@ -72,6 +72,10 @@ impl ExecutingState {
 
 #[wasm_bindgen]
 impl ProcessCollection {
+    pub fn is_empty(&self) -> bool {
+        self.processes.is_empty()
+    }
+
     pub fn len(&self) -> usize {
         self.processes.len()
     }

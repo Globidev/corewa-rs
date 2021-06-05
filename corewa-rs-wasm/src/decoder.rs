@@ -23,6 +23,7 @@ impl DecodeResult {
             .unwrap_or_else(DecodeError::byte_size)
     }
 
+    #[allow(clippy::inherent_to_string)]
     pub fn to_string(&self) -> String {
         self.0
             .as_ref()

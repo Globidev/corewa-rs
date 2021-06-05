@@ -48,7 +48,7 @@ impl Events {
                 for evt in stdin.events().flatten() {
                     match evt {
                         TermEvent::Key(key) => {
-                            if let Err(_) = tx.send(Event::Key(key)) {
+                            if tx.send(Event::Key(key)).is_err() {
                                 return;
                             }
                             if key == config.exit_key {
@@ -56,7 +56,7 @@ impl Events {
                             }
                         }
                         TermEvent::Mouse(ev) => {
-                            if let Err(_) = tx.send(Event::Mouse(ev)) {
+                            if tx.send(Event::Mouse(ev)).is_err() {
                                 return;
                             }
                         }
@@ -65,16 +65,10 @@ impl Events {
                 }
             })
         };
-        let tick_handle = {
-            let tx = tx.clone();
-            thread::spawn(move || {
-                let tx = tx.clone();
-                loop {
-                    tx.send(Event::Tick).unwrap();
-                    thread::sleep(config.tick_rate);
-                }
-            })
-        };
+        let tick_handle = thread::spawn(move || loop {
+            tx.send(Event::Tick).unwrap();
+            thread::sleep(config.tick_rate);
+        });
         Events {
             rx,
             _input_handle: input_handle,

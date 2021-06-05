@@ -1,8 +1,6 @@
 use super::types::*;
 use crate::spec::*;
 
-use arraytools::ArrayTools;
-
 pub trait Read: std::ops::Index<usize, Output = u8> {
     fn read_i32(&self, at: usize) -> i32;
     fn read_i16(&self, at: usize) -> i16;
@@ -12,7 +10,7 @@ pub trait Decode: Read {
     fn decode_op(&self, idx: usize) -> Result<OpType, InvalidOpCode> {
         let op_code = self[idx];
 
-        op_from_code(op_code).ok_or_else(|| InvalidOpCode(op_code))
+        op_from_code(op_code).ok_or(InvalidOpCode(op_code))
     }
 
     fn decode_instr(&self, op: OpType, addr: usize) -> Result<Instruction, InstrDecodeError> {
@@ -98,7 +96,11 @@ fn params_from_unambiguous_masks(masks: [u8; MAX_PARAMS]) -> ParamTypes {
         }
     }
 
-    masks.map(to_param_type)
+    [
+        to_param_type(masks[0]),
+        to_param_type(masks[1]),
+        to_param_type(masks[2]),
+    ]
 }
 
 fn read_pcb_params(pcb: u8, op_spec: &OpSpec) -> Result<ParamTypes, InstrDecodeError> {
@@ -127,17 +129,17 @@ fn read_pcb_params(pcb: u8, op_spec: &OpSpec) -> Result<ParamTypes, InstrDecodeE
     // operation's parameter mask.
     let mut param_types = ParamTypes::default();
 
-    for idx in 0..op_spec.param_count {
+    for (idx, param_type_slot) in param_types.iter_mut().enumerate().take(op_spec.param_count) {
         let param_bits = (pcb >> (6 - 2 * idx)) & 0b00_00_00_11;
         let (param_type, mask_flag) =
-            read_type_and_mask_flag(param_bits).ok_or_else(|| InstrDecodeError::InvalidPCB(pcb))?;
+            read_type_and_mask_flag(param_bits).ok_or(InstrDecodeError::InvalidPCB(pcb))?;
 
         let param_mask = op_spec.param_masks[idx];
         if param_mask & mask_flag != mask_flag {
             return Err(InstrDecodeError::InvalidPCB(pcb));
         }
 
-        param_types[idx] = param_type;
+        *param_type_slot = param_type;
     }
 
     Ok(param_types)

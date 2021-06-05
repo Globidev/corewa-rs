@@ -1,3 +1,5 @@
+#![allow(clippy::identity_op)]
+
 use super::{types::*, wrapping_array::WrappingArray};
 use crate::spec::*;
 

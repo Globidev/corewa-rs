@@ -144,31 +144,31 @@ mod op {
     #[test]
     fn zjmp() {
         test_ops!(
-            "zjmp %10" => Zjmp(Direct::Numeric(10).into())
+            "zjmp %10" => Zjmp(Direct::Numeric(10))
         )
     }
 
     #[test]
     fn ldi() {
         test_ops!(
-            "ldi r1, r2, r3" => Ldi(Register(1).into(), Register(2).into(), Register(3).into()),
-            "ldi r2, %1, r4" => Ldi(Register(2).into(), Direct::Numeric(1).into(), Register(4).into()),
-            "ldi %-1, r2, r5" => Ldi(Direct::Numeric(-1).into(), Register(2).into(), Register(5).into()),
-            "ldi %42, %42, r6" => Ldi(Direct::Numeric(42).into(), Direct::Numeric(42).into(), Register(6).into()),
-            "ldi :foo, r2, r7" => Ldi(Indirect::Label("foo".into()).into(), Register(2).into(), Register(7).into()),
-            "ldi 6, %1337, r8" => Ldi(Indirect::Numeric(6).into(), Direct::Numeric(1337).into(), Register(8).into()),
+            "ldi r1, r2, r3" => Ldi(Register(1).into(), Register(2).into(), Register(3)),
+            "ldi r2, %1, r4" => Ldi(Register(2).into(), Direct::Numeric(1).into(), Register(4)),
+            "ldi %-1, r2, r5" => Ldi(Direct::Numeric(-1).into(), Register(2).into(), Register(5)),
+            "ldi %42, %42, r6" => Ldi(Direct::Numeric(42).into(), Direct::Numeric(42).into(), Register(6)),
+            "ldi :foo, r2, r7" => Ldi(Indirect::Label("foo".into()).into(), Register(2).into(), Register(7)),
+            "ldi 6, %1337, r8" => Ldi(Indirect::Numeric(6).into(), Direct::Numeric(1337).into(), Register(8)),
         )
     }
 
     #[test]
     fn sti() {
         test_ops!(
-            "sti r3, r1, r2" => Sti(Register(3).into(), Register(1).into(), Register(2).into()),
-            "sti r4, r2, %1" => Sti(Register(4).into(), Register(2).into(), Direct::Numeric(1).into()),
-            "sti r5, %-1, r2" => Sti(Register(5).into(), Direct::Numeric(-1).into(), Register(2).into()),
-            "sti r6, %42, %42" => Sti(Register(6).into(), Direct::Numeric(42).into(), Direct::Numeric(42).into()),
-            "sti r7, :foo, r2" => Sti(Register(7).into(), Indirect::Label("foo".into()).into(), Register(2).into()),
-            "sti r8, 6, %1337" => Sti(Register(8).into(), Indirect::Numeric(6).into(), Direct::Numeric(1337).into()),
+            "sti r3, r1, r2" => Sti(Register(3), Register(1).into(), Register(2).into()),
+            "sti r4, r2, %1" => Sti(Register(4), Register(2).into(), Direct::Numeric(1).into()),
+            "sti r5, %-1, r2" => Sti(Register(5), Direct::Numeric(-1).into(), Register(2).into()),
+            "sti r6, %42, %42" => Sti(Register(6), Direct::Numeric(42).into(), Direct::Numeric(42).into()),
+            "sti r7, :foo, r2" => Sti(Register(7), Indirect::Label("foo".into()).into(), Register(2).into()),
+            "sti r8, 6, %1337" => Sti(Register(8), Indirect::Numeric(6).into(), Direct::Numeric(1337).into()),
         )
     }
 
@@ -190,12 +190,12 @@ mod op {
     #[test]
     fn lldi() {
         test_ops!(
-            "lldi r1, r2, r3" => Lldi(Register(1).into(), Register(2).into(), Register(3).into()),
-            "lldi r2, %1, r4" => Lldi(Register(2).into(), Direct::Numeric(1).into(), Register(4).into()),
-            "lldi %-1, r2, r5" => Lldi(Direct::Numeric(-1).into(), Register(2).into(), Register(5).into()),
-            "lldi %42, %42, r6" => Lldi(Direct::Numeric(42).into(), Direct::Numeric(42).into(), Register(6).into()),
-            "lldi :foo, r2, r7" => Lldi(Indirect::Label("foo".into()).into(), Register(2).into(), Register(7).into()),
-            "lldi 6, %1337, r8" => Lldi(Indirect::Numeric(6).into(), Direct::Numeric(1337).into(), Register(8).into()),
+            "lldi r1, r2, r3" => Lldi(Register(1).into(), Register(2).into(), Register(3)),
+            "lldi r2, %1, r4" => Lldi(Register(2).into(), Direct::Numeric(1).into(), Register(4)),
+            "lldi %-1, r2, r5" => Lldi(Direct::Numeric(-1).into(), Register(2).into(), Register(5)),
+            "lldi %42, %42, r6" => Lldi(Direct::Numeric(42).into(), Direct::Numeric(42).into(), Register(6)),
+            "lldi :foo, r2, r7" => Lldi(Indirect::Label("foo".into()).into(), Register(2).into(), Register(7)),
+            "lldi 6, %1337, r8" => Lldi(Indirect::Numeric(6).into(), Direct::Numeric(1337).into(), Register(8)),
         )
     }
 
@@ -225,7 +225,7 @@ fn label_and_op() {
         "loop: xor r2, r2, r2",
         LabelAndOp(
             "loop".into(),
-            Xor(Register(2).into(), Register(2).into(), Register(2).into()),
+            Xor(Register(2).into(), Register(2).into(), Register(2)),
         ),
     )
 }

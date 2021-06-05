@@ -147,14 +147,12 @@ fn register(input: &mut TokenStream<'_>) -> ParseResult<Register> {
 
     let first_char = {
         let tok = tok.clone();
-        chars
-            .next()
-            .ok_or_else(|| ParseError::MissingRegisterPrefix(tok))?
+        chars.next().ok_or(ParseError::MissingRegisterPrefix(tok))?
     };
     let reg_num_result = chars.as_str().parse();
 
     match (first_char, reg_num_result) {
-        ('r', Ok(x)) if 1 <= x && x <= 16 => Ok(Register(x as u8)),
+        ('r', Ok(x)) if (1..=16).contains(&x) => Ok(Register(x as u8)),
         ('r', Ok(x)) => Err(ParseError::InvalidRegisterCount(x, tok)),
         ('r', Err(e)) => Err(ParseError::RegisterParseIntError(e, tok)),
         (c, _) => Err(ParseError::InvalidRegisterPrefix(c, tok)),
