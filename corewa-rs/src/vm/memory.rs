@@ -4,31 +4,31 @@ use super::{types::*, wrapping_array::WrappingArray};
 use crate::spec::*;
 
 use byteorder::{BigEndian, ByteOrder};
-use std::{iter, mem};
+use std::mem;
 
-pub struct Memory {
-    pub values: WrappingArray<u8>,
-    pub ages: WrappingArray<u16>,
-    pub owners: WrappingArray<PlayerId>,
+pub struct Memory<const LEN: usize> {
+    pub values: WrappingArray<u8, LEN>,
+    pub ages: WrappingArray<u16, LEN>,
+    pub owners: WrappingArray<PlayerId, LEN>,
 }
 
-impl Default for Memory {
+impl Default for Memory<MEM_SIZE> {
     fn default() -> Self {
         Self {
-            values: iter::repeat(0).take(MEM_SIZE).collect(),
-            ages: iter::repeat(1024).take(MEM_SIZE).collect(),
-            owners: iter::repeat(0).take(MEM_SIZE).collect(),
+            values: [0; MEM_SIZE].into(),
+            ages: [1024; MEM_SIZE].into(),
+            owners: [0; MEM_SIZE].into(),
         }
     }
 }
 
-impl Memory {
+impl<const LEN: usize> Memory<LEN> {
     pub fn size(&self) -> usize {
         MEM_SIZE
     }
 
     pub fn tick(&mut self) {
-        for age in self.ages.iter_mut() {
+        for age in self.ages.inner_mut() {
             *age = age.saturating_sub(1)
         }
     }
@@ -50,7 +50,7 @@ impl Memory {
                 self[addr + 3],
             ])
         } else {
-            BigEndian::read_i32(&self.values.as_slice()[addr..addr + 4])
+            BigEndian::read_i32(&self.values.inner()[addr..addr + 4])
         }
     }
 
@@ -58,7 +58,7 @@ impl Memory {
         if addr > MEM_SIZE - mem::size_of::<i16>() {
             i16::from_be_bytes([self[addr + 0], self[addr + 1]])
         } else {
-            BigEndian::read_i16(&self.values.as_slice()[addr..addr + 2])
+            BigEndian::read_i16(&self.values.inner()[addr..addr + 2])
         }
     }
 
@@ -69,9 +69,7 @@ impl Memory {
     }
 }
 
-use std::ops::Index;
-
-impl Index<usize> for Memory {
+impl<const LEN: usize> std::ops::Index<usize> for Memory<LEN> {
     type Output = u8;
 
     fn index(&self, index: usize) -> &u8 {
@@ -79,7 +77,7 @@ impl Index<usize> for Memory {
     }
 }
 
-impl super::decoder::Read for Memory {
+impl<const LEN: usize> super::decoder::Read for Memory<LEN> {
     fn read_i16(&self, at: usize) -> i16 {
         self.read_i16(at)
     }

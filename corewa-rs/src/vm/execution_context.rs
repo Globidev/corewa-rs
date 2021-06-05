@@ -1,10 +1,10 @@
 use super::{process::Process, types::*, PidPool};
-use crate::spec::ParamType;
+use crate::spec::{ParamType, MEM_SIZE};
 
 use std::collections::HashSet;
 
 pub struct ExecutionContext<'a> {
-    pub memory: &'a mut super::memory::Memory,
+    pub memory: &'a mut super::memory::Memory<MEM_SIZE>,
     pub process: &'a mut Process,
     pub forks: &'a mut Vec<Process>,
     pub cycle: u32,
