@@ -1,6 +1,10 @@
-use corewa_rs::vm::process::{Process, ProcessState};
-use corewa_rs::vm::types::*;
-use corewa_rs::spec::*;
+use corewa_rs::{
+    spec::*,
+    vm::{
+        process::{Process, ProcessState},
+        types::*,
+    },
+};
 
 use wasm_bindgen::prelude::*;
 
@@ -20,12 +24,12 @@ pub struct ProcessInfo {
 #[wasm_bindgen]
 pub struct ExecutingState {
     op: OpType,
-    pub exec_at: u32
+    pub exec_at: u32,
 }
 
 #[wasm_bindgen]
 pub struct ProcessCollection {
-    processes: Vec<ProcessInfo>
+    processes: Vec<ProcessInfo>,
 }
 
 impl ProcessInfo {
@@ -37,7 +41,7 @@ impl ProcessInfo {
             registers: process.registers,
             zf: process.zf,
             last_live_cycle: process.last_live_cycle,
-            state: process.state.clone()
+            state: process.state.clone(),
         }
     }
 }
@@ -80,9 +84,7 @@ impl ProcessCollection {
 impl<'a, T: Iterator<Item = &'a Process>> From<T> for ProcessCollection {
     fn from(processes: T) -> Self {
         // TODO: Careful with many processes, might want to limit them
-        let processes = processes
-            .map(ProcessInfo::from_process)
-            .collect();
+        let processes = processes.map(ProcessInfo::from_process).collect();
 
         Self { processes }
     }

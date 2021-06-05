@@ -1,14 +1,12 @@
 mod util;
 
-use std::{error::Error, io};
-use termion::{
-    event::Key, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen,
-};
+use std::{error::Error, fs, io};
+use termion::{event::Key, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{
     backend::TermionBackend,
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Style, Color},
+    style::{Color, Style},
     widgets::{Block, Borders, Widget},
     Terminal,
 };
@@ -33,6 +31,19 @@ fn run() -> Result<(), Box<dyn Error>> {
         panic!("Require at least 1 champion");
     }
 
+    let mut vm = VirtualMachine::new();
+    let players: Vec<_> = opts
+        .champion_files
+        .iter()
+        .enumerate()
+        .map(|(i, file_name)| {
+            let champion = fs::read(&file_name)?;
+            Ok((i as i32 + 1, champion))
+        })
+        .collect::<Result<_, io::Error>>()?;
+
+    vm.load_players(&players);
+
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
@@ -42,109 +53,78 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     let events = Events::new();
 
+    let colors = [Color::Yellow, Color::Magenta, Color::Green, Color::Cyan];
 
-    let mut vm = VirtualMachine::new();
-
-    let players: Vec<_> = opts
-        .champion_files
+    let player_colors = vm
+        .players
         .iter()
         .enumerate()
-        .map(|(i, file_name)| {
-            let champion = read_cor_file(&file_name)?;
-            Ok((i as i32 + 1, champion))
-        })
-        .collect::<Result<_, io::Error>>()?;
-
-    vm.load_players(&players);
-
-    let colors = [
-        Color::Yellow,
-        Color::Magenta,
-        Color::Green,
-        Color::Cyan,
-    ];
-
-    let player_colors = vm.players.iter().enumerate()
         .map(|(idx, player)| (player.id, colors[idx]))
         .collect();
 
     let mut controls = Controls::default();
 
     loop {
-        terminal.draw(|mut f| {
-            let chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .margin(1)
-                .constraints(
-                    [
-                        Constraint::Percentage(20),
-                        Constraint::Percentage(80),
-                    ]
-                    .as_ref(),
-                )
-                .split(f.size());
+        if controls.running {
+            terminal.draw(|mut f| {
+                let chunks = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .margin(1)
+                    .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
+                    .split(f.size());
 
-            Block::default()
-                .borders(Borders::ALL)
-                .title("VM state")
-                .render(&mut f, chunks[0]);
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("VM state")
+                    .render(&mut f, chunks[0]);
 
-            let info_chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(1)
-                .constraints(
-                    [
-                        Constraint::Percentage(20),
-                        Constraint::Percentage(80),
-                    ]
-                    .as_ref()
-                )
-                .split(chunks[0]);
+                let info_chunks = Layout::default()
+                    .direction(Direction::Vertical)
+                    .margin(1)
+                    .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
+                    .split(chunks[0]);
 
-            Block::default()
-                .borders(Borders::BOTTOM)
-                .render(&mut f, info_chunks[0]);
+                Block::default()
+                    .borders(Borders::BOTTOM)
+                    .render(&mut f, info_chunks[0]);
 
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Memory")
-                .render(&mut f, chunks[1]);
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Memory")
+                    .render(&mut f, chunks[1]);
 
-            let vm_chunks = Layout::default()
-                .constraints([Constraint::Percentage(100)].as_ref())
-                .margin(1)
-                .split(chunks[1]);
+                let vm_chunks = Layout::default()
+                    .constraints([Constraint::Percentage(100)].as_ref())
+                    .margin(1)
+                    .split(chunks[1]);
 
-            controls.render(&mut f, info_chunks[0]);
+                controls.render(&mut f, info_chunks[0]);
 
-            VMStateWidget(&vm)
-                .render(&mut f, info_chunks[1]);
+                VMStateWidget(&vm).render(&mut f, info_chunks[1]);
 
-            MemoryWidget(&vm, &player_colors, opts.chr)
-                .render(&mut f, vm_chunks[0]);
-
-        })?;
+                MemoryWidget(&vm, &player_colors, opts.chr).render(&mut f, vm_chunks[0]);
+            })?;
+        }
 
         match events.next()? {
-            Event::Key(key) => {
-                match key {
-                    Key::Char(c) => {
-                        match c {
-                            'q' => break,
-                            '+' => controls.faster(),
-                            '-' => controls.slower(),
-                            ' ' => controls.toggle_running(),
-                            'r' => { vm = VirtualMachine::new(); vm.load_players(&players) },
-                            _ => ()
-                        }
-                    },
-                    Key::Right => vm.tick(),
-                    _ => ()
-                }
+            Event::Key(key) => match key {
+                Key::Char(c) => match c {
+                    'q' => break,
+                    '+' => controls.faster(),
+                    '-' => controls.slower(),
+                    ' ' => controls.toggle_running(),
+                    'r' => {
+                        vm = VirtualMachine::new();
+                        vm.load_players(&players)
+                    }
+                    _ => (),
+                },
+                Key::Right => vm.tick(),
+                _ => (),
             },
             Event::Mouse(_ev) => {
                 // dbg!(ev);
-            },
+            }
             Event::Tick => {
                 if controls.running {
                     for _ in 0..controls.speed {
@@ -190,7 +170,12 @@ impl Widget for Controls {
     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
         let running_string = if self.running { "running" } else { "stopped" };
         buf.set_string(area.left(), area.top(), running_string, Style::default());
-        buf.set_string(area.left(), area.top() + 1, format!("Speed: x{}", self.speed), Style::default());
+        buf.set_string(
+            area.left(),
+            area.top() + 1,
+            format!("Speed: x{}", self.speed),
+            Style::default(),
+        );
     }
 }
 
@@ -215,8 +200,14 @@ impl Widget for VMStateWidget<'_> {
         show_line(format!("Check interval: {}", vm.check_interval));
         show_line(format!("Next check:     {}", next_check));
         show_line(format!("Last check:     {}", vm.last_live_check));
-        show_line(format!("Live count:     {}", vm.live_count_since_last_check));
-        show_line(format!("Checks passed:  {}", vm.checks_without_cycle_decrement));
+        show_line(format!(
+            "Live count:     {}",
+            vm.live_count_since_last_check
+        ));
+        show_line(format!(
+            "Checks passed:  {}",
+            vm.checks_without_cycle_decrement
+        ));
     }
 }
 
@@ -234,7 +225,7 @@ impl<'a> Widget for MemoryWidget<'a> {
             let x = idx as u16 % width;
 
             if area.top() + y >= area.bottom() {
-                break
+                break;
             }
 
             let cell = buf.get_mut(area.left() + x, area.top() + y);
@@ -250,7 +241,7 @@ impl<'a> Widget for MemoryWidget<'a> {
 
             let ch = match pc_count {
                 0 => self.2,
-                c@1..=9 => char::from(b'0' + c as u8),
+                c @ 1..=9 => char::from(b'0' + c as u8),
                 _ => '+',
             };
             cell.set_char(ch);
@@ -263,21 +254,12 @@ impl<'a> Widget for MemoryWidget<'a> {
 }
 
 use corewa_rs::vm::{types::PlayerId, VirtualMachine};
-use structopt::StructOpt;
 use std::collections::HashMap;
+use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 struct Options {
     champion_files: Vec<String>,
     #[structopt(short = "c", default_value = "▮")]
     chr: char,
-}
-
-use std::{fs::File, io::Read};
-
-fn read_cor_file(file_name: &str) -> Result<Vec<u8>, io::Error> {
-    let mut data = Vec::with_capacity(8192);
-    let mut file = File::open(file_name)?;
-    file.read_to_end(&mut data)?;
-    Ok(data)
 }

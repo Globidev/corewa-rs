@@ -1,6 +1,12 @@
-use corewa_rs::language::lexer::Term::*;
-use corewa_rs::language::parser::{ParsedLine::{self, *}, parse_line, ParseError::{self, *}};
-use corewa_rs::language::types::{Op::*, *};
+use corewa_rs::language::{
+    lexer::Term::*,
+    parser::{
+        parse_line,
+        ParseError::{self, *},
+        ParsedLine::{self, *},
+    },
+    types::{Op::*, *},
+};
 
 fn parse_ok(input: &str) -> ParsedLine {
     parse_line(input).expect("Failed to parse")
@@ -11,10 +17,7 @@ fn parse_expect_err(input: &str, err: ParseError) {
 }
 
 fn parse_test(input: &str, expected: ParsedLine) {
-    assert_eq!(
-        parse_ok(input),
-        expected
-    )
+    assert_eq!(parse_ok(input), expected)
 }
 
 #[test]
@@ -24,7 +27,10 @@ fn empty() {
 
 #[test]
 fn champion_name() {
-    parse_test(r#".name "John Cena" # nice"#, ChampionName("John Cena".into()))
+    parse_test(
+        r#".name "John Cena" # nice"#,
+        ChampionName("John Cena".into()),
+    )
 }
 
 #[test]
@@ -215,9 +221,12 @@ fn label() {
 
 #[test]
 fn label_and_op() {
-    parse_test("loop: xor r2, r2, r2", LabelAndOp(
-        "loop".into(),
-        Xor(Register(2).into(), Register(2).into(), Register(2).into()))
+    parse_test(
+        "loop: xor r2, r2, r2",
+        LabelAndOp(
+            "loop".into(),
+            Xor(Register(2).into(), Register(2).into(), Register(2).into()),
+        ),
     )
 }
 
@@ -243,10 +252,13 @@ fn expected_but_got_eof() {
 
 #[test]
 fn expected_one_of() {
-    parse_expect_err("ldi r1, :start, r1", ExpectedOneOf(vec![
-        ExpectedButGot(Ident, LabelUse.at(8..14)),
-        ExpectedButGot(DirectChar, LabelUse.at(8..14)),
-    ]))
+    parse_expect_err(
+        "ldi r1, :start, r1",
+        ExpectedOneOf(vec![
+            ExpectedButGot(Ident, LabelUse.at(8..14)),
+            ExpectedButGot(DirectChar, LabelUse.at(8..14)),
+        ]),
+    )
 }
 
 #[test]
@@ -261,5 +273,8 @@ fn invalid_register_prefix() {
 
 #[test]
 fn invalid_op_mnemonic() {
-    parse_expect_err("loop: wat 42", InvalidOpMnemonic("wat".into(), Ident.at(6..9)))
+    parse_expect_err(
+        "loop: wat 42",
+        InvalidOpMnemonic("wat".into(), Ident.at(6..9)),
+    )
 }

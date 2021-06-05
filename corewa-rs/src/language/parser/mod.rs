@@ -1,8 +1,10 @@
 mod combinator;
 
+use super::{
+    lexer::{LexerError, NumberBase, Term, Token, TokenResult, Tokenizer},
+    types::*,
+};
 use combinator::*;
-use super::lexer::{Token, Term, Tokenizer, TokenResult, LexerError, NumberBase};
-use super::types::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParsedLine {
@@ -19,46 +21,42 @@ pub fn parse_line(input: &str) -> Result<ParsedLine, ParseError> {
     let mut tokens = TokenStream::new(input);
 
     let first_tok = match tokens.peek() {
-        None             => return Ok(ParsedLine::Empty),
-        Some(tok_result) => tok_result.clone()?
+        None => return Ok(ParsedLine::Empty),
+        Some(tok_result) => tok_result.clone()?,
     };
 
     let parse_result = match first_tok.term {
-        Term::ChampionNameCmd => {
-            champion_name(&mut tokens)
-                .map(ParsedLine::ChampionName)
-        },
-        Term::ChampionCommentCmd => {
-            champion_comment(&mut tokens)
-                .map(ParsedLine::ChampionComment)
-        },
-        Term::CodeCmd => {
-            code(&mut tokens)
-                .map(ParsedLine::Code)
-        },
+        Term::ChampionNameCmd => champion_name(&mut tokens).map(ParsedLine::ChampionName),
+        Term::ChampionCommentCmd => champion_comment(&mut tokens).map(ParsedLine::ChampionComment),
+        Term::CodeCmd => code(&mut tokens).map(ParsedLine::Code),
         Term::LabelDef => {
             let label = label(&mut tokens)?;
 
             let parsed = match tokens.peek() {
-                None | Some(Ok(Token { term: Term::Comment, .. })) => ParsedLine::Label(label),
-                _ => ParsedLine::LabelAndOp(label, op(&mut tokens)?)
+                None
+                | Some(Ok(Token {
+                    term: Term::Comment,
+                    ..
+                })) => ParsedLine::Label(label),
+                _ => ParsedLine::LabelAndOp(label, op(&mut tokens)?),
             };
 
             Ok(parsed)
-        },
-        Term::Ident => {
-            op(&mut tokens)
-                .map(ParsedLine::Op)
-        },
+        }
+        Term::Ident => op(&mut tokens).map(ParsedLine::Op),
         Term::Comment => return Ok(ParsedLine::Empty),
-        _             => return Err(ParseError::Unexpected(first_tok)),
+        _ => return Err(ParseError::Unexpected(first_tok)),
     }?;
 
     // Remaining input besides comments => Error
     match tokens.peek() {
-        None | Some(Ok(Token { term: Term::Comment, .. })) => Ok(parse_result),
-        Some(Ok(token))      => Err(ParseError::RemainingInput(token.clone())),
-        Some(Err(lex_error)) => Err(ParseError::LexerError(lex_error.clone()))
+        None
+        | Some(Ok(Token {
+            term: Term::Comment,
+            ..
+        })) => Ok(parse_result),
+        Some(Ok(token)) => Err(ParseError::RemainingInput(token.clone())),
+        Some(Err(lex_error)) => Err(ParseError::LexerError(lex_error.clone())),
     }
 }
 
@@ -78,34 +76,41 @@ fn code(input: &mut TokenStream<'_>) -> ParseResult<Vec<u8>> {
     input.next(Term::CodeCmd)?;
     let numbers = number.many().parse(input)?;
     // TODO: Better enforce numeric limit invariants
-    let as_bytes = numbers.into_iter()
-        .map(|x| x as u8)
-        .collect();
+    let as_bytes = numbers.into_iter().map(|x| x as u8).collect();
     Ok(as_bytes)
 }
 
 fn label(input: &mut TokenStream<'_>) -> ParseResult<String> {
-    input.next(Term::LabelDef)
+    input
+        .next(Term::LabelDef)
         .map(|label_str| String::from(&label_str[..label_str.len() - 1]))
 }
 
 fn label_param(input: &mut TokenStream<'_>) -> ParseResult<String> {
-    input.next(Term::LabelUse)
+    input
+        .next(Term::LabelUse)
         .map(|label_str| String::from(&label_str[1..]))
 }
 
 fn number(input: &mut TokenStream<'_>) -> ParseResult<i64> {
-    let token_result = input.tokens
-        .next()
-        .ok_or_else(|| expected_either((
-            ParseError::ExpectedButGotEof(Term::Number { base: NumberBase::Decimal }),
-            ParseError::ExpectedButGotEof(Term::Number { base: NumberBase::Hexadecimal }))
-        ))?;
+    let token_result = input.tokens.next().ok_or_else(|| {
+        expected_either((
+            ParseError::ExpectedButGotEof(Term::Number {
+                base: NumberBase::Decimal,
+            }),
+            ParseError::ExpectedButGotEof(Term::Number {
+                base: NumberBase::Hexadecimal,
+            }),
+        ))
+    })?;
 
     let tok = token_result?;
 
     match tok.clone() {
-        Token { term: Term::Number { base }, range } => {
+        Token {
+            term: Term::Number { base },
+            range,
+        } => {
             let mut number_as_str = &input.input[range];
             let negative = number_as_str.starts_with('-');
             if negative {
@@ -118,11 +123,21 @@ fn number(input: &mut TokenStream<'_>) -> ParseResult<i64> {
             i64::from_str_radix(number_as_str, base.radix())
                 .map_err(|e| ParseError::ParseIntError(e, tok))
                 .map(|x| if negative { -x } else { x })
-        },
+        }
         _ => Err(expected_either((
-            ParseError::ExpectedButGot(Term::Number { base: NumberBase::Decimal }, tok.clone()),
-            ParseError::ExpectedButGot(Term::Number { base: NumberBase::Hexadecimal }, tok)
-        )))
+            ParseError::ExpectedButGot(
+                Term::Number {
+                    base: NumberBase::Decimal,
+                },
+                tok.clone(),
+            ),
+            ParseError::ExpectedButGot(
+                Term::Number {
+                    base: NumberBase::Hexadecimal,
+                },
+                tok,
+            ),
+        ))),
     }
 }
 
@@ -132,7 +147,8 @@ fn register(input: &mut TokenStream<'_>) -> ParseResult<Register> {
 
     let first_char = {
         let tok = tok.clone();
-        chars.next()
+        chars
+            .next()
             .ok_or_else(|| ParseError::MissingRegisterPrefix(tok))?
     };
     let reg_num_result = chars.as_str().parse();
@@ -141,48 +157,54 @@ fn register(input: &mut TokenStream<'_>) -> ParseResult<Register> {
         ('r', Ok(x)) if 1 <= x && x <= 16 => Ok(Register(x as u8)),
         ('r', Ok(x)) => Err(ParseError::InvalidRegisterCount(x, tok)),
         ('r', Err(e)) => Err(ParseError::RegisterParseIntError(e, tok)),
-        (c,   _) => Err(ParseError::InvalidRegisterPrefix(c, tok)),
+        (c, _) => Err(ParseError::InvalidRegisterPrefix(c, tok)),
     }
 }
 
 fn direct(input: &mut TokenStream<'_>) -> ParseResult<Direct> {
     input.next(Term::DirectChar)?;
-    label_param.map(Direct::Label)
+    label_param
+        .map(Direct::Label)
         .or(number.map(Direct::Numeric))
         .map_err(expected_either)
         .parse(input)
 }
 
 fn indirect(input: &mut TokenStream<'_>) -> ParseResult<Indirect> {
-    label_param.map(Indirect::Label)
+    label_param
+        .map(Indirect::Label)
         .or(number.map(Indirect::Numeric))
         .map_err(expected_either)
         .parse(input)
 }
 
 fn reg_dir(input: &mut TokenStream<'_>) -> ParseResult<RegDir> {
-    register.map(RegDir::Reg)
+    register
+        .map(RegDir::Reg)
         .or(direct.map(RegDir::Dir))
         .map_err(expected_either)
         .parse(input)
 }
 
 fn reg_ind(input: &mut TokenStream<'_>) -> ParseResult<RegInd> {
-    register.map(RegInd::Reg)
+    register
+        .map(RegInd::Reg)
         .or(indirect.map(RegInd::Ind))
         .map_err(expected_either)
         .parse(input)
 }
 
 fn dir_ind(input: &mut TokenStream<'_>) -> ParseResult<DirInd> {
-    direct.map(DirInd::Dir)
+    direct
+        .map(DirInd::Dir)
         .or(indirect.map(DirInd::Ind))
         .map_err(expected_either)
         .parse(input)
 }
 
 fn any_param(input: &mut TokenStream<'_>) -> ParseResult<AnyParam> {
-    register.map(AnyParam::Reg)
+    register
+        .map(AnyParam::Reg)
         .or(direct.map(AnyParam::Dir))
         .or(indirect.map(AnyParam::Ind))
         .map_err(|((e1, e2), e3)| ParseError::ExpectedOneOf(vec![e1, e2, e3]))
@@ -202,38 +224,38 @@ fn op(input: &mut TokenStream<'_>) -> ParseResult<Op> {
     let (tok, mnemonic) = input.next_with_token(Term::Ident)?;
 
     match mnemonic {
-        "live"  => parse_op!( Op::Live,  direct                         ),
-        "ld"    => parse_op!( Op::Ld,    dir_ind,   register            ),
-        "st"    => parse_op!( Op::St,    register,  reg_ind             ),
-        "add"   => parse_op!( Op::Add,   register,  register,  register ),
-        "sub"   => parse_op!( Op::Sub,   register,  register,  register ),
-        "and"   => parse_op!( Op::And,   any_param, any_param, register ),
-        "or"    => parse_op!( Op::Or,    any_param, any_param, register ),
-        "xor"   => parse_op!( Op::Xor,   any_param, any_param, register ),
-        "zjmp"  => parse_op!( Op::Zjmp,  direct                         ),
-        "ldi"   => parse_op!( Op::Ldi,   any_param, reg_dir,   register ),
-        "sti"   => parse_op!( Op::Sti,   register,  any_param, reg_dir  ),
-        "fork"  => parse_op!( Op::Fork,  direct                         ),
-        "lld"   => parse_op!( Op::Lld,   dir_ind,   register            ),
-        "lldi"  => parse_op!( Op::Lldi,  any_param, reg_dir,   register ),
-        "lfork" => parse_op!( Op::Lfork, direct                         ),
-        "aff"   => parse_op!( Op::Aff,   register                       ),
+        "live" => parse_op!(Op::Live, direct),
+        "ld" => parse_op!(Op::Ld, dir_ind, register),
+        "st" => parse_op!(Op::St, register, reg_ind),
+        "add" => parse_op!(Op::Add, register, register, register),
+        "sub" => parse_op!(Op::Sub, register, register, register),
+        "and" => parse_op!(Op::And, any_param, any_param, register),
+        "or" => parse_op!(Op::Or, any_param, any_param, register),
+        "xor" => parse_op!(Op::Xor, any_param, any_param, register),
+        "zjmp" => parse_op!(Op::Zjmp, direct),
+        "ldi" => parse_op!(Op::Ldi, any_param, reg_dir, register),
+        "sti" => parse_op!(Op::Sti, register, any_param, reg_dir),
+        "fork" => parse_op!(Op::Fork, direct),
+        "lld" => parse_op!(Op::Lld, dir_ind, register),
+        "lldi" => parse_op!(Op::Lldi, any_param, reg_dir, register),
+        "lfork" => parse_op!(Op::Lfork, direct),
+        "aff" => parse_op!(Op::Aff, register),
 
-        _ => Err(ParseError::InvalidOpMnemonic(String::from(mnemonic), tok))
+        _ => Err(ParseError::InvalidOpMnemonic(String::from(mnemonic), tok)),
     }
 }
 
 #[derive(Clone)]
 struct TokenStream<'a> {
     tokens: ::std::iter::Peekable<Tokenizer<'a>>,
-    input: &'a str
+    input: &'a str,
 }
 
 impl TokenStream<'_> {
     fn new(input: &str) -> TokenStream<'_> {
         TokenStream {
             tokens: Tokenizer::new(input).peekable(),
-            input
+            input,
         }
     }
 
@@ -242,12 +264,12 @@ impl TokenStream<'_> {
     }
 
     fn next(&mut self, term: Term) -> ParseResult<&str> {
-        self.next_with_token(term)
-            .map(|(_, s)| s)
+        self.next_with_token(term).map(|(_, s)| s)
     }
 
     fn next_with_token(&mut self, term: Term) -> ParseResult<(Token, &str)> {
-        let token_result = self.tokens
+        let token_result = self
+            .tokens
             .next()
             .ok_or_else(|| ParseError::ExpectedButGotEof(term.clone()))?;
 
@@ -285,14 +307,14 @@ use std::fmt;
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use ParseError::*;
         use std::collections::HashSet;
+        use ParseError::*;
 
         fn flatten_errors(errs: &[ParseError]) -> Vec<&ParseError> {
             errs.iter()
                 .flat_map(|err| match err {
                     ExpectedOneOf(sub_errors) => flatten_errors(sub_errors),
-                    _ => vec![err]
+                    _ => vec![err],
                 })
                 .collect()
         }
@@ -301,7 +323,9 @@ impl fmt::Display for ParseError {
             RemainingInput(token) => write!(f, "Extra token remaining: '{}'", token.term),
             LexerError(err) => write!(f, "{}", err.kind),
             Unexpected(token) => write!(f, "Unexpected initial token: '{}'", token.term),
-            ExpectedButGot(term, token) => write!(f, "Expected '{}' but got '{}'", term, token.term),
+            ExpectedButGot(term, token) => {
+                write!(f, "Expected '{}' but got '{}'", term, token.term)
+            }
             ExpectedButGotEof(term) => write!(f, "Expected '{}' before the end of the line", term),
             ExpectedOneOf(errors) => {
                 let unique_error_strings = flatten_errors(errors)
@@ -320,13 +344,19 @@ impl fmt::Display for ParseError {
                         write!(f, "Either:{}", line_separated_erros)
                     }
                 }
-            },
-            InvalidRegisterCount(n, _) => write!(f, "'{}' is not a valid register number. It must be between 1 and 16", n),
-            InvalidRegisterPrefix(prefix, _) => write!(f, "Register prefix should be 'r' and not '{}'", prefix),
+            }
+            InvalidRegisterCount(n, _) => write!(
+                f,
+                "'{}' is not a valid register number. It must be between 1 and 16",
+                n
+            ),
+            InvalidRegisterPrefix(prefix, _) => {
+                write!(f, "Register prefix should be 'r' and not '{}'", prefix)
+            }
             MissingRegisterPrefix(_) => write!(f, "Register prefix 'r' is missing"),
             ParseIntError(err, _) => write!(f, "Invalid number: {}", err),
             RegisterParseIntError(err, _) => write!(f, "Invalid register number: {}", err),
-            InvalidOpMnemonic(mnemonic, _) => write!(f, "'{}' is not a valid operation", mnemonic)
+            InvalidOpMnemonic(mnemonic, _) => write!(f, "'{}' is not a valid operation", mnemonic),
         }
     }
 }
@@ -341,18 +371,15 @@ pub fn error_range(err: &ParseError) -> (usize, Option<usize>) {
         ExpectedButGot(_, token) => (token.range.start, Some(token.range.end)),
         ExpectedButGotEof(_) => (0, None),
         ExpectedOneOf(errors) => {
-            let ranges = errors.iter()
-                .map(error_range)
-                .collect::<Vec<_>>();
+            let ranges = errors.iter().map(error_range).collect::<Vec<_>>();
 
-            let min_start = ranges.iter()
+            let min_start = ranges
+                .iter()
                 .map(|(start, _)| *start)
                 .min()
                 .expect("ExpectedOneOf has been given an empty sequence");
 
-            let max_end = ranges.iter()
-                .flat_map(|(_, opt_end)| *opt_end)
-                .max();
+            let max_end = ranges.iter().flat_map(|(_, opt_end)| *opt_end).max();
 
             (min_start, max_end)
         }
@@ -361,6 +388,6 @@ pub fn error_range(err: &ParseError) -> (usize, Option<usize>) {
         MissingRegisterPrefix(token) => (token.range.start, Some(token.range.end)),
         ParseIntError(_, token) => (token.range.start, Some(token.range.end)),
         RegisterParseIntError(_, token) => (token.range.start, Some(token.range.end)),
-        InvalidOpMnemonic(_, token) => (token.range.start, Some(token.range.end))
+        InvalidOpMnemonic(_, token) => (token.range.start, Some(token.range.end)),
     }
 }

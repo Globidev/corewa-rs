@@ -1,4 +1,3 @@
-
 pub struct WrappingArray<T>(Box<[T]>);
 
 impl<T> WrappingArray<T> {
@@ -40,7 +39,6 @@ impl<T> IndexMut<usize> for WrappingArray<T> {
         self.0.index_mut(index % self.0.len())
     }
 }
-
 
 #[cfg(test)]
 mod test {

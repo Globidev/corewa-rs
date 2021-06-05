@@ -1,5 +1,5 @@
-use crate::spec::*;
 use super::types::*;
+use crate::spec::*;
 
 use arraytools::ArrayTools;
 
@@ -12,13 +12,10 @@ pub trait Decode: Read {
     fn decode_op(&self, idx: usize) -> Result<OpType, InvalidOpCode> {
         let op_code = self[idx];
 
-        op_from_code(op_code)
-            .ok_or_else(|| InvalidOpCode(op_code))
+        op_from_code(op_code).ok_or_else(|| InvalidOpCode(op_code))
     }
 
-    fn decode_instr(&self, op: OpType, addr: usize)
-        -> Result<Instruction, InstrDecodeError>
-    {
+    fn decode_instr(&self, op: OpType, addr: usize) -> Result<Instruction, InstrDecodeError> {
         // Decode the operation's parameter types and start counting the
         // instruction's total byte size:
         // If the op has a pcb, decode it and start counting at 2 bytes:
@@ -44,21 +41,25 @@ pub trait Decode: Read {
 
         for idx in 0..op_spec.param_count {
             let param_type = param_types[idx];
-            let (param, param_byte_size) = self.decode_param(
-                param_type,
-                addr + instr_byte_size,
-                &op_spec.dir_size
-            )?;
+            let (param, param_byte_size) =
+                self.decode_param(param_type, addr + instr_byte_size, &op_spec.dir_size)?;
             instr_byte_size += param_byte_size;
             params[idx] = param;
         }
 
-        Ok(Instruction { kind: op, params, byte_size: instr_byte_size })
+        Ok(Instruction {
+            kind: op,
+            params,
+            byte_size: instr_byte_size,
+        })
     }
 
-    fn decode_param(&self, kind: ParamType, addr: usize, dir_size: &DirectSize)
-        -> Result<(Param, usize), InstrDecodeError>
-    {
+    fn decode_param(
+        &self,
+        kind: ParamType,
+        addr: usize,
+        dir_size: &DirectSize,
+    ) -> Result<(Param, usize), InstrDecodeError> {
         use ParamType::*;
 
         let (value, size) = match (&kind, dir_size) {
@@ -66,18 +67,18 @@ pub trait Decode: Read {
                 let reg = self[addr];
                 match reg as usize {
                     1..=REG_COUNT => (i32::from(reg), 1),
-                    _ => return Err(InstrDecodeError::InvalidRegNumber(reg))
+                    _ => return Err(InstrDecodeError::InvalidRegNumber(reg)),
                 }
-            },
+            }
             (Direct, DirectSize::FourBytes) => (self.read_i32(addr), 4),
-            _ => (i32::from(self.read_i16(addr)), 2)
+            _ => (i32::from(self.read_i16(addr)), 2),
         };
 
         Ok((Param { kind, value }, size))
     }
 }
 
-impl<T: Read> Decode for T { }
+impl<T: Read> Decode for T {}
 
 type ParamTypes = [ParamType; MAX_PARAMS];
 
@@ -93,16 +94,14 @@ fn params_from_unambiguous_masks(masks: [u8; MAX_PARAMS]) -> ParamTypes {
             T_REG => ParamType::Register,
             T_DIR => ParamType::Direct,
             T_IND => ParamType::Indirect,
-            _     => ParamType::default(),
+            _ => ParamType::default(),
         }
     }
 
     masks.map(to_param_type)
 }
 
-fn read_pcb_params(pcb: u8, op_spec: &OpSpec)
-    -> Result<ParamTypes, InstrDecodeError>
-{
+fn read_pcb_params(pcb: u8, op_spec: &OpSpec) -> Result<ParamTypes, InstrDecodeError> {
     // Validate the pcb structure:
     // there should be exactly one pair of bits for each parameter
     // additional bits are treated as errors, so we isolate them with a mask
@@ -114,7 +113,7 @@ fn read_pcb_params(pcb: u8, op_spec: &OpSpec)
     let unused_mask = 0b11_11_11_11 >> (op_spec.param_count * 2);
 
     if pcb & unused_mask != 0 {
-        return Err(InstrDecodeError::InvalidPCB(pcb))
+        return Err(InstrDecodeError::InvalidPCB(pcb));
     }
 
     // Decode each parameter's type:
@@ -130,12 +129,12 @@ fn read_pcb_params(pcb: u8, op_spec: &OpSpec)
 
     for idx in 0..op_spec.param_count {
         let param_bits = (pcb >> (6 - 2 * idx)) & 0b00_00_00_11;
-        let (param_type, mask_flag) = read_type_and_mask_flag(param_bits)
-            .ok_or_else(|| InstrDecodeError::InvalidPCB(pcb))?;
+        let (param_type, mask_flag) =
+            read_type_and_mask_flag(param_bits).ok_or_else(|| InstrDecodeError::InvalidPCB(pcb))?;
 
         let param_mask = op_spec.param_masks[idx];
         if param_mask & mask_flag != mask_flag {
-            return Err(InstrDecodeError::InvalidPCB(pcb))
+            return Err(InstrDecodeError::InvalidPCB(pcb));
         }
 
         param_types[idx] = param_type;
@@ -149,7 +148,7 @@ fn read_type_and_mask_flag(param_code: u8) -> Option<(ParamType, u8)> {
         REG_PARAM_CODE => Some((ParamType::Register, T_REG)),
         DIR_PARAM_CODE => Some((ParamType::Direct, T_DIR)),
         IND_PARAM_CODE => Some((ParamType::Indirect, T_IND)),
-        _ => None
+        _ => None,
     }
 }
 
@@ -171,7 +170,7 @@ fn op_from_code(code: u8) -> Option<OpType> {
         14 => OpType::Lldi,
         15 => OpType::Lfork,
         16 => OpType::Aff,
-        _ => return None
+        _ => return None,
     };
 
     Some(op_type)

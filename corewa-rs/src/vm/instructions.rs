@@ -1,7 +1,5 @@
+use super::{execution_context::ExecutionContext, process::Process, types::*};
 use crate::spec::ParamType;
-use super::execution_context::ExecutionContext;
-use super::process::Process;
-use super::types::*;
 
 pub fn exec_live(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
     let [player_id_p, _, _] = &instr.params;
@@ -29,9 +27,11 @@ pub fn exec_st(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
         ParamType::Indirect => ctx.memory.write_i32(
             value_to_store,
             ctx.process.player_id,
-            ctx.process.pc.offset(dst_p.value as isize, OffsetType::Limited),
+            ctx.process
+                .pc
+                .offset(dst_p.value as isize, OffsetType::Limited),
         ),
-        _ => unreachable!("St Param #2 invariant broken")
+        _ => unreachable!("St Param #2 invariant broken"),
     }
 }
 
@@ -93,8 +93,13 @@ pub fn exec_xor(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
 pub fn exec_zjmp(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
     let [offset_p, _, _] = &instr.params;
 
-    if !ctx.process.zf { return }
-    let jumped_offet = ctx.process.pc.offset(offset_p.value as isize, OffsetType::Limited);
+    if !ctx.process.zf {
+        return;
+    }
+    let jumped_offet = ctx
+        .process
+        .pc
+        .offset(offset_p.value as isize, OffsetType::Limited);
     ctx.process.pc = jumped_offet.into();
     // Negating the instruction jump
     ctx.process.pc.advance(-(instr.byte_size as isize))
@@ -106,7 +111,9 @@ pub fn exec_ldi(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
     let lhs = ctx.get_param(lhs_p, OffsetType::Limited);
     let rhs = ctx.get_param(rhs_p, OffsetType::Limited);
     let addr = (lhs + rhs) as isize;
-    let value = ctx.memory.read_i32(ctx.process.pc.offset(addr, OffsetType::Limited));
+    let value = ctx
+        .memory
+        .read_i32(ctx.process.pc.offset(addr, OffsetType::Limited));
     ctx.set_reg(dst_p, value)
 }
 
@@ -117,13 +124,20 @@ pub fn exec_sti(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
     let lhs = ctx.get_param(lhs_p, OffsetType::Limited);
     let rhs = ctx.get_param(rhs_p, OffsetType::Limited);
     let offset = lhs + rhs;
-    ctx.memory.write_i32(value, ctx.process.player_id, ctx.process.pc.offset(offset as isize, OffsetType::Limited));
+    ctx.memory.write_i32(
+        value,
+        ctx.process.player_id,
+        ctx.process.pc.offset(offset as isize, OffsetType::Limited),
+    );
 }
 
 pub fn exec_fork(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
     let [offset_p, _, _] = &instr.params;
 
-    let forked_pc = ctx.process.pc.offset(offset_p.value as isize, OffsetType::Limited);
+    let forked_pc = ctx
+        .process
+        .pc
+        .offset(offset_p.value as isize, OffsetType::Limited);
     let child_process = Process::fork(ctx.pid_pool.get(), forked_pc.into(), ctx);
     ctx.forks.push(child_process);
 }
@@ -143,7 +157,9 @@ pub fn exec_lldi(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
     let lhs = ctx.get_param(lhs_p, OffsetType::Long);
     let rhs = ctx.get_param(rhs_p, OffsetType::Long);
     let addr = (lhs + rhs) as isize;
-    let value = ctx.memory.read_i32(ctx.process.pc.offset(addr, OffsetType::Long));
+    let value = ctx
+        .memory
+        .read_i32(ctx.process.pc.offset(addr, OffsetType::Long));
     ctx.set_reg(dst_p, value);
 
     ctx.process.zf = value == 0;
@@ -152,11 +168,12 @@ pub fn exec_lldi(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
 pub fn exec_lfork(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
     let [offset_p, _, _] = &instr.params;
 
-    let forked_pc = ctx.process.pc.offset(offset_p.value as isize, OffsetType::Long);
+    let forked_pc = ctx
+        .process
+        .pc
+        .offset(offset_p.value as isize, OffsetType::Long);
     let child_process = Process::fork(ctx.pid_pool.get(), forked_pc.into(), ctx);
     ctx.forks.push(child_process);
 }
 
-pub fn exec_aff(_instr: &Instruction, _ctx: &mut ExecutionContext<'_>) {
-
-}
+pub fn exec_aff(_instr: &Instruction, _ctx: &mut ExecutionContext<'_>) {}

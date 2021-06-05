@@ -1,4 +1,4 @@
-use crate::spec::{ParamType, OpSpec, OpType, MAX_PARAMS, REG_COUNT};
+use crate::spec::{OpSpec, OpType, ParamType, MAX_PARAMS, REG_COUNT};
 use std::fmt;
 
 #[derive(Debug)]
@@ -6,7 +6,7 @@ pub struct Player {
     pub id: PlayerId,
     pub name: String,
     pub comment: String,
-    pub size: usize
+    pub size: usize,
 }
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ pub struct Param {
 #[derive(Debug)]
 pub enum OffsetType {
     Limited,
-    Long
+    Long,
 }
 
 pub type Register = i32;
@@ -38,22 +38,22 @@ impl fmt::Display for OpType {
         use OpType::*;
 
         let mnemonic = match self {
-            Live  => "live",
-            Ld    => "ld",
-            St    => "st",
-            Add   => "add",
-            Sub   => "sub",
-            And   => "and",
-            Or    => "or",
-            Xor   => "xor",
-            Zjmp  => "zjmp",
-            Ldi   => "ldi",
-            Sti   => "sti",
-            Fork  => "fork",
-            Lld   => "lld",
-            Lldi  => "lldi",
+            Live => "live",
+            Ld => "ld",
+            St => "st",
+            Add => "add",
+            Sub => "sub",
+            And => "and",
+            Or => "or",
+            Xor => "xor",
+            Zjmp => "zjmp",
+            Ldi => "ldi",
+            Sti => "sti",
+            Fork => "fork",
+            Lld => "lld",
+            Lldi => "lldi",
             Lfork => "lfork",
-            Aff   => "aff",
+            Aff => "aff",
         };
 
         write!(f, "{}", mnemonic)

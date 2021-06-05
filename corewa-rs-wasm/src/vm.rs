@@ -1,11 +1,9 @@
-use corewa_rs::vm::types::*;
-use corewa_rs::vm::VirtualMachine as VMImpl;
+use corewa_rs::vm::{types::*, VirtualMachine as VMImpl};
 
-use super::champion::ChampionInfo;
-use super::decoder::DecodeResult;
-use super::memory::Memory;
-use super::player::PlayerInfo;
-use super::process::ProcessCollection;
+use super::{
+    champion::ChampionInfo, decoder::DecodeResult, memory::Memory, player::PlayerInfo,
+    process::ProcessCollection,
+};
 
 use wasm_bindgen::prelude::*;
 
@@ -48,7 +46,10 @@ impl VirtualMachine {
     }
 
     pub fn player_info(&self, player_id: PlayerId) -> JsValue {
-        self.0.players.iter().find(|p| p.id == player_id)
+        self.0
+            .players
+            .iter()
+            .find(|p| p.id == player_id)
             .map(PlayerInfo::from_player)
             .map(JsValue::from)
             .unwrap_or(JsValue::NULL)
@@ -56,14 +57,17 @@ impl VirtualMachine {
 
     pub fn champion_info(&self, player_id: PlayerId) -> ChampionInfo {
         ChampionInfo {
-            process_count: *self.0.process_count_by_player_id.get(&player_id).unwrap_or(&0),
+            process_count: *self
+                .0
+                .process_count_by_player_id
+                .get(&player_id)
+                .unwrap_or(&0),
             last_live: *self.0.last_lives.get(&player_id).unwrap_or(&0),
         }
     }
 
     pub fn processes_at(&self, idx: usize) -> ProcessCollection {
-        let cell_processes = self.0.processes.iter()
-            .filter(|p| p.pc.addr() == idx);
+        let cell_processes = self.0.processes.iter().filter(|p| p.pc.addr() == idx);
 
         ProcessCollection::from(cell_processes)
     }
@@ -93,7 +97,9 @@ pub struct VMBuilder {
 impl VMBuilder {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self { players: Vec::with_capacity(4) }
+        Self {
+            players: Vec::with_capacity(4),
+        }
     }
 
     pub fn with_player(mut self, player_id: PlayerId, champion: Vec<u8>) -> VMBuilder {

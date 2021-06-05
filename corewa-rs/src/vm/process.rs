@@ -1,7 +1,9 @@
+use super::{
+    execution_context::ExecutionContext,
+    program_counter::ProgramCounter,
+    types::{Pid, PlayerId, Registers},
+};
 use crate::spec::OpType;
-use super::execution_context::ExecutionContext;
-use super::program_counter::ProgramCounter;
-use super::types::{Pid, Registers, PlayerId};
 
 #[derive(Debug)]
 pub struct Process {
@@ -17,7 +19,7 @@ pub struct Process {
 #[derive(Debug, Clone)]
 pub enum ProcessState {
     Idle,
-    Executing { op: OpType, exec_at: u32 }
+    Executing { op: OpType, exec_at: u32 },
 }
 
 impl Process {
@@ -29,7 +31,7 @@ impl Process {
             registers: Registers::default(),
             zf: false,
             state: ProcessState::Idle,
-            last_live_cycle: 0
+            last_live_cycle: 0,
         }
     }
 
@@ -41,7 +43,7 @@ impl Process {
             registers: ctx.process.registers,
             zf: ctx.process.zf,
             state: ProcessState::Idle,
-            last_live_cycle: 0
+            last_live_cycle: 0,
         }
     }
 }

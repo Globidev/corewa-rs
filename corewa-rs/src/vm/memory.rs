@@ -1,14 +1,13 @@
+use super::{types::*, wrapping_array::WrappingArray};
 use crate::spec::*;
-use super::types::*;
-use super::wrapping_array::WrappingArray;
 
+use byteorder::{BigEndian, ByteOrder};
 use std::{iter, mem};
-use byteorder::{ByteOrder, BigEndian};
 
 pub struct Memory {
     pub values: WrappingArray<u8>,
     pub ages: WrappingArray<u16>,
-    pub owners: WrappingArray<PlayerId>
+    pub owners: WrappingArray<PlayerId>,
 }
 
 impl Default for Memory {
@@ -16,7 +15,7 @@ impl Default for Memory {
         Self {
             values: iter::repeat(0).take(MEM_SIZE).collect(),
             ages: iter::repeat(1024).take(MEM_SIZE).collect(),
-            owners: iter::repeat(0).take(MEM_SIZE).collect()
+            owners: iter::repeat(0).take(MEM_SIZE).collect(),
         }
     }
 }
@@ -46,21 +45,18 @@ impl Memory {
                 self[addr + 0],
                 self[addr + 1],
                 self[addr + 2],
-                self[addr + 3]
+                self[addr + 3],
             ])
         } else {
-            BigEndian::read_i32(&self.values.as_slice()[addr..addr+4])
+            BigEndian::read_i32(&self.values.as_slice()[addr..addr + 4])
         }
     }
 
     pub fn read_i16(&self, addr: usize) -> i16 {
         if addr > MEM_SIZE - mem::size_of::<i16>() {
-            i16::from_be_bytes([
-                self[addr + 0],
-                self[addr + 1]
-            ])
+            i16::from_be_bytes([self[addr + 0], self[addr + 1]])
         } else {
-            BigEndian::read_i16(&self.values.as_slice()[addr..addr+2])
+            BigEndian::read_i16(&self.values.as_slice()[addr..addr + 2])
         }
     }
 
@@ -95,7 +91,7 @@ impl super::decoder::Read for Memory {
 mod test {
     extern crate test;
     use super::*;
-    use rand::{Rng, rngs::StdRng, SeedableRng};
+    use rand::{rngs::StdRng, Rng, SeedableRng};
 
     fn random_memory(mut rng: impl Rng) -> Memory {
         let mut mem = Memory::default();
@@ -110,9 +106,7 @@ mod test {
         let rng = StdRng::seed_from_u64(0xDEADBEEF);
         let mem = random_memory(rng);
 
-        bencher.iter(|| {
-            (0..MEM_SIZE).fold(0, |h, idx| h ^ mem.read_i32(idx))
-        })
+        bencher.iter(|| (0..MEM_SIZE).fold(0, |h, idx| h ^ mem.read_i32(idx)))
     }
 
     #[bench]
@@ -120,8 +114,6 @@ mod test {
         let rng = StdRng::seed_from_u64(0xDEADBEEF);
         let mem = random_memory(rng);
 
-        bencher.iter(move || {
-            (0..MEM_SIZE).fold(0, |h, idx| h ^ mem.read_i16(idx))
-        })
+        bencher.iter(move || (0..MEM_SIZE).fold(0, |h, idx| h ^ mem.read_i16(idx)))
     }
 }

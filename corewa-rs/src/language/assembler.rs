@@ -1,18 +1,17 @@
-use super::parser::ParsedLine;
-use super::types::Op;
+use super::{parser::ParsedLine, types::Op};
 
 #[derive(Debug)]
 pub struct Champion {
     pub name: String,
     pub comment: String,
-    pub instructions: Vec<ParsedInstruction>
+    pub instructions: Vec<ParsedInstruction>,
 }
 
 #[derive(Default)]
 pub struct ChampionBuilder {
     name: Option<String>,
     comment: Option<String>,
-    instructions: Vec<ParsedInstruction>
+    instructions: Vec<ParsedInstruction>,
 }
 
 impl ChampionBuilder {
@@ -45,12 +44,12 @@ impl ChampionBuilder {
         use ParsedLine::*;
 
         match parsed_line {
-            ChampionName(name)       => self.with_name(name),
+            ChampionName(name) => self.with_name(name),
             ChampionComment(comment) => self.with_comment(comment),
 
-            Code(bytes)           => Ok(self.add_instr(bytes)),
-            Op(op)                => Ok(self.add_instr(op)),
-            Label(label)          => Ok(self.add_instr(label)),
+            Code(bytes) => Ok(self.add_instr(bytes)),
+            Op(op) => Ok(self.add_instr(op)),
+            Label(label) => Ok(self.add_instr(label)),
             LabelAndOp(label, op) => Ok(self.add_instr(label).add_instr(op)),
 
             Empty => Ok(self),
@@ -64,8 +63,8 @@ impl ChampionBuilder {
             (Some(name), Some(comment)) => Ok(Champion {
                 name,
                 comment,
-                instructions: self.instructions
-            })
+                instructions: self.instructions,
+            }),
         }
     }
 }
@@ -76,14 +75,20 @@ type AssembleResult<T> = Result<T, AssembleError>;
 pub enum ParsedInstruction {
     Label(String),
     Op(Op),
-    RawCode(Vec<u8>)
+    RawCode(Vec<u8>),
 }
 
 #[derive(Debug, Display)]
 pub enum AssembleError {
-    #[display(fmt = "Duplicate '.name' directive: the champion was already named '{}'", _0)]
+    #[display(
+        fmt = "Duplicate '.name' directive: the champion was already named '{}'",
+        _0
+    )]
     NameAlreadySet(String),
-    #[display(fmt = "Duplicate '.comment' directive: the champion already had a comment '{}'", _0)]
+    #[display(
+        fmt = "Duplicate '.comment' directive: the champion already had a comment '{}'",
+        _0
+    )]
     CommentAlreadySet(String),
     #[display(fmt = "The champion is missing a '.name' directive")]
     MissingName,

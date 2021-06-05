@@ -1,5 +1,5 @@
-use crate::spec::{MEM_SIZE, IDX_MOD};
 use super::types::OffsetType;
+use crate::spec::{IDX_MOD, MEM_SIZE};
 
 #[derive(Debug, Default, From)]
 pub struct ProgramCounter(usize);
@@ -16,7 +16,7 @@ impl ProgramCounter {
     pub fn offset(&self, offset: isize, offset_type: OffsetType) -> usize {
         let reach = match offset_type {
             OffsetType::Limited => IDX_MOD,
-            OffsetType::Long    => MEM_SIZE
+            OffsetType::Long => MEM_SIZE,
         };
         let offset = offset % reach as isize;
         mem_offset(self.0, offset)

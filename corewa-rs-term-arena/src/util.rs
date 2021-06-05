@@ -1,10 +1,9 @@
-use std::io;
-use std::sync::mpsc;
-use std::thread;
-use std::time::Duration;
+use std::{io, sync::mpsc, thread, time::Duration};
 
-use termion::event::{Key, Event as TermEvent, MouseEvent};
-use termion::input::TermRead;
+use termion::{
+    event::{Event as TermEvent, Key, MouseEvent},
+    input::TermRead,
+};
 
 pub enum Event {
     Key(Key),
@@ -55,12 +54,12 @@ impl Events {
                             if key == config.exit_key {
                                 return;
                             }
-                        },
+                        }
                         TermEvent::Mouse(ev) => {
                             if let Err(_) = tx.send(Event::Mouse(ev)) {
                                 return;
                             }
-                        },
+                        }
                         _ => {}
                     }
                 }

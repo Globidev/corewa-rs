@@ -6,19 +6,19 @@ pub mod types;
 
 pub use parser::error_range;
 
-use assembler::{ChampionBuilder, Champion, AssembleError};
-use compiler::{CompileError, compile_champion};
-use parser::{ParseError, parse_line};
+use assembler::{AssembleError, Champion, ChampionBuilder};
+use compiler::{compile_champion, CompileError};
+use parser::{parse_line, ParseError};
 
-use std::io::{Read, Write, BufRead, BufReader, Cursor, Error as IOError};
+use std::io::{BufRead, BufReader, Cursor, Error as IOError, Read, Write};
 
 pub fn read_champion(input: impl Read) -> Result<Champion, ReadError> {
     let numbered_lines = BufReader::new(input).lines().zip(1..);
     let mut champ_builder = ChampionBuilder::default();
 
     for (line_result, line_no) in numbered_lines {
-        let parsed_line = parse_line(&line_result?)
-            .map_err(|e| ReadError::ParseError(e, line_no))?;
+        let parsed_line =
+            parse_line(&line_result?).map_err(|e| ReadError::ParseError(e, line_no))?;
 
         champ_builder.assemble(parsed_line)?;
     }
@@ -26,9 +26,7 @@ pub fn read_champion(input: impl Read) -> Result<Champion, ReadError> {
     Ok(champ_builder.finish()?)
 }
 
-pub fn write_champion(mut output: impl Write, champion: Champion)
-    -> Result<usize, WriteError>
-{
+pub fn write_champion(mut output: impl Write, champion: Champion) -> Result<usize, WriteError> {
     let mut seek_vec = Cursor::new(Vec::with_capacity(8192));
 
     compile_champion(&mut seek_vec, champion)?;

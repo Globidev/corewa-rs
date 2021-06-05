@@ -90,7 +90,7 @@ where
                 Ok(x) => out.push(x),
                 Err(_) => {
                     *input = saved;
-                    break
+                    break;
                 }
             }
         }

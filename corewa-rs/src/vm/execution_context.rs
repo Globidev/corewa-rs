@@ -1,7 +1,5 @@
+use super::{process::Process, types::*, PidPool};
 use crate::spec::ParamType;
-use super::PidPool;
-use super::process::Process;
-use super::types::*;
 
 use std::collections::HashSet;
 
@@ -12,7 +10,7 @@ pub struct ExecutionContext<'a> {
     pub cycle: u32,
     pub live_count: &'a mut u32,
     pub pid_pool: &'a mut PidPool,
-    pub live_ids: &'a mut HashSet<PlayerId>
+    pub live_ids: &'a mut HashSet<PlayerId>,
 }
 
 impl ExecutionContext<'_> {
@@ -21,7 +19,7 @@ impl ExecutionContext<'_> {
 
         match param.kind {
             Register => self.process.registers[param.value as usize - 1],
-            Direct   => param.value,
+            Direct => param.value,
             Indirect => {
                 let at = self.process.pc.offset(param.value as isize, offset_type);
                 self.memory.read_i32(at)

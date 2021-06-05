@@ -1,21 +1,23 @@
+use super::{
+    assembler::{Champion, ParsedInstruction},
+    types::*,
+};
 use crate::spec::*;
-use super::types::*;
-use super::assembler::{Champion, ParsedInstruction};
 
-use std::collections::{HashMap, hash_map::Entry};
-use std::io::{Write, Seek, SeekFrom, Error as IOError};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    io::{Error as IOError, Seek, SeekFrom, Write},
+};
 
 type CompileResult<T> = Result<T, CompileError>;
 
-pub fn compile_champion(out: impl Write + Seek, mut champion: Champion)
-    -> CompileResult<usize>
-{
+pub fn compile_champion(out: impl Write + Seek, mut champion: Champion) -> CompileResult<usize> {
     let mut state = State::new(out)?;
 
     for instr in champion.instructions.drain(..) {
         match instr {
-            ParsedInstruction::Op(op)         => state.write_op(op)?,
-            ParsedInstruction::Label(label)   => state.register_label(label)?,
+            ParsedInstruction::Op(op) => state.write_op(op)?,
+            ParsedInstruction::Label(label) => state.register_label(label)?,
             ParsedInstruction::RawCode(bytes) => state.add_raw_code(&bytes)?,
         }
     }
@@ -34,26 +36,32 @@ fn pcb(op: &Op) -> u8 {
     use Op::*;
 
     macro_rules! pcb {
-        ($p1:expr) => { $p1.param_code() << 6 };
-        ($p1:expr, $p2:expr) => { $p1.param_code() << 6 | $p2.param_code() << 4 };
-        ($p1:expr, $p2:expr, $p3:expr) => { $p1.param_code() << 6 | $p2.param_code() << 4 | $p3.param_code() << 2 };
+        ($p1:expr) => {
+            $p1.param_code() << 6
+        };
+        ($p1:expr, $p2:expr) => {
+            $p1.param_code() << 6 | $p2.param_code() << 4
+        };
+        ($p1:expr, $p2:expr, $p3:expr) => {
+            $p1.param_code() << 6 | $p2.param_code() << 4 | $p3.param_code() << 2
+        };
     }
 
     match op {
-        Ld    ( di, r      ) => pcb!(di, r),
-        St    ( r,  ri     ) => pcb!(r, ri),
-        Add   ( r1, r2, r3 ) => pcb!(r1, r2, r3),
-        Sub   ( r1, r2, r3 ) => pcb!(r1, r2, r3),
-        And   ( a1, a2, r  ) => pcb!(a1, a2, r),
-        Or    ( a1, a2, r  ) => pcb!(a1, a2, r),
-        Xor   ( a1, a2, r  ) => pcb!(a1, a2, r),
-        Ldi   ( a,  rd, r  ) => pcb!(a, rd, r),
-        Sti   ( r,  a,  rd ) => pcb!(r, a, rd),
-        Lld   ( di, r      ) => pcb!(di, r),
-        Lldi  ( a,  rd, r  ) => pcb!(a, rd, r),
-        Aff   ( r          ) => pcb!(r),
+        Ld(di, r) => pcb!(di, r),
+        St(r, ri) => pcb!(r, ri),
+        Add(r1, r2, r3) => pcb!(r1, r2, r3),
+        Sub(r1, r2, r3) => pcb!(r1, r2, r3),
+        And(a1, a2, r) => pcb!(a1, a2, r),
+        Or(a1, a2, r) => pcb!(a1, a2, r),
+        Xor(a1, a2, r) => pcb!(a1, a2, r),
+        Ldi(a, rd, r) => pcb!(a, rd, r),
+        Sti(r, a, rd) => pcb!(r, a, rd),
+        Lld(di, r) => pcb!(di, r),
+        Lldi(a, rd, r) => pcb!(a, rd, r),
+        Aff(r) => pcb!(r),
 
-        _ => unreachable!("has_pcb invariant broken!")
+        _ => unreachable!("has_pcb invariant broken!"),
     }
 }
 
@@ -61,22 +69,22 @@ fn op_spec(op: &Op) -> OpSpec {
     use Op::*;
 
     let op_type = match op {
-        Live  (..) => OpType::Live,
-        Ld    (..) => OpType::Ld,
-        St    (..) => OpType::St,
-        Add   (..) => OpType::Add,
-        Sub   (..) => OpType::Sub,
-        And   (..) => OpType::And,
-        Or    (..) => OpType::Or,
-        Xor   (..) => OpType::Xor,
-        Zjmp  (..) => OpType::Zjmp,
-        Ldi   (..) => OpType::Ldi,
-        Sti   (..) => OpType::Sti,
-        Fork  (..) => OpType::Fork,
-        Lld   (..) => OpType::Lld,
-        Lldi  (..) => OpType::Lldi,
-        Lfork (..) => OpType::Lfork,
-        Aff   (..) => OpType::Aff,
+        Live(..) => OpType::Live,
+        Ld(..) => OpType::Ld,
+        St(..) => OpType::St,
+        Add(..) => OpType::Add,
+        Sub(..) => OpType::Sub,
+        And(..) => OpType::And,
+        Or(..) => OpType::Or,
+        Xor(..) => OpType::Xor,
+        Zjmp(..) => OpType::Zjmp,
+        Ldi(..) => OpType::Ldi,
+        Sti(..) => OpType::Sti,
+        Fork(..) => OpType::Fork,
+        Lld(..) => OpType::Lld,
+        Lldi(..) => OpType::Lldi,
+        Lfork(..) => OpType::Lfork,
+        Aff(..) => OpType::Aff,
     };
 
     OpSpec::from(op_type)
@@ -87,7 +95,7 @@ struct State<W> {
     size: usize,
     label_positions: HashMap<String, usize>,
     labels_to_fill: Vec<LabelPlaceholder>,
-    current_op_pos: usize
+    current_op_pos: usize,
 }
 
 impl<W: Write + Seek> State<W> {
@@ -98,7 +106,7 @@ impl<W: Write + Seek> State<W> {
             size: 0,
             label_positions: HashMap::new(),
             labels_to_fill: Vec::new(),
-            current_op_pos: 0
+            current_op_pos: 0,
         })
     }
 
@@ -116,7 +124,7 @@ impl<W: Write + Seek> State<W> {
             Entry::Occupied(entry) => {
                 let (label, _) = entry.remove_entry();
                 Err(CompileError::DuplicateLabel(label))
-            },
+            }
             Entry::Vacant(entry) => {
                 entry.insert(self.size);
                 Ok(())
@@ -130,10 +138,18 @@ impl<W: Write + Seek> State<W> {
 
     fn resolve_labels(&mut self) -> CompileResult<()> {
         for placeholder in &self.labels_to_fill {
-            let position = *self.label_positions.get(&placeholder.name)
+            let position = *self
+                .label_positions
+                .get(&placeholder.name)
                 .ok_or_else(|| CompileError::MissingLabel(placeholder.name.clone()))?;
-            self.out.seek(SeekFrom::Start((HEADER_SIZE + placeholder.write_pos) as u64))?;
-            write_numeric(&mut self.out, ((position as isize) - (placeholder.op_pos as isize)) as u32, placeholder.size)?;
+            self.out.seek(SeekFrom::Start(
+                (HEADER_SIZE + placeholder.write_pos) as u64,
+            ))?;
+            write_numeric(
+                &mut self.out,
+                ((position as isize) - (placeholder.op_pos as isize)) as u32,
+                placeholder.size,
+            )?;
         }
 
         Ok(())
@@ -146,12 +162,20 @@ impl<W: Write + Seek> State<W> {
     }
 
     fn write_op(&mut self, op: Op) -> CompileResult<()> {
-        let OpSpec { code, has_pcb, dir_size, .. } = op_spec(&op);
+        let OpSpec {
+            code,
+            has_pcb,
+            dir_size,
+            ..
+        } = op_spec(&op);
 
         self.current_op_pos = self.size;
 
-        if has_pcb { self.write(&[code, pcb(&op)])?; }
-        else       { self.write(&[code])?; }
+        if has_pcb {
+            self.write(&[code, pcb(&op)])?;
+        } else {
+            self.write(&[code])?;
+        }
 
         self.write_params(op, dir_size)
     }
@@ -170,22 +194,22 @@ impl<W: Write + Seek> State<W> {
         }
 
         match op {
-            Live  ( d,         ) => w!(dir:d),
-            Ld    ( di, r,     ) => w!(di:di, reg:r),
-            St    ( r,  ri,    ) => w!(reg:r, ri:ri),
-            Add   ( r1, r2, r3 ) => w!(reg:r1, reg:r2, reg:r3),
-            Sub   ( r1, r2, r3 ) => w!(reg:r1, reg:r2, reg:r3),
-            And   ( a1, a2, r  ) => w!(any:a1, any:a2, reg:r),
-            Or    ( a1, a2, r  ) => w!(any:a1, any:a2, reg:r),
-            Xor   ( a1, a2, r  ) => w!(any:a1, any:a2, reg:r),
-            Zjmp  ( d,         ) => w!(dir:d),
-            Ldi   ( a,  rd, r  ) => w!(any:a, rd:rd, reg:r),
-            Sti   ( r,  a,  rd ) => w!(reg:r, any:a, rd:rd),
-            Fork  ( d,         ) => w!(dir:d),
-            Lld   ( di, r,     ) => w!(di:di, reg:r),
-            Lldi  ( a,  rd, r  ) => w!(any:a, rd:rd, reg:r),
-            Lfork ( d,         ) => w!(dir:d),
-            Aff   ( r,         ) => w!(reg:r),
+            Live(d) => w!(dir: d),
+            Ld(di, r) => w!(di: di, reg: r),
+            St(r, ri) => w!(reg: r, ri: ri),
+            Add(r1, r2, r3) => w!(reg: r1, reg: r2, reg: r3),
+            Sub(r1, r2, r3) => w!(reg: r1, reg: r2, reg: r3),
+            And(a1, a2, r) => w!(any: a1, any: a2, reg: r),
+            Or(a1, a2, r) => w!(any: a1, any: a2, reg: r),
+            Xor(a1, a2, r) => w!(any: a1, any: a2, reg: r),
+            Zjmp(d) => w!(dir: d),
+            Ldi(a, rd, r) => w!(any: a, rd: rd, reg: r),
+            Sti(r, a, rd) => w!(reg: r, any: a, rd: rd),
+            Fork(d) => w!(dir: d),
+            Lld(di, r) => w!(di: di, reg: r),
+            Lldi(a, rd, r) => w!(any: a, rd: rd, reg: r),
+            Lfork(d) => w!(dir: d),
+            Aff(r) => w!(reg: r),
         };
 
         Ok(())
@@ -208,11 +232,11 @@ impl<W: Write + Seek> State<W> {
                     DirectSize::TwoBytes => &[0; 2],
                     DirectSize::FourBytes => &[0; 4],
                 })
-            },
+            }
             Direct::Numeric(n) => {
                 self.size += write_numeric(&mut self.out, n as u32, dir_size.into())?;
                 Ok(())
-            },
+            }
         }
     }
 
@@ -226,7 +250,7 @@ impl<W: Write + Seek> State<W> {
                     size: IND_SIZE,
                 });
                 self.write(&[0, 0])
-            },
+            }
             Indirect::Numeric(n) => {
                 self.size += write_numeric(&mut self.out, n as u32, IND_SIZE)?;
                 Ok(())
@@ -237,21 +261,21 @@ impl<W: Write + Seek> State<W> {
     fn write_rd(&mut self, rd: RegDir, dir_size: DirectSize) -> CompileResult<()> {
         match rd {
             RegDir::Reg(reg) => self.write_reg(reg),
-            RegDir::Dir(dir) => self.write_dir(dir, dir_size)
+            RegDir::Dir(dir) => self.write_dir(dir, dir_size),
         }
     }
 
     fn write_ri(&mut self, ri: RegInd) -> CompileResult<()> {
         match ri {
             RegInd::Reg(reg) => self.write_reg(reg),
-            RegInd::Ind(ind) => self.write_ind(ind)
+            RegInd::Ind(ind) => self.write_ind(ind),
         }
     }
 
     fn write_di(&mut self, di: DirInd, dir_size: DirectSize) -> CompileResult<()> {
         match di {
             DirInd::Dir(dir) => self.write_dir(dir, dir_size),
-            DirInd::Ind(ind) => self.write_ind(ind)
+            DirInd::Ind(ind) => self.write_ind(ind),
         }
     }
 
@@ -264,9 +288,7 @@ impl<W: Write + Seek> State<W> {
     }
 }
 
-fn write_numeric(mut out: impl Write, n: u32, write_size: usize)
-    -> CompileResult<usize>
-{
+fn write_numeric(mut out: impl Write, n: u32, write_size: usize) -> CompileResult<usize> {
     let truncated = n << ((4 - write_size) * 8);
     let be_bytes = truncated.to_be_bytes();
     let bytes_to_write = &be_bytes[..write_size];
@@ -280,22 +302,24 @@ struct LabelPlaceholder {
     write_pos: usize,
     op_pos: usize,
     name: String,
-    size: usize
+    size: usize,
 }
 
 const IND_SIZE: usize = 2;
 
 impl Header {
-    fn from_champion(champion: &Champion, prog_size: u32)-> CompileResult<Self> {
+    fn from_champion(champion: &Champion, prog_size: u32) -> CompileResult<Self> {
         let mut prog_name = [0; PROG_NAME_LENGTH + 1];
         let name = champion.name.as_bytes();
-        prog_name.get_mut(..name.len())
+        prog_name
+            .get_mut(..name.len())
             .ok_or_else(|| CompileError::ProgramNameTooLong(name.len()))?
             .copy_from_slice(name);
 
         let mut prog_comment = [0; PROG_COMMENT_LENGTH + 1];
         let comment = champion.comment.as_bytes();
-        prog_comment.get_mut(..comment.len())
+        prog_comment
+            .get_mut(..comment.len())
             .ok_or_else(|| CompileError::ProgramCommentTooLong(comment.len()))?
             .copy_from_slice(comment);
 
@@ -303,7 +327,7 @@ impl Header {
             magic: COREWAR_MAGIC,
             prog_size,
             prog_name,
-            prog_comment
+            prog_comment,
         })
     }
 
@@ -315,7 +339,7 @@ impl Header {
             &magic_bytes[..],
             &self.prog_name,
             &prog_size_bytes,
-            &self.prog_comment
+            &self.prog_comment,
         ];
 
         for part in &parts {
@@ -328,15 +352,34 @@ impl Header {
 
 #[derive(Debug, From, Display)]
 pub enum CompileError {
-    #[display(fmt = "The champion's name is too long: {} bytes (maximum allowed is {})", _0, PROG_NAME_LENGTH)]
+    #[display(
+        fmt = "The champion's name is too long: {} bytes (maximum allowed is {})",
+        _0,
+        PROG_NAME_LENGTH
+    )]
     ProgramNameTooLong(usize),
-    #[display(fmt = "The champion's comment is too long: {} bytes (maximum allowed is {})", _0, PROG_COMMENT_LENGTH)]
+    #[display(
+        fmt = "The champion's comment is too long: {} bytes (maximum allowed is {})",
+        _0,
+        PROG_COMMENT_LENGTH
+    )]
     ProgramCommentTooLong(usize),
-    #[display(fmt = "The label '{}' is missing. It is referenced in a parameter but has never been declared", _0)]
+    #[display(
+        fmt = "The label '{}' is missing. It is referenced in a parameter but has never been \
+               declared",
+        _0
+    )]
     MissingLabel(String),
-    #[display(fmt = "The label '{}' has been declared multiple times. A label can only be declared once", _0)]
+    #[display(
+        fmt = "The label '{}' has been declared multiple times. A label can only be declared once",
+        _0
+    )]
     DuplicateLabel(String),
-    #[display(fmt = "The champion's code is too big: {} bytes (maximum allowed is {})", _0, CHAMP_MAX_SIZE)]
+    #[display(
+        fmt = "The champion's code is too big: {} bytes (maximum allowed is {})",
+        _0,
+        CHAMP_MAX_SIZE
+    )]
     ProgramTooLong(usize),
     #[display(fmt = "Unexpected IO error: {}", _0)]
     IOError(IOError),
