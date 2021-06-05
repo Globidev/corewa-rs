@@ -134,16 +134,19 @@ impl VirtualMachine {
         let last_live_check = self.last_live_check;
         let should_live_check = self.cycles - last_live_check >= self.check_interval;
         if should_live_check {
-            let process_killed = self
-                .processes
-                .drain_filter(|process| process.last_live_cycle <= last_live_check);
+            let count_per_cells = &mut self.process_count_per_cells;
+            let count_by_player_id = &mut self.process_count_by_player_id;
 
-            for process in process_killed {
-                self.process_count_per_cells[process.pc.addr()] -= 1;
-                if let Some(count) = self.process_count_by_player_id.get_mut(&process.player_id) {
-                    *count -= 1;
+            self.processes.retain(|process| {
+                let killed = process.last_live_cycle <= last_live_check;
+                if killed {
+                    count_per_cells[process.pc.addr()] -= 1;
+                    if let Some(count) = count_by_player_id.get_mut(&process.player_id) {
+                        *count -= 1;
+                    }
                 }
-            }
+                !killed
+            });
 
             if self.live_count_since_last_check >= NBR_LIVE {
                 self.check_interval = self.check_interval.saturating_sub(CYCLE_DELTA);
