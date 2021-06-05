@@ -1,6 +1,8 @@
 mod util;
 
-use std::{error::Error, fs, io};
+use corewa_rs::vm::{types::PlayerId, VirtualMachine};
+use std::{collections::HashMap, error::Error, fs, io};
+use structopt::StructOpt;
 use termion::{event::Key, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{
     backend::TermionBackend,
@@ -66,17 +68,15 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     loop {
         if controls.running {
-            terminal.draw(|mut f| {
+            terminal.draw(|f| {
                 let chunks = Layout::default()
                     .direction(Direction::Horizontal)
                     .margin(1)
                     .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
                     .split(f.size());
 
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("VM state")
-                    .render(&mut f, chunks[0]);
+                let block = Block::default().borders(Borders::ALL).title("VM state");
+                f.render_widget(block, chunks[0]);
 
                 let info_chunks = Layout::default()
                     .direction(Direction::Vertical)
@@ -84,25 +84,20 @@ fn run() -> Result<(), Box<dyn Error>> {
                     .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
                     .split(chunks[0]);
 
-                Block::default()
-                    .borders(Borders::BOTTOM)
-                    .render(&mut f, info_chunks[0]);
+                let block = Block::default().borders(Borders::BOTTOM);
+                f.render_widget(block, info_chunks[0]);
 
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Memory")
-                    .render(&mut f, chunks[1]);
+                let block = Block::default().borders(Borders::ALL).title("Memory");
+                f.render_widget(block, chunks[1]);
 
                 let vm_chunks = Layout::default()
                     .constraints([Constraint::Percentage(100)].as_ref())
                     .margin(1)
                     .split(chunks[1]);
 
-                controls.render(&mut f, info_chunks[0]);
-
-                VMStateWidget(&vm).render(&mut f, info_chunks[1]);
-
-                MemoryWidget(&vm, &player_colors, opts.chr).render(&mut f, vm_chunks[0]);
+                f.render_widget(&controls, info_chunks[0]);
+                f.render_widget(VMStateWidget(&vm), info_chunks[1]);
+                f.render_widget(MemoryWidget(&vm, &player_colors, opts.chr), vm_chunks[0]);
             })?;
         }
 
@@ -166,8 +161,8 @@ impl Controls {
     }
 }
 
-impl Widget for Controls {
-    fn draw(&mut self, area: Rect, buf: &mut Buffer) {
+impl Widget for &Controls {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         let running_string = if self.running { "running" } else { "stopped" };
         buf.set_string(area.left(), area.top(), running_string, Style::default());
         buf.set_string(
@@ -182,7 +177,7 @@ impl Widget for Controls {
 struct VMStateWidget<'a>(&'a VirtualMachine);
 
 impl Widget for VMStateWidget<'_> {
-    fn draw(&mut self, area: Rect, buf: &mut Buffer) {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         let mut line_offset = 0;
         let mut show_line = |text| {
             let x = area.left();
@@ -215,8 +210,8 @@ struct MemoryWidget<'a>(&'a VirtualMachine, &'a PlayerColors, char);
 
 type PlayerColors = HashMap<PlayerId, Color>;
 
-impl<'a> Widget for MemoryWidget<'a> {
-    fn draw(&mut self, area: Rect, buf: &mut Buffer) {
+impl Widget for MemoryWidget<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         let mem = &self.0.memory;
         let width = 128.min(area.right() - area.left());
 
@@ -252,10 +247,6 @@ impl<'a> Widget for MemoryWidget<'a> {
         }
     }
 }
-
-use corewa_rs::vm::{types::PlayerId, VirtualMachine};
-use std::collections::HashMap;
-use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 struct Options {

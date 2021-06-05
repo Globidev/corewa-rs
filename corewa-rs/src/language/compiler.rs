@@ -350,37 +350,30 @@ impl Header {
     }
 }
 
-#[derive(Debug, From, Display)]
+#[derive(Debug, thiserror::Error)]
 pub enum CompileError {
-    #[display(
-        fmt = "The champion's name is too long: {} bytes (maximum allowed is {})",
-        _0,
-        PROG_NAME_LENGTH
+    #[error(
+        "The champion's name is too long: {0} bytes (maximum allowed is {})",
+        PROG_COMMENT_LENGTH
     )]
     ProgramNameTooLong(usize),
-    #[display(
-        fmt = "The champion's comment is too long: {} bytes (maximum allowed is {})",
-        _0,
+    #[error(
+        "The champion's comment is too long: {0} bytes (maximum allowed is {})",
         PROG_COMMENT_LENGTH
     )]
     ProgramCommentTooLong(usize),
-    #[display(
-        fmt = "The label '{}' is missing. It is referenced in a parameter but has never been \
-               declared",
-        _0
+    #[error(
+        "The label '{0}' is missing. It is referenced in a parameter but has never been \
+               declared"
     )]
     MissingLabel(String),
-    #[display(
-        fmt = "The label '{}' has been declared multiple times. A label can only be declared once",
-        _0
-    )]
+    #[error("The label '{0}' has been declared multiple times. A label can only be declared once")]
     DuplicateLabel(String),
-    #[display(
-        fmt = "The champion's code is too big: {} bytes (maximum allowed is {})",
-        _0,
+    #[error(
+        "The champion's code is too big: {0} bytes (maximum allowed is {})",
         CHAMP_MAX_SIZE
     )]
     ProgramTooLong(usize),
-    #[display(fmt = "Unexpected IO error: {}", _0)]
-    IOError(IOError),
+    #[error("Unexpected IO error: {0}")]
+    IOError(#[from] IOError),
 }

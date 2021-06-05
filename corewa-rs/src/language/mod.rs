@@ -36,16 +36,20 @@ pub fn write_champion(mut output: impl Write, champion: Champion) -> Result<usiz
     Ok(data.len())
 }
 
-#[derive(Debug, From, Display)]
+#[derive(Debug, thiserror::Error)]
 pub enum ReadError {
-    IOError(IOError),
-    #[display(fmt = "Parse error on line {}: {}", _1, _0)]
+    #[error("IO error while reading champion: {0}")]
+    IOError(#[from] IOError),
+    #[error("Parse error on line {1}: {0}")]
     ParseError(ParseError, usize),
-    AssembleError(AssembleError),
+    #[error("Error assembling champion: {0}")]
+    AssembleError(#[from] AssembleError),
 }
 
-#[derive(Debug, From, Display)]
+#[derive(Debug, thiserror::Error)]
 pub enum WriteError {
-    IOError(IOError),
-    CompileError(CompileError),
+    #[error("IO error while writing champion: {0}")]
+    IOError(#[from] IOError),
+    #[error("Error compiling champion: {0}")]
+    CompileError(#[from] CompileError),
 }

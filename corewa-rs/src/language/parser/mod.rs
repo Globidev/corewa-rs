@@ -281,10 +281,10 @@ impl TokenStream<'_> {
     }
 }
 
-#[derive(Debug, PartialEq, From)]
+#[derive(Debug, PartialEq, thiserror::Error)]
 pub enum ParseError {
     RemainingInput(Token),
-    LexerError(LexerError),
+    LexerError(#[from] LexerError),
     Unexpected(Token),
     ExpectedButGot(Term, Token),
     ExpectedButGotEof(Term),

@@ -9,5 +9,5 @@ corewa-rs = { path = "../corewa-rs" }
 
 structopt = "0.3"
 
-tui = "0.6"
+tui = "0.15"
 termion = "1.5"

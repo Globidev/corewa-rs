@@ -1,4 +1,6 @@
-use crate::spec::*;
+use derive_more::From;
+
+use crate::spec::{DIR_PARAM_CODE, IND_PARAM_CODE, REG_PARAM_CODE};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Op {

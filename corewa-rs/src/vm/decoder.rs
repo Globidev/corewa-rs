@@ -178,14 +178,14 @@ fn op_from_code(code: u8) -> Option<OpType> {
     Some(op_type)
 }
 
-#[derive(Debug, Display)]
-#[display(fmt = "Invalid OP code: 0x{:X}", _0)]
+#[derive(Debug, thiserror::Error)]
+#[error("Invalid OP code: 0x{0:X}")]
 pub struct InvalidOpCode(u8);
 
-#[derive(Debug, Display)]
+#[derive(Debug, thiserror::Error)]
 pub enum InstrDecodeError {
-    #[display(fmt = "Invalid PCB: 0x{:X}", _0)]
+    #[error("Invalid PCB: 0x{0:X}")]
     InvalidPCB(u8),
-    #[display(fmt = "Invalid register: {}", _0)]
+    #[error("Invalid register: {0}")]
     InvalidRegNumber(u8),
 }

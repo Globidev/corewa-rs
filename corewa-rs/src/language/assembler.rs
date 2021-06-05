@@ -71,27 +71,21 @@ impl ChampionBuilder {
 
 type AssembleResult<T> = Result<T, AssembleError>;
 
-#[derive(Debug, From)]
+#[derive(Debug, derive_more::From)]
 pub enum ParsedInstruction {
     Label(String),
     Op(Op),
     RawCode(Vec<u8>),
 }
 
-#[derive(Debug, Display)]
+#[derive(Debug, thiserror::Error)]
 pub enum AssembleError {
-    #[display(
-        fmt = "Duplicate '.name' directive: the champion was already named '{}'",
-        _0
-    )]
+    #[error("Duplicate '.name' directive: the champion was already named '{0}'")]
     NameAlreadySet(String),
-    #[display(
-        fmt = "Duplicate '.comment' directive: the champion already had a comment '{}'",
-        _0
-    )]
+    #[error("Duplicate '.comment' directive: the champion already had a comment '{0}'")]
     CommentAlreadySet(String),
-    #[display(fmt = "The champion is missing a '.name' directive")]
+    #[error("The champion is missing a '.name' directive")]
     MissingName,
-    #[display(fmt = "The champion is missing a '.comment' directive")]
+    #[error("The champion is missing a '.comment' directive")]
     MissingComment,
 }

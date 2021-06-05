@@ -181,7 +181,7 @@ impl Tokenizer<'_> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 pub enum Term {
     #[display(fmt = "Name directive")]
     ChampionNameCmd,
@@ -222,27 +222,28 @@ impl NumberBase {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("{kind} at [{}..{})", .at.start, .at.end)]
 pub struct LexerError {
     pub kind: LexerErrorKind,
     pub at: InputRange,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum LexerErrorKind {
-    #[display(fmt = "No token matched")]
+    #[error("No token matched")]
     NoMatch,
-    #[display(fmt = "Unknown directive")]
+    #[error("Unknown directive")]
     InvalidDirective,
-    #[display(fmt = "Missing end quote for string")]
+    #[error("Missing end quote for string")]
     UnclosedQuotedString,
-    #[display(fmt = "Missing number after minus sign")]
+    #[error("Missing number after minus sign")]
     NoNumberAfterMinus,
-    #[display(fmt = "Invalid number")]
+    #[error("Invalid number")]
     InvalidNumberAfterBase,
-    #[display(fmt = "Invalid number base: {}", _0)]
+    #[error("Invalid number base: {0}")]
     InvalidNumberBase(char),
-    #[display(fmt = "Missing label name")]
+    #[error("Missing label name")]
     EmptyLabel,
 }
 
