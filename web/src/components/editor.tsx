@@ -1,7 +1,13 @@
 import * as React from "react";
+import * as CodeMirror from "codemirror";
 
 import { champions } from "../assets/champions";
 import { observer } from "mobx-react";
+
+import type { CompileError, Region } from "corewa-rs";
+import { compile_champion } from "corewa-rs";
+
+type CompiledChampion = Uint8Array;
 
 interface IEditorProps {
   config: any;
@@ -30,10 +36,11 @@ export class Editor extends React.Component<IEditorProps> {
         lineNumbers: true,
         theme: "monokai",
         mode: ASM_LANGUAGE_ID,
-        // @ts-ignore
         lint: {
-          editor: this,
           lintOnChange: false,
+          options: {
+            editor: this,
+          },
         },
         value:
           initialText !== null ? initialText : champions[this.initialChampion],
@@ -45,7 +52,6 @@ export class Editor extends React.Component<IEditorProps> {
       editor.on("change", (_e, _ch) => {
         clearTimeout(this.debounceId);
         this.debounceId = window.setTimeout(
-          // @ts-ignore
           editor.performLint.bind(editor),
           100
         );
@@ -61,7 +67,7 @@ export class Editor extends React.Component<IEditorProps> {
   }
 
   compile(code: string) {
-    let champion = corewar.compile_champion(code);
+    let champion = compile_champion(code);
     this.props.onCodeChanged(code, champion);
   }
 
@@ -114,8 +120,8 @@ CodeMirror.registerHelper(
       return [];
     } catch (err) {
       opts.editor.props.onCodeChanged(code, null);
-      const compileError = err as import("corewa-rs").CompileError;
-      const region = compileError.region() as import("corewa-rs").Region | null;
+      const compileError = err as CompileError;
+      const region = compileError.region() as Region | null;
       let [from_row, from_col, to_row, to_col] = (() => {
         if (region != null)
           return [

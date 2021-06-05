@@ -1,13 +1,17 @@
 import * as React from "react";
+import * as CodeMirror from "codemirror";
+
 import { observer } from "mobx-react";
 
 import { ASM_LANGUAGE_ID } from "../editor";
 import { autorun } from "mobx";
 
+import type { DecodeResult } from "corewa-rs";
+
 interface ICellPanelProps {
   idx: number;
   previousIdx: number | null;
-  decoded: import("corewa-rs").DecodeResult;
+  decoded: DecodeResult;
   onDiscard: () => void;
 }
 
@@ -60,7 +64,7 @@ export class CellPanel extends React.Component<ICellPanelProps> {
   }
 }
 
-const cellString = (decoded: import("corewa-rs").DecodeResult) => {
+const cellString = (decoded: DecodeResult) => {
   let str = decoded.to_string();
   let length = decoded.byte_size();
 

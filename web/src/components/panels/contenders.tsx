@@ -4,6 +4,8 @@ import { observer } from "mobx-react";
 import { VirtualMachine } from "../../virtual_machine";
 import { toCssColor, Info } from "./common";
 
+import type { PlayerInfo } from "corewa-rs";
+
 interface IContendersPanelProps {
   vm: VirtualMachine;
   coverages: Map<number, number>;
@@ -28,9 +30,9 @@ export class ContendersPanel extends React.Component<IContendersPanelProps> {
         {Array.from(vm.playersById.values()).map((player, i) => {
           if (vm.cycles === null) return null;
 
-          let playerInfo = vm.engine.player_info(player.id) as
-            | import("corewa-rs").PlayerInfo
-            | null;
+          let playerInfo = vm.engine.player_info(
+            player.id
+          ) as PlayerInfo | null;
           if (playerInfo === null) return null;
 
           let championInfo = vm.engine.champion_info(player.id);

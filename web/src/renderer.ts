@@ -5,6 +5,9 @@ import { Player } from "./virtual_machine";
 // @ts-ignore
 import cells from "./assets/cells.png";
 
+import type { Memory } from "corewa-rs";
+import { memory as wasm_memory } from "corewa-rs/corewa_rs_wasm_bg.wasm";
+
 PIXI.utils.skipHello();
 
 const MAX_CELL_AGE = 1024;
@@ -35,7 +38,7 @@ interface RendererSetup {
 }
 
 interface RenderContext {
-  memory: import("corewa-rs").Memory;
+  memory: Memory;
   selections: { idx: number; length: number }[];
   playersById: Map<number, Player>;
 }

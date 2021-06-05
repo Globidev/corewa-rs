@@ -1,12 +1,15 @@
 import { observable, action } from "mobx";
 
+import type { PlayerInfo } from "corewa-rs";
+import { VMBuilder } from "corewa-rs";
+
 export type Player = {
   id: number;
   color: number;
-  champion: CompiledChampion | null;
+  champion: Uint8Array | null;
 };
 
-export type MatchResult = import("corewa-rs").PlayerInfo[];
+export type MatchResult = PlayerInfo[];
 
 const MAX_SPEED = 32;
 const TARGET_UPS = 60;
@@ -29,7 +32,7 @@ export class VirtualMachine {
   // the vm's cycle count and use it as a notifier for components that want to
   // observe the vm.
   // INVARIANT TO MAINTAIN: cycles === engine.cycles
-  engine = new corewar.VMBuilder().finish();
+  engine = new VMBuilder().finish();
   @observable
   cycles: number | null = null;
 
@@ -162,7 +165,7 @@ export class VirtualMachine {
           player.champion
             ? builder.with_player(player.id, player.champion)
             : builder,
-        new corewar.VMBuilder()
+        new VMBuilder()
       )
       .finish();
 

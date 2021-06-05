@@ -12,16 +12,19 @@ import { StatePanel } from "./panels/state";
 import { ContendersPanel } from "./panels/contenders";
 import { CellPanel } from "./panels/cell";
 
+import type { DecodeResult, ProcessCollection } from "corewa-rs";
+import { memory as wasm_memory } from "corewa-rs/corewa_rs_wasm_bg.wasm";
+
+type Selection = {
+  decoded: DecodeResult;
+  processes: ProcessCollection;
+};
+
 interface IVMProps {
   vm: VirtualMachine;
   onNewPlayerRequested: () => void;
   onHelpRequested: () => void;
 }
-
-type Selection = {
-  decoded: import("corewa-rs").DecodeResult;
-  processes: import("corewa-rs").ProcessCollection;
-};
 
 @observer
 export class VM extends React.Component<IVMProps> {

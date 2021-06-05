@@ -1,3 +1,13 @@
+import "codemirror/keymap/sublime";
+
+import "codemirror/addon/lint/lint";
+import "codemirror/addon/hint/show-hint";
+
+import "codemirror/lib/codemirror.css";
+import "codemirror/theme/monokai.css";
+import "codemirror/addon/lint/lint.css";
+import "codemirror/addon/hint/show-hint.css";
+
 import "../public/style.css";
 
 import * as React from "react";
@@ -8,7 +18,9 @@ import { CorewarLayout } from "./components/layout";
 
 const App = () => <CorewarLayout vm={new VirtualMachine()} />;
 
-export function main() {
+function main() {
   const $root = document.getElementById("app");
   render(<App />, $root);
 }
+
+main();
