@@ -13,14 +13,17 @@ use parser::{parse_line, ParseError};
 use std::io::{BufRead, BufReader, Cursor, Error as IOError, Read, Write};
 
 pub fn read_champion(input: impl Read) -> Result<Champion, ReadError> {
-    let numbered_lines = BufReader::new(input).lines().zip(1..);
+    let mut reader = BufReader::new(input);
+    let mut buffer = String::with_capacity(128);
+    let mut line_no = 1;
+
     let mut champ_builder = ChampionBuilder::default();
 
-    for (line_result, line_no) in numbered_lines {
-        let parsed_line =
-            parse_line(&line_result?).map_err(|e| ReadError::ParseError(e, line_no))?;
-
+    while reader.read_line(&mut buffer)? > 0 {
+        let parsed_line = parse_line(&buffer).map_err(|e| ReadError::ParseError(e, line_no))?;
         champ_builder.assemble(parsed_line)?;
+        line_no += 1;
+        buffer.clear();
     }
 
     Ok(champ_builder.finish()?)
