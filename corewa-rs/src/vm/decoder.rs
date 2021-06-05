@@ -20,7 +20,7 @@ pub trait Decode: Read {
         // op code and pcb each on one byte.
         // If the op has no pcb, then the parameter types are known and start
         // counting at 1 byte: op code on one byte.
-        let op_spec = OpSpec::from(op);
+        let op_spec = op_spec(op);
 
         let (param_types, mut instr_byte_size) = if op_spec.has_pcb {
             let pcb = self[addr + 1];

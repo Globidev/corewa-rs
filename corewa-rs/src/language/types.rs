@@ -1,4 +1,5 @@
 use derive_more::From;
+use enum_dispatch::enum_dispatch;
 
 use crate::spec::{DIR_PARAM_CODE, IND_PARAM_CODE, REG_PARAM_CODE};
 
@@ -36,31 +37,36 @@ pub enum Indirect {
     Numeric(i64),
 }
 
-#[derive(Debug, PartialEq, Eq, From)]
+#[enum_dispatch(ToParamCode)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RegDir {
     Reg(Register),
     Dir(Direct),
 }
 
-#[derive(Debug, PartialEq, Eq, From)]
+#[enum_dispatch(ToParamCode)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RegInd {
     Reg(Register),
     Ind(Indirect),
 }
 
-#[derive(Debug, PartialEq, Eq, From)]
+#[enum_dispatch(ToParamCode)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum DirInd {
     Dir(Direct),
     Ind(Indirect),
 }
 
-#[derive(Debug, PartialEq, Eq, From)]
+#[enum_dispatch(ToParamCode)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AnyParam {
     Reg(Register),
     Dir(Direct),
     Ind(Indirect),
 }
 
+#[enum_dispatch::enum_dispatch]
 pub trait ToParamCode {
     fn param_code(&self) -> u8;
 }
@@ -78,42 +84,5 @@ impl ToParamCode for Direct {
 impl ToParamCode for Indirect {
     fn param_code(&self) -> u8 {
         IND_PARAM_CODE
-    }
-}
-
-impl ToParamCode for RegDir {
-    fn param_code(&self) -> u8 {
-        match self {
-            RegDir::Reg(r) => r.param_code(),
-            RegDir::Dir(d) => d.param_code(),
-        }
-    }
-}
-
-impl ToParamCode for RegInd {
-    fn param_code(&self) -> u8 {
-        match self {
-            RegInd::Reg(r) => r.param_code(),
-            RegInd::Ind(i) => i.param_code(),
-        }
-    }
-}
-
-impl ToParamCode for DirInd {
-    fn param_code(&self) -> u8 {
-        match self {
-            DirInd::Dir(d) => d.param_code(),
-            DirInd::Ind(i) => i.param_code(),
-        }
-    }
-}
-
-impl ToParamCode for AnyParam {
-    fn param_code(&self) -> u8 {
-        match self {
-            AnyParam::Reg(r) => r.param_code(),
-            AnyParam::Dir(d) => d.param_code(),
-            AnyParam::Ind(i) => i.param_code(),
-        }
     }
 }

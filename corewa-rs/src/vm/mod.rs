@@ -67,102 +67,15 @@ impl VirtualMachine {
             return;
         }
 
-        let mut forks = Vec::with_capacity(8192);
-        let mut lives = HashSet::new();
-
-        for mut process in self.processes.iter_mut().rev() {
-            match process.state {
-                // Attempt to read instruction
-                ProcessState::Idle => {
-                    if let Ok(op) = self.memory.decode_op(process.pc.addr()) {
-                        let exec_at = self.cycles + OpSpec::from(op).cycles - 1;
-                        process.state = ProcessState::Executing { exec_at, op };
-                    } else {
-                        let pc_start = process.pc.addr();
-                        process.pc.advance(1);
-                        self.process_count_per_cells[pc_start] -= 1;
-                        self.process_count_per_cells[process.pc.addr()] += 1;
-                    }
-                }
-                // Execute
-                ProcessState::Executing { exec_at, op } if exec_at == self.cycles => {
-                    let pc_start = process.pc.addr();
-                    match self.memory.decode_instr(op, pc_start) {
-                        Ok(instr) => {
-                            let execution_context = ExecutionContext {
-                                memory: &mut self.memory,
-                                process: &mut process,
-                                forks: &mut forks,
-                                cycle: self.cycles,
-                                live_count: &mut self.live_count_since_last_check,
-                                pid_pool: &mut self.pid_pool,
-                                live_ids: &mut lives,
-                            };
-                            execute_instr(&instr, execution_context);
-                        }
-                        Err(_e) => {
-                            process.pc.advance(1);
-                        }
-                    };
-                    process.state = ProcessState::Idle;
-                    self.process_count_per_cells[pc_start] -= 1;
-                    self.process_count_per_cells[process.pc.addr()] += 1;
-                }
-
-                _ => (),
-            };
-        }
-
+        self.run_processes();
         self.memory.tick();
-
-        for process in &forks {
-            self.process_count_per_cells[process.pc.addr()] += 1;
-            if let Some(count) = self.process_count_by_player_id.get_mut(&process.player_id) {
-                *count += 1;
-            }
-        }
-
-        self.processes.append(&mut forks);
-
-        for player in &self.players {
-            if lives.contains(&player.id) {
-                self.last_lives.insert(player.id, self.cycles);
-            }
-        }
-
         self.cycles += 1;
 
         let last_live_check = self.last_live_check;
         let should_live_check = self.cycles - last_live_check >= self.check_interval;
+
         if should_live_check {
-            let count_per_cells = &mut self.process_count_per_cells;
-            let count_by_player_id = &mut self.process_count_by_player_id;
-
-            self.processes.retain(|process| {
-                let killed = process.last_live_cycle <= last_live_check;
-                if killed {
-                    count_per_cells[process.pc.addr()] -= 1;
-                    if let Some(count) = count_by_player_id.get_mut(&process.player_id) {
-                        *count -= 1;
-                    }
-                }
-                !killed
-            });
-
-            if self.live_count_since_last_check >= NBR_LIVE {
-                self.check_interval = self.check_interval.saturating_sub(CYCLE_DELTA);
-                self.checks_without_cycle_decrement = 0;
-            } else {
-                self.checks_without_cycle_decrement += 1;
-            }
-
-            if self.checks_without_cycle_decrement >= MAX_CHECKS {
-                self.check_interval = self.check_interval.saturating_sub(CYCLE_DELTA);
-                self.checks_without_cycle_decrement = 0;
-            }
-
-            self.live_count_since_last_check = 0;
-            self.last_live_check = self.cycles;
+            self.live_check()
         }
     }
 
@@ -201,6 +114,101 @@ impl VirtualMachine {
         self.last_lives.insert(player_id, 0);
         self.process_count_per_cells[at] += 1;
         self.process_count_by_player_id.insert(player_id, 1);
+    }
+
+    fn run_processes(&mut self) {
+        let mut forks = Vec::with_capacity(8192);
+        let mut lives = HashSet::new();
+
+        for process in self.processes.iter_mut().rev() {
+            match process.state {
+                // Attempt to read instruction
+                ProcessState::Idle => {
+                    if let Ok(op) = self.memory.decode_op(process.pc.addr()) {
+                        let exec_at = self.cycles + op_spec(op).cycles - 1;
+                        process.state = ProcessState::Executing { exec_at, op };
+                    } else {
+                        let pc_start = process.pc.addr();
+                        process.pc.advance(1);
+                        self.process_count_per_cells[pc_start] -= 1;
+                        self.process_count_per_cells[process.pc.addr()] += 1;
+                    }
+                }
+                // Execute
+                ProcessState::Executing { exec_at, op } if exec_at == self.cycles => {
+                    let pc_start = process.pc.addr();
+                    match self.memory.decode_instr(op, pc_start) {
+                        Ok(instr) => {
+                            let execution_context = ExecutionContext {
+                                memory: &mut self.memory,
+                                process,
+                                forks: &mut forks,
+                                cycle: self.cycles,
+                                live_count: &mut self.live_count_since_last_check,
+                                pid_pool: &mut self.pid_pool,
+                                live_ids: &mut lives,
+                            };
+                            execute_instr(&instr, execution_context);
+                        }
+                        Err(_e) => {
+                            process.pc.advance(1);
+                        }
+                    };
+                    process.state = ProcessState::Idle;
+                    self.process_count_per_cells[pc_start] -= 1;
+                    self.process_count_per_cells[process.pc.addr()] += 1;
+                }
+
+                _ => (),
+            };
+        }
+
+        for process in &forks {
+            self.process_count_per_cells[process.pc.addr()] += 1;
+            if let Some(count) = self.process_count_by_player_id.get_mut(&process.player_id) {
+                *count += 1;
+            }
+        }
+
+        self.processes.append(&mut forks);
+
+        for player in &self.players {
+            if lives.contains(&player.id) {
+                self.last_lives.insert(player.id, self.cycles);
+            }
+        }
+    }
+
+    fn live_check(&mut self) {
+        let count_per_cells = &mut self.process_count_per_cells;
+        let count_by_player_id = &mut self.process_count_by_player_id;
+
+        let last_live_check = self.last_live_check;
+        self.processes.retain(|process| {
+            let killed = process.last_live_cycle <= last_live_check;
+            if killed {
+                count_per_cells[process.pc.addr()] -= 1;
+                if let Some(count) = count_by_player_id.get_mut(&process.player_id) {
+                    *count -= 1;
+                }
+            }
+            !killed
+        });
+
+        if self.live_count_since_last_check >= NBR_LIVE {
+            self.check_interval = self.check_interval.saturating_sub(CYCLE_DELTA);
+            self.checks_without_cycle_decrement = 0;
+        } else {
+            self.checks_without_cycle_decrement += 1;
+        }
+
+        if self.checks_without_cycle_decrement >= MAX_CHECKS {
+            self.check_interval = self.check_interval.saturating_sub(CYCLE_DELTA);
+            self.checks_without_cycle_decrement = 0;
+        }
+
+        self.live_count_since_last_check = 0;
+        self.last_live_check = self.cycles;
     }
 }
 

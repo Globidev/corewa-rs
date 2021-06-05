@@ -16,22 +16,18 @@ pub struct ChampionBuilder {
 
 impl ChampionBuilder {
     fn with_name(&mut self, name: String) -> AssembleResult<&mut Self> {
-        match self.name.take() {
-            Some(name) => Err(AssembleError::NameAlreadySet(name)),
-            None => {
-                self.name = Some(name);
-                Ok(self)
-            }
+        if let Some(previous_name) = self.name.replace(name) {
+            Err(AssembleError::NameAlreadySet(previous_name))
+        } else {
+            Ok(self)
         }
     }
 
     fn with_comment(&mut self, comment: String) -> AssembleResult<&mut Self> {
-        match self.comment.take() {
-            Some(comment) => Err(AssembleError::CommentAlreadySet(comment)),
-            None => {
-                self.comment = Some(comment);
-                Ok(self)
-            }
+        if let Some(previous_comment) = self.comment.replace(comment) {
+            Err(AssembleError::CommentAlreadySet(previous_comment))
+        } else {
+            Ok(self)
         }
     }
 

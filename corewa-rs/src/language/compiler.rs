@@ -87,7 +87,7 @@ fn op_spec(op: &Op) -> OpSpec {
         Aff(..) => OpType::Aff,
     };
 
-    OpSpec::from(op_type)
+    crate::spec::op_spec(op_type)
 }
 
 struct State<W> {

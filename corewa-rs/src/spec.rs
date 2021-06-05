@@ -16,9 +16,9 @@ pub struct Header {
 
 pub const HEADER_SIZE: usize = ::std::mem::size_of::<Header>();
 
-pub const REG_PARAM_CODE: u8 = 1;
-pub const DIR_PARAM_CODE: u8 = 2;
-pub const IND_PARAM_CODE: u8 = 3;
+pub const REG_PARAM_CODE: u8 = 0b01;
+pub const DIR_PARAM_CODE: u8 = 0b10;
+pub const IND_PARAM_CODE: u8 = 0b11;
 
 pub const MAX_PLAYERS: usize = 4;
 
@@ -81,142 +81,140 @@ pub const T_REG: u8 = 1;
 pub const T_DIR: u8 = 2;
 pub const T_IND: u8 = 4;
 
-impl From<OpType> for OpSpec {
-    fn from(op_type: OpType) -> Self {
-        use DirectSize::*;
-        use OpType::*;
+pub const fn op_spec(op_type: OpType) -> OpSpec {
+    use DirectSize::*;
+    use OpType::*;
 
-        let code = op_type as u8;
+    let code = op_type as u8;
 
-        match op_type {
-            Live => Self {
-                code,
-                cycles: 10,
-                param_count: 1,
-                param_masks: [T_DIR, 0, 0],
-                has_pcb: false,
-                dir_size: FourBytes,
-            },
-            Ld => Self {
-                code,
-                cycles: 5,
-                param_count: 2,
-                param_masks: [T_DIR | T_IND, T_REG, 0],
-                has_pcb: true,
-                dir_size: FourBytes,
-            },
-            St => Self {
-                code,
-                cycles: 5,
-                param_count: 2,
-                param_masks: [T_REG, T_REG | T_IND, 0],
-                has_pcb: true,
-                dir_size: FourBytes,
-            },
-            Add => Self {
-                code,
-                cycles: 10,
-                param_count: 3,
-                param_masks: [T_REG, T_REG, T_REG],
-                has_pcb: true,
-                dir_size: FourBytes,
-            },
-            Sub => Self {
-                code,
-                cycles: 10,
-                param_count: 3,
-                param_masks: [T_REG, T_REG, T_REG],
-                has_pcb: true,
-                dir_size: FourBytes,
-            },
-            And => Self {
-                code,
-                cycles: 6,
-                param_count: 3,
-                param_masks: [T_REG | T_DIR | T_IND, T_REG | T_DIR | T_IND, T_REG],
-                has_pcb: true,
-                dir_size: FourBytes,
-            },
-            Or => Self {
-                code,
-                cycles: 6,
-                param_count: 3,
-                param_masks: [T_REG | T_DIR | T_IND, T_REG | T_DIR | T_IND, T_REG],
-                has_pcb: true,
-                dir_size: FourBytes,
-            },
-            Xor => Self {
-                code,
-                cycles: 6,
-                param_count: 3,
-                param_masks: [T_REG | T_DIR | T_IND, T_REG | T_DIR | T_IND, T_REG],
-                has_pcb: true,
-                dir_size: FourBytes,
-            },
-            Zjmp => Self {
-                code,
-                cycles: 20,
-                param_count: 1,
-                param_masks: [T_DIR, 0, 0],
-                has_pcb: false,
-                dir_size: TwoBytes,
-            },
-            Ldi => Self {
-                code,
-                cycles: 25,
-                param_count: 3,
-                param_masks: [T_REG | T_DIR | T_IND, T_REG | T_DIR, T_REG],
-                has_pcb: true,
-                dir_size: TwoBytes,
-            },
-            Sti => Self {
-                code,
-                cycles: 25,
-                param_count: 3,
-                param_masks: [T_REG, T_REG | T_DIR | T_IND, T_REG | T_DIR],
-                has_pcb: true,
-                dir_size: TwoBytes,
-            },
-            Fork => Self {
-                code,
-                cycles: 800,
-                param_count: 1,
-                param_masks: [T_DIR, 0, 0],
-                has_pcb: false,
-                dir_size: TwoBytes,
-            },
-            Lld => Self {
-                code,
-                cycles: 10,
-                param_count: 2,
-                param_masks: [T_DIR | T_IND, T_REG, 0],
-                has_pcb: true,
-                dir_size: FourBytes,
-            },
-            Lldi => Self {
-                code,
-                cycles: 50,
-                param_count: 3,
-                param_masks: [T_REG | T_DIR | T_IND, T_REG | T_DIR, T_REG],
-                has_pcb: true,
-                dir_size: TwoBytes,
-            },
-            Lfork => Self {
-                code,
-                cycles: 1000,
-                param_count: 1,
-                param_masks: [T_DIR, 0, 0],
-                has_pcb: false,
-                dir_size: TwoBytes,
-            },
-            Aff => Self {
-                code,
-                cycles: 2,
-                param_count: 1,
-                param_masks: [T_REG, 0, 0],
-                has_pcb: true,
-                dir_size: FourBytes,
-            },
-        }
+    match op_type {
+        Live => OpSpec {
+            code,
+            cycles: 10,
+            param_count: 1,
+            param_masks: [T_DIR, 0, 0],
+            has_pcb: false,
+            dir_size: FourBytes,
+        },
+        Ld => OpSpec {
+            code,
+            cycles: 5,
+            param_count: 2,
+            param_masks: [T_DIR | T_IND, T_REG, 0],
+            has_pcb: true,
+            dir_size: FourBytes,
+        },
+        St => OpSpec {
+            code,
+            cycles: 5,
+            param_count: 2,
+            param_masks: [T_REG, T_REG | T_IND, 0],
+            has_pcb: true,
+            dir_size: FourBytes,
+        },
+        Add => OpSpec {
+            code,
+            cycles: 10,
+            param_count: 3,
+            param_masks: [T_REG, T_REG, T_REG],
+            has_pcb: true,
+            dir_size: FourBytes,
+        },
+        Sub => OpSpec {
+            code,
+            cycles: 10,
+            param_count: 3,
+            param_masks: [T_REG, T_REG, T_REG],
+            has_pcb: true,
+            dir_size: FourBytes,
+        },
+        And => OpSpec {
+            code,
+            cycles: 6,
+            param_count: 3,
+            param_masks: [T_REG | T_DIR | T_IND, T_REG | T_DIR | T_IND, T_REG],
+            has_pcb: true,
+            dir_size: FourBytes,
+        },
+        Or => OpSpec {
+            code,
+            cycles: 6,
+            param_count: 3,
+            param_masks: [T_REG | T_DIR | T_IND, T_REG | T_DIR | T_IND, T_REG],
+            has_pcb: true,
+            dir_size: FourBytes,
+        },
+        Xor => OpSpec {
+            code,
+            cycles: 6,
+            param_count: 3,
+            param_masks: [T_REG | T_DIR | T_IND, T_REG | T_DIR | T_IND, T_REG],
+            has_pcb: true,
+            dir_size: FourBytes,
+        },
+        Zjmp => OpSpec {
+            code,
+            cycles: 20,
+            param_count: 1,
+            param_masks: [T_DIR, 0, 0],
+            has_pcb: false,
+            dir_size: TwoBytes,
+        },
+        Ldi => OpSpec {
+            code,
+            cycles: 25,
+            param_count: 3,
+            param_masks: [T_REG | T_DIR | T_IND, T_REG | T_DIR, T_REG],
+            has_pcb: true,
+            dir_size: TwoBytes,
+        },
+        Sti => OpSpec {
+            code,
+            cycles: 25,
+            param_count: 3,
+            param_masks: [T_REG, T_REG | T_DIR | T_IND, T_REG | T_DIR],
+            has_pcb: true,
+            dir_size: TwoBytes,
+        },
+        Fork => OpSpec {
+            code,
+            cycles: 800,
+            param_count: 1,
+            param_masks: [T_DIR, 0, 0],
+            has_pcb: false,
+            dir_size: TwoBytes,
+        },
+        Lld => OpSpec {
+            code,
+            cycles: 10,
+            param_count: 2,
+            param_masks: [T_DIR | T_IND, T_REG, 0],
+            has_pcb: true,
+            dir_size: FourBytes,
+        },
+        Lldi => OpSpec {
+            code,
+            cycles: 50,
+            param_count: 3,
+            param_masks: [T_REG | T_DIR | T_IND, T_REG | T_DIR, T_REG],
+            has_pcb: true,
+            dir_size: TwoBytes,
+        },
+        Lfork => OpSpec {
+            code,
+            cycles: 1000,
+            param_count: 1,
+            param_masks: [T_DIR, 0, 0],
+            has_pcb: false,
+            dir_size: TwoBytes,
+        },
+        Aff => OpSpec {
+            code,
+            cycles: 2,
+            param_count: 1,
+            param_masks: [T_REG, 0, 0],
+            has_pcb: true,
+            dir_size: FourBytes,
+        },
     }
 }

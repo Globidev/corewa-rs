@@ -1,4 +1,4 @@
-use crate::spec::{OpSpec, OpType, ParamType, MAX_PARAMS, REG_COUNT};
+use crate::spec::{op_spec, OpType, ParamType, MAX_PARAMS, REG_COUNT};
 use std::fmt;
 
 #[derive(Debug)]
@@ -45,7 +45,7 @@ impl fmt::Display for Param {
 
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let spec = OpSpec::from(self.kind);
+        let spec = op_spec(self.kind);
         write!(f, "{} {}", self.kind, self.params[0])?;
         for i in 1..spec.param_count {
             write!(f, ", {}", self.params[i])?;

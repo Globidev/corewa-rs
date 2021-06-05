@@ -18,7 +18,7 @@ fn main() {
     let exit_code = match run() {
         Ok(_) => 0,
         Err(err) => {
-            println!("{}", err);
+            eprintln!("{}", err);
             1
         }
     };
