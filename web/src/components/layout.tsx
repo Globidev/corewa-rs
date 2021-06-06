@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import * as Flex from "flexlayout-react";
 
 import { VirtualMachine, Player } from "../virtual_machine";

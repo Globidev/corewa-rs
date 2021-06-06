@@ -1,5 +1,5 @@
-import * as React from "react";
-import * as CodeMirror from "codemirror";
+import React from "react";
+import CodeMirror from "codemirror";
 
 import { observer } from "mobx-react";
 

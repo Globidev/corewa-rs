@@ -1,4 +1,4 @@
-import { observable, action } from "mobx";
+import { observable, action, makeObservable } from "mobx";
 
 import type { PlayerInfo } from "corewa-rs";
 import { VMBuilder } from "corewa-rs";
@@ -33,22 +33,42 @@ export class VirtualMachine {
   // observe the vm.
   // INVARIANT TO MAINTAIN: cycles === engine.cycles
   engine = new VMBuilder().finish();
-  @observable
   cycles: number | null = null;
 
-  @observable
   playing: boolean = false;
-  @observable
   speed: number = 1;
 
   timeoutId: number | null = null;
   lastFrameTime = 0;
 
-  @observable
   playersById = new Map<number, Player>();
-
-  @observable
   matchResult: MatchResult | null = null;
+
+  constructor() {
+    makeObservable(this, {
+      cycles: observable,
+      playing: observable,
+      speed: observable,
+      playersById: observable,
+      matchResult: observable,
+
+      newPlayer: action,
+      changePlayerId: action,
+      tick: action,
+      updateMatchResult: action,
+      playLoop: action,
+      compile: action,
+      compileImpl: action,
+      removePlayer: action,
+      togglePlay: action,
+      play: action,
+      pause: action,
+      stop: action,
+      step: action,
+      nextSpeed: action,
+      setCycle: action,
+    });
+  }
 
   randomPlayerId() {
     let id = undefined;
@@ -62,7 +82,6 @@ export class VirtualMachine {
     return id;
   }
 
-  @action
   newPlayer() {
     const id = this.randomPlayerId();
     const color = PLAYER_COLORS[this.playersById.size];
@@ -72,7 +91,6 @@ export class VirtualMachine {
     return this.playersById.get(id) as Player;
   }
 
-  @action
   changePlayerId(oldId: number, newId: number) {
     // Already taken
     if (this.playersById.has(newId)) return;
@@ -97,7 +115,6 @@ export class VirtualMachine {
     this.compile();
   }
 
-  @action
   tick(n: number) {
     let before = performance.now();
     let processes = 0;
@@ -119,7 +136,6 @@ export class VirtualMachine {
       );
   }
 
-  @action
   updateMatchResult() {
     const info = Array.from(this.playersById.keys()).map((playerId) => [
       this.engine.player_info(playerId),
@@ -137,7 +153,6 @@ export class VirtualMachine {
     this.matchResult = playersWithLatestLives;
   }
 
-  @action
   playLoop() {
     this.tick(this.speed);
     const now = performance.now();
@@ -149,7 +164,6 @@ export class VirtualMachine {
     }
   }
 
-  @action
   compile() {
     this.pause();
     this.matchResult = null;
@@ -157,7 +171,6 @@ export class VirtualMachine {
     this.compileImpl();
   }
 
-  @action
   compileImpl() {
     this.engine = Array.from(this.playersById.values())
       .reduce(
@@ -172,7 +185,6 @@ export class VirtualMachine {
     this.cycles = this.engine.cycles();
   }
 
-  @action
   removePlayer(playerId: number) {
     this.playersById.delete(playerId);
     Array.from(this.playersById.values()).forEach((player, idx) => {
@@ -181,7 +193,6 @@ export class VirtualMachine {
     this.compile();
   }
 
-  @action
   togglePlay() {
     if (this.playing) {
       this.pause();
@@ -190,14 +201,12 @@ export class VirtualMachine {
     }
   }
 
-  @action
   play() {
     this.playing = true;
     this.lastFrameTime = performance.now();
     this.playLoop();
   }
 
-  @action
   pause() {
     this.playing = false;
     if (this.timeoutId) {
@@ -205,26 +214,22 @@ export class VirtualMachine {
     }
   }
 
-  @action
   stop() {
     this.pause();
     this.compile();
   }
 
-  @action
   step() {
     this.pause();
     this.tick(1);
   }
 
-  @action
   nextSpeed() {
     this.speed *= 2;
 
     if (this.speed > MAX_SPEED) this.speed = 1;
   }
 
-  @action
   setCycle(cycle: number) {
     this.pause();
     const cycles = this.engine.cycles();

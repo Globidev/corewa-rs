@@ -1,5 +1,3 @@
-import * as React from "react";
-
 export function toCssColor(color: number) {
   color >>>= 0;
   const b = color & 0xff,

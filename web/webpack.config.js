@@ -11,10 +11,6 @@ module.exports = {
         use: 'ts-loader',
         exclude: /node_modules/,
       },
-      // {
-      //   test: /\.wasm$/,
-      //   type: "webassembly/experimental"
-      // },
       {
         test: /\.(svg|png|md)$/,
         use: [
@@ -40,7 +36,7 @@ module.exports = {
   },
   mode: "development",
   plugins: [
-    new CopyWebpackPlugin(['public/index.html'])
+    new CopyWebpackPlugin(['public/index.html', 'public/style.css'])
   ],
   experiments: {
     asyncWebAssembly: true,

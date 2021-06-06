@@ -1,6 +1,6 @@
-import * as React from "react";
+import React from "react";
 import { observer } from "mobx-react";
-import { observable, observe, reaction } from "mobx";
+import { makeObservable, observable, observe, reaction } from "mobx";
 
 import { VirtualMachine } from "../virtual_machine";
 import { PIXIRenderer, MARGIN, MEM_HEIGHT, MEM_WIDTH } from "../renderer";
@@ -30,12 +30,18 @@ interface IVMProps {
 export class VM extends React.Component<IVMProps> {
   canvasRef = React.createRef<HTMLCanvasElement>();
 
-  @observable
   selections = new Map<number, Selection>();
 
   coverages = new Map<number, number>();
 
   vm = this.props.vm;
+
+  constructor(props: IVMProps) {
+    super(props);
+    makeObservable(this, {
+      selections: observable,
+    });
+  }
 
   componentDidMount() {
     const canvas = this.canvasRef.current;
