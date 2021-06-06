@@ -2,7 +2,14 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 const path = require('path');
 
 module.exports = {
+  mode: "development",
+
   entry: "./src/index.tsx",
+
+  output: {
+    filename: "bundle.js",
+    path: path.resolve(__dirname, "dist"),
+  },
 
   module: {
     rules: [
@@ -26,21 +33,22 @@ module.exports = {
       },
     ],
   },
+
   resolve: {
     extensions: ['.tsx', '.ts', '.js', '.wasm'],
     fallback: { path: false }
   },
-  output: {
-    filename: "bundle.js",
-    path: path.resolve(__dirname, "dist"),
-  },
-  mode: "development",
+
   plugins: [
-    new CopyWebpackPlugin(['public/index.html', 'public/style.css'])
+    new CopyWebpackPlugin({
+      patterns: [{ from: "public/" }]
+    })
   ],
+
   experiments: {
     asyncWebAssembly: true,
   },
+
   devServer: {
     compress: true,
     inline: true,

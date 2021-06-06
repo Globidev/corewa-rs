@@ -84,17 +84,14 @@ export class PIXIRenderer {
       const [x, y] = cellPos(i);
 
       const cell = new Cell(x, y);
-      cell.valueSprite.on(
-        "click",
-        (pixiEvent: PIXI.interaction.InteractionEvent) => {
-          const event = pixiEvent.data.originalEvent;
-          setup.onCellClicked(i, {
-            ctrl: event.ctrlKey,
-            shift: event.shiftKey,
-            alt: event.altKey,
-          });
-        }
-      );
+      cell.valueSprite.on("click", (pixiEvent: PIXI.InteractionEvent) => {
+        const event = pixiEvent.data.originalEvent;
+        setup.onCellClicked(i, {
+          ctrl: event.ctrlKey,
+          shift: event.shiftKey,
+          alt: event.altKey,
+        });
+      });
 
       this.cells.push(cell);
       this.application.stage.addChild(cell.valueSprite);
