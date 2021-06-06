@@ -11,7 +11,7 @@ export type Player = {
 
 export type MatchResult = PlayerInfo[];
 
-const MAX_SPEED = 32;
+const MAX_SPEED = 64;
 const TARGET_UPS = 60;
 const PLAYER_COLORS = [0x0fd5ff, 0xffa517, 0x7649cc, 0x14cc57];
 
@@ -33,16 +33,16 @@ export class VirtualMachine {
   // observe the vm.
   // INVARIANT TO MAINTAIN: cycles === engine.cycles
   engine = new VMBuilder().finish();
-  cycles: number | null = null;
+  cycles?: number;
 
   playing: boolean = false;
   speed: number = 1;
 
-  timeoutId: number | null = null;
+  playTimeout?: number;
   lastFrameTime = 0;
 
   playersById = new Map<number, Player>();
-  matchResult: MatchResult | null = null;
+  matchResult?: MatchResult;
 
   constructor() {
     makeObservable(this, {
@@ -109,9 +109,7 @@ export class VirtualMachine {
     player.id = newId;
     const players = Array.from(this.playersById.values());
 
-    this.playersById = new Map(
-      players.map((p) => [p.id, p] as [number, Player])
-    );
+    this.playersById = new Map(players.map((p) => [p.id, p]));
     this.compile();
   }
 
@@ -160,14 +158,14 @@ export class VirtualMachine {
     this.lastFrameTime = now;
     const delta = Math.max(0, 1000 / TARGET_UPS - dt);
     if (this.playing) {
-      this.timeoutId = window.setTimeout(() => this.playLoop(), delta);
+      this.playTimeout = window.setTimeout(() => this.playLoop(), delta);
     }
   }
 
   compile() {
     this.pause();
-    this.matchResult = null;
-    this.cycles = null; // effectively resets the VM observe
+    this.matchResult = undefined;
+    this.cycles = undefined; // effectively resets the VM observed
     this.compileImpl();
   }
 
@@ -209,9 +207,7 @@ export class VirtualMachine {
 
   pause() {
     this.playing = false;
-    if (this.timeoutId) {
-      clearTimeout(this.timeoutId);
-    }
+    clearTimeout(this.playTimeout);
   }
 
   stop() {

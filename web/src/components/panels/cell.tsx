@@ -1,68 +1,65 @@
-import React from "react";
+import { useEffect, useRef, useState } from "react";
 import CodeMirror from "codemirror";
 
-import { observer } from "mobx-react";
-
 import { ASM_LANGUAGE_ID } from "../editor";
-import { autorun } from "mobx";
 
 import type { DecodeResult } from "corewa-rs";
 
-interface ICellPanelProps {
+type Props = {
   idx: number;
   previousIdx: number | null;
   decoded: DecodeResult;
   onDiscard: () => void;
-}
+};
 
-@observer
-export class CellPanel extends React.Component<ICellPanelProps> {
-  editorContainer = React.createRef<HTMLDivElement>();
+export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
+  const editorContainer = useRef<HTMLDivElement>(null);
+  const [editor, setEditor] = useState<CodeMirror.Editor | null>(null);
 
-  componentDidMount() {
-    const container = this.editorContainer.current;
-
-    if (container) {
-      const editor = CodeMirror(container, {
-        value: cellString(this.props.decoded),
-        theme: "monokai",
-        mode: ASM_LANGUAGE_ID,
-        keyMap: "sublime",
-        readOnly: true,
-      });
-
-      autorun(() => editor.setValue(cellString(this.props.decoded)));
-    }
-  }
-
-  idxDiff() {
-    const previousIdx = this.props.previousIdx;
-
+  const idxDiff = () => {
     if (previousIdx === null) return null;
 
-    let diff = this.props.idx - previousIdx;
+    let diff = idx - previousIdx;
     if (diff > 2048) diff -= 4096;
     else if (diff < -2048) diff += 4096;
 
     return diff >= 0 ? `(+${diff})` : `(${diff})`;
-  }
+  };
 
-  render() {
-    return (
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>
-            Cell {this.props.idx}{" "}
-            <span style={{ fontSize: "75%" }}>{this.idxDiff()}</span>
-          </span>
-          <button onClick={() => this.props.onDiscard()}>❌</button>
-        </div>
+  useEffect(() => {
+    const container = editorContainer.current;
+    if (!container) return;
 
-        <div ref={this.editorContainer} />
+    const editor = CodeMirror(container, {
+      value: cellString(decoded),
+      theme: "monokai",
+      mode: ASM_LANGUAGE_ID,
+      keyMap: "sublime",
+      readOnly: true,
+    });
+
+    setEditor(editor);
+  }, [editorContainer]);
+
+  useEffect(() => {
+    if (editor) {
+      editor.setValue(cellString(decoded));
+    }
+  }, [decoded]);
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span>
+          Cell {idx} <span style={{ fontSize: "75%" }}>{idxDiff()}</span>
+        </span>
+        <button onClick={() => onDiscard()}>❌</button>
       </div>
-    );
-  }
-}
+
+      <div ref={editorContainer} />
+    </div>
+  );
+};
 
 const cellString = (decoded: DecodeResult) => {
   let str = decoded.to_string();

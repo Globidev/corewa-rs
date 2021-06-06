@@ -57,6 +57,14 @@ body {
   max-height: 97vh;
 }
 
+.state-panel > div {
+  min-width: 100px;
+}
+
+canvas {
+  cursor: pointer !important;
+}
+
 .flexlayout__tab {
   background-color: #36393f;
   color: #dcddde;

@@ -1,6 +1,6 @@
 import React from "react";
 import { observer } from "mobx-react";
-import { makeObservable, observable, observe, reaction } from "mobx";
+import { action, makeObservable, observable, observe, reaction } from "mobx";
 
 import { VirtualMachine } from "../virtual_machine";
 import { PIXIRenderer, MARGIN, MEM_HEIGHT, MEM_WIDTH } from "../renderer";
@@ -40,6 +40,11 @@ export class VM extends React.Component<IVMProps> {
     super(props);
     makeObservable(this, {
       selections: observable,
+      draw: action,
+      toggleSelection: action,
+      discardSelection: action,
+      updateSelections: action,
+      clearSelections: action,
     });
   }
 
@@ -50,7 +55,7 @@ export class VM extends React.Component<IVMProps> {
       const renderer = new PIXIRenderer({
         canvas,
         onCellClicked: (cellIdx, modifiers) => {
-          if (!modifiers.ctrl) this.selections.clear();
+          if (!modifiers.ctrl) this.clearSelections();
           this.toggleSelection(cellIdx);
         },
         onLoad: () => {
@@ -116,6 +121,14 @@ export class VM extends React.Component<IVMProps> {
     if (this.vm.playersById.size < 4) this.props.onNewPlayerRequested();
   }
 
+  discardSelection(idx: number) {
+    this.selections.delete(idx);
+  }
+
+  clearSelections() {
+    this.selections.clear();
+  }
+
   render() {
     const vm = this.vm;
 
@@ -143,7 +156,7 @@ export class VM extends React.Component<IVMProps> {
             idx={cellIdx}
             previousIdx={idx > 0 ? selectionsAsArray[idx - 1][0] : null}
             decoded={selection.decoded}
-            onDiscard={() => this.selections.delete(cellIdx)}
+            onDiscard={() => this.discardSelection(cellIdx)}
           />
           <div className="pad-top">
             <ProcessPanel processes={selection.processes} vm={vm} />
