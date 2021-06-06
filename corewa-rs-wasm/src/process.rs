@@ -48,13 +48,10 @@ impl ProcessInfo {
 
 #[wasm_bindgen]
 impl ProcessInfo {
-    pub fn executing(&self) -> JsValue {
+    pub fn executing(&self) -> Option<ExecutingState> {
         match self.state {
-            ProcessState::Idle => JsValue::NULL,
-            ProcessState::Executing { op, exec_at } => {
-                let state = ExecutingState { op, exec_at };
-                JsValue::from(state)
-            }
+            ProcessState::Idle => None,
+            ProcessState::Executing { op, exec_at } => Some(ExecutingState { op, exec_at }),
         }
     }
 
