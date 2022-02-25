@@ -2,7 +2,7 @@
 
 const IDENT_CHARS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789";
 
-type InputRange = ::std::ops::Range<usize>;
+type InputRange = std::ops::Range<usize>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
@@ -13,9 +13,9 @@ pub struct Token {
 pub type TokenResult = Result<Token, LexerError>;
 
 #[derive(Clone)]
-pub struct Tokenizer<'a> {
-    chars: std::iter::Peekable<std::str::CharIndices<'a>>,
-    pub input: &'a str,
+pub struct Tokenizer<'input> {
+    chars: std::iter::Peekable<std::str::CharIndices<'input>>,
+    pub input: &'input str,
 }
 
 impl Iterator for Tokenizer<'_> {
@@ -24,7 +24,9 @@ impl Iterator for Tokenizer<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         self.skip_while(|(_, c)| c.is_whitespace());
 
-        self.chars.peek().cloned().map(|(idx, chr)| match chr {
+        let &(idx, chr) = self.chars.peek()?;
+
+        let tok = match chr {
             ':' => self.lex_label_use(idx),
             ',' => self.lex_single(Term::ParamSeparator, idx),
             '%' => self.lex_single(Term::DirectChar, idx),
@@ -41,7 +43,9 @@ impl Iterator for Tokenizer<'_> {
                 self.chars.next();
                 Err(LexerErrorKind::NoMatch.at(idx..idx + 1))
             }
-        })
+        };
+
+        Some(tok)
     }
 }
 

@@ -155,23 +155,25 @@ fn read_type_and_mask_flag(param_code: u8) -> Option<(ParamType, u8)> {
 }
 
 fn op_from_code(code: u8) -> Option<OpType> {
+    use OpType::*;
+
     let op_type = match code {
-        1 => OpType::Live,
-        2 => OpType::Ld,
-        3 => OpType::St,
-        4 => OpType::Add,
-        5 => OpType::Sub,
-        6 => OpType::And,
-        7 => OpType::Or,
-        8 => OpType::Xor,
-        9 => OpType::Zjmp,
-        10 => OpType::Ldi,
-        11 => OpType::Sti,
-        12 => OpType::Fork,
-        13 => OpType::Lld,
-        14 => OpType::Lldi,
-        15 => OpType::Lfork,
-        16 => OpType::Aff,
+        1 => Live,
+        2 => Ld,
+        3 => St,
+        4 => Add,
+        5 => Sub,
+        6 => And,
+        7 => Or,
+        8 => Xor,
+        9 => Zjmp,
+        10 => Ldi,
+        11 => Sti,
+        12 => Fork,
+        13 => Lld,
+        14 => Lldi,
+        15 => Lfork,
+        16 => Aff,
         _ => return None,
     };
 

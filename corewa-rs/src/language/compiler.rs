@@ -40,51 +40,56 @@ fn pcb(op: &Op) -> u8 {
             $p1.param_code() << 6
         };
         ($p1:expr, $p2:expr) => {
-            $p1.param_code() << 6 | $p2.param_code() << 4
+            pcb!($p1) | $p2.param_code() << 4
         };
         ($p1:expr, $p2:expr, $p3:expr) => {
-            $p1.param_code() << 6 | $p2.param_code() << 4 | $p3.param_code() << 2
+            pcb!($p1, $p2) | $p3.param_code() << 2
         };
     }
 
-    match op {
-        Ld(di, r) => pcb!(di, r),
-        St(r, ri) => pcb!(r, ri),
-        Add(r1, r2, r3) => pcb!(r1, r2, r3),
-        Sub(r1, r2, r3) => pcb!(r1, r2, r3),
-        And(a1, a2, r) => pcb!(a1, a2, r),
-        Or(a1, a2, r) => pcb!(a1, a2, r),
-        Xor(a1, a2, r) => pcb!(a1, a2, r),
-        Ldi(a, rd, r) => pcb!(a, rd, r),
-        Sti(r, a, rd) => pcb!(r, a, rd),
-        Lld(di, r) => pcb!(di, r),
-        Lldi(a, rd, r) => pcb!(a, rd, r),
-        Aff(r) => pcb!(r),
+    #[rustfmt::skip]
+    let pcb = match op {
+        Ld   (di, r     ) => pcb!(di, r     ),
+        St   (r,  ri    ) => pcb!(r,  ri    ),
+        Add  (r1, r2, r3) => pcb!(r1, r2, r3),
+        Sub  (r1, r2, r3) => pcb!(r1, r2, r3),
+        And  (a1, a2, r ) => pcb!(a1, a2, r ),
+        Or   (a1, a2, r ) => pcb!(a1, a2, r ),
+        Xor  (a1, a2, r ) => pcb!(a1, a2, r ),
+        Ldi  (a,  rd, r ) => pcb!(a,  rd, r ),
+        Sti  (r,  a,  rd) => pcb!(r,  a, rd ),
+        Lld  (di, r     ) => pcb!(di, r     ),
+        Lldi (a,  rd, r ) => pcb!(a,  rd, r ),
+        Aff  (r         ) => pcb!(r         ),
 
         _ => unreachable!("has_pcb invariant broken!"),
-    }
+    };
+
+    pcb
 }
 
 fn op_spec(op: &Op) -> OpSpec {
     use Op::*;
+    use OpType as Ty;
 
+    #[rustfmt::skip]
     let op_type = match op {
-        Live(..) => OpType::Live,
-        Ld(..) => OpType::Ld,
-        St(..) => OpType::St,
-        Add(..) => OpType::Add,
-        Sub(..) => OpType::Sub,
-        And(..) => OpType::And,
-        Or(..) => OpType::Or,
-        Xor(..) => OpType::Xor,
-        Zjmp(..) => OpType::Zjmp,
-        Ldi(..) => OpType::Ldi,
-        Sti(..) => OpType::Sti,
-        Fork(..) => OpType::Fork,
-        Lld(..) => OpType::Lld,
-        Lldi(..) => OpType::Lldi,
-        Lfork(..) => OpType::Lfork,
-        Aff(..) => OpType::Aff,
+        Live  (..) => Ty::Live,
+        Ld    (..) => Ty::Ld,
+        St    (..) => Ty::St,
+        Add   (..) => Ty::Add,
+        Sub   (..) => Ty::Sub,
+        And   (..) => Ty::And,
+        Or    (..) => Ty::Or,
+        Xor   (..) => Ty::Xor,
+        Zjmp  (..) => Ty::Zjmp,
+        Ldi   (..) => Ty::Ldi,
+        Sti   (..) => Ty::Sti,
+        Fork  (..) => Ty::Fork,
+        Lld   (..) => Ty::Lld,
+        Lldi  (..) => Ty::Lldi,
+        Lfork (..) => Ty::Lfork,
+        Aff   (..) => Ty::Aff,
     };
 
     crate::spec::op_spec(op_type)
@@ -183,33 +188,35 @@ impl<W: Write + Seek> State<W> {
     fn write_params(&mut self, op: Op, dir_size: DirectSize) -> CompileResult<()> {
         use Op::*;
 
+        #[rustfmt::skip]
         macro_rules! w {
-            (di:$di:expr) => { self.write_di($di, dir_size)? };
-            (ri:$ri:expr) => { self.write_ri($ri)? };
-            (rd:$rd:expr) => { self.write_rd($rd, dir_size)? };
-            (reg:$reg:expr) => { self.write_reg($reg)? };
-            (dir:$dir:expr) => { self.write_dir($dir, dir_size)? };
-            (any:$any:expr) => { self.write_any($any, dir_size)? };
-            ($($typ:tt:$exp:expr),*) => {{ $(w!($typ:$exp));* }}
+            (di:  $di:  expr) => { self.write_di($di, dir_size)? };
+            (ri:  $ri:  expr) => { self.write_ri($ri)? };
+            (rd:  $rd:  expr) => { self.write_rd($rd, dir_size)? };
+            (reg: $reg: expr) => { self.write_reg($reg)? };
+            (dir: $dir: expr) => { self.write_dir($dir, dir_size)? };
+            (any: $any: expr) => { self.write_any($any, dir_size)? };
+            ($( $typ: tt : $exp: expr ),*) => {{ $(w!($typ:$exp));* }}
         }
 
+        #[rustfmt::skip]
         match op {
-            Live(d) => w!(dir: d),
-            Ld(di, r) => w!(di: di, reg: r),
-            St(r, ri) => w!(reg: r, ri: ri),
-            Add(r1, r2, r3) => w!(reg: r1, reg: r2, reg: r3),
-            Sub(r1, r2, r3) => w!(reg: r1, reg: r2, reg: r3),
-            And(a1, a2, r) => w!(any: a1, any: a2, reg: r),
-            Or(a1, a2, r) => w!(any: a1, any: a2, reg: r),
-            Xor(a1, a2, r) => w!(any: a1, any: a2, reg: r),
-            Zjmp(d) => w!(dir: d),
-            Ldi(a, rd, r) => w!(any: a, rd: rd, reg: r),
-            Sti(r, a, rd) => w!(reg: r, any: a, rd: rd),
-            Fork(d) => w!(dir: d),
-            Lld(di, r) => w!(di: di, reg: r),
-            Lldi(a, rd, r) => w!(any: a, rd: rd, reg: r),
-            Lfork(d) => w!(dir: d),
-            Aff(r) => w!(reg: r),
+            Live  (d         ) => w!(dir: d                   ),
+            Ld    (di, r     ) => w!(di:  di, reg: r          ),
+            St    (r,  ri    ) => w!(reg: r,  ri:  ri         ),
+            Add   (r1, r2, r3) => w!(reg: r1, reg: r2, reg: r3),
+            Sub   (r1, r2, r3) => w!(reg: r1, reg: r2, reg: r3),
+            And   (a1, a2, r ) => w!(any: a1, any: a2, reg: r ),
+            Or    (a1, a2, r ) => w!(any: a1, any: a2, reg: r ),
+            Xor   (a1, a2, r ) => w!(any: a1, any: a2, reg: r ),
+            Zjmp  (d         ) => w!(dir: d                   ),
+            Ldi   (a,  rd, r ) => w!(any: a,  rd:  rd, reg: r ),
+            Sti   (r,  a,  rd) => w!(reg: r,  any: a,  rd:  rd),
+            Fork  (d         ) => w!(dir: d                   ),
+            Lld   (di, r     ) => w!(di:  di, reg: r          ),
+            Lldi  (a,  rd, r ) => w!(any: a,  rd:  rd, reg: r ),
+            Lfork (d         ) => w!(dir: d                   ),
+            Aff   (r         ) => w!(reg: r                   ),
         };
 
         Ok(())
@@ -249,7 +256,7 @@ impl<W: Write + Seek> State<W> {
                     name: label,
                     size: IND_SIZE,
                 });
-                self.write(&[0, 0])
+                self.write(&[0; IND_SIZE])
             }
             Indirect::Numeric(n) => {
                 self.size += write_numeric(&mut self.out, n as u32, IND_SIZE)?;
