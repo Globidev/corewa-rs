@@ -33,11 +33,11 @@ impl DecodeResult {
 }
 
 impl DecodeResult {
-    pub fn read(memory: &Memory<MEM_SIZE>, idx: usize) -> Self {
+    pub fn read(memory: &Memory, idx: usize) -> Self {
         Self(Self::read_result(memory, idx))
     }
 
-    fn read_result(memory: &Memory<MEM_SIZE>, idx: usize) -> Result<Instruction, DecodeError> {
+    fn read_result(memory: &Memory, idx: usize) -> Result<Instruction, DecodeError> {
         let op = memory.decode_op(idx).map_err(DecodeError::InvalidOp)?;
 
         memory

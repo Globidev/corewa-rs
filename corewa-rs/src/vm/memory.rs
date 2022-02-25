@@ -6,7 +6,7 @@ use crate::spec::*;
 use byteorder::{BigEndian, ByteOrder};
 use std::mem;
 
-pub struct Memory<const LEN: usize> {
+pub struct Memory<const LEN: usize = MEM_SIZE> {
     pub values: WrappingArray<u8, LEN>,
     pub ages: WrappingArray<u16, LEN>,
     pub owners: WrappingArray<PlayerId, LEN>,
@@ -24,7 +24,7 @@ impl Default for Memory<MEM_SIZE> {
 
 impl<const LEN: usize> Memory<LEN> {
     pub fn size(&self) -> usize {
-        MEM_SIZE
+        LEN
     }
 
     pub fn tick(&mut self) {
@@ -42,7 +42,7 @@ impl<const LEN: usize> Memory<LEN> {
     }
 
     pub fn read_i32(&self, addr: usize) -> i32 {
-        if addr > MEM_SIZE - mem::size_of::<i32>() {
+        if addr > LEN - mem::size_of::<i32>() {
             i32::from_be_bytes([
                 self[addr + 0],
                 self[addr + 1],
@@ -55,7 +55,7 @@ impl<const LEN: usize> Memory<LEN> {
     }
 
     pub fn read_i16(&self, addr: usize) -> i16 {
-        if addr > MEM_SIZE - mem::size_of::<i16>() {
+        if addr > LEN - mem::size_of::<i16>() {
             i16::from_be_bytes([self[addr + 0], self[addr + 1]])
         } else {
             BigEndian::read_i16(&self.values.inner()[addr..addr + 2])

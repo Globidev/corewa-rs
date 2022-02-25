@@ -1,10 +1,10 @@
 use super::{process::Process, types::*, PidPool};
-use crate::spec::{ParamType, MEM_SIZE};
+use crate::spec::ParamType;
 
 use fxhash::FxHashSet as HashSet;
 
 pub struct ExecutionContext<'a> {
-    pub memory: &'a mut super::memory::Memory<MEM_SIZE>,
+    pub memory: &'a mut super::memory::Memory,
     pub process: &'a mut Process,
     pub forks: &'a mut Vec<Process>,
     pub cycle: u32,

@@ -22,7 +22,7 @@ use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
 pub struct VirtualMachine {
     pub players: Vec<Player>,
 
-    pub memory: Memory<MEM_SIZE>,
+    pub memory: Memory,
     pub processes: Vec<Process>,
     pub pid_pool: PidPool,
 
