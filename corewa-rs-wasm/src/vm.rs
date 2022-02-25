@@ -96,7 +96,6 @@ pub struct VMBuilder {
 #[wasm_bindgen]
 impl VMBuilder {
     #[wasm_bindgen(constructor)]
-    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             players: Vec::with_capacity(4),
@@ -112,5 +111,11 @@ impl VMBuilder {
         let mut vm = VMImpl::new();
         vm.load_players(&self.players);
         VirtualMachine(vm)
+    }
+}
+
+impl Default for VMBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }

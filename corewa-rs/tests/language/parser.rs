@@ -55,7 +55,7 @@ mod op {
         }};
 
         ($input:expr => $expected:expr) => {
-            parse_test($input, Op($expected));
+            parse_test($input, Op($expected))
         }
     }
 

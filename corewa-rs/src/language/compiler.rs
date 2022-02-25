@@ -133,7 +133,7 @@ impl<W: Write + Seek> State<W> {
     }
 
     fn add_raw_code(&mut self, bytes: &[u8]) -> CompileResult<()> {
-        self.write(&bytes)
+        self.write(bytes)
     }
 
     fn resolve_labels(&mut self) -> CompileResult<()> {
@@ -313,14 +313,14 @@ impl Header {
         let name = champion.name.as_bytes();
         prog_name
             .get_mut(..name.len())
-            .ok_or_else(|| CompileError::ProgramNameTooLong(name.len()))?
+            .ok_or(CompileError::ProgramNameTooLong(name.len()))?
             .copy_from_slice(name);
 
         let mut prog_comment = [0; PROG_COMMENT_LENGTH + 1];
         let comment = champion.comment.as_bytes();
         prog_comment
             .get_mut(..comment.len())
-            .ok_or_else(|| CompileError::ProgramCommentTooLong(comment.len()))?
+            .ok_or(CompileError::ProgramCommentTooLong(comment.len()))?
             .copy_from_slice(comment);
 
         Ok(Self {

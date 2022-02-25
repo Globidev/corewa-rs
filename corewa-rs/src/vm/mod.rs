@@ -39,7 +39,6 @@ pub struct VirtualMachine {
 }
 
 impl VirtualMachine {
-    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             players: Vec::with_capacity(MAX_PLAYERS),
@@ -214,6 +213,12 @@ impl VirtualMachine {
     }
 }
 
+impl Default for VirtualMachine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext<'_>) {
     use instructions::*;
     use OpType::*;
@@ -237,7 +242,7 @@ fn execute_instr(instr: &Instruction, mut ctx: ExecutionContext<'_>) {
         Aff => exec_aff,
     };
 
-    exec(&instr, &mut ctx);
+    exec(instr, &mut ctx);
     ctx.process.pc.advance(instr.byte_size as isize);
 }
 
