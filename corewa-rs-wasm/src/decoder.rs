@@ -34,7 +34,7 @@ impl DecodeResult {
 
 impl DecodeResult {
     pub fn read(memory: &Memory<MEM_SIZE>, idx: usize) -> Self {
-        DecodeResult(DecodeResult::read_result(memory, idx))
+        Self(Self::read_result(memory, idx))
     }
 
     fn read_result(memory: &Memory<MEM_SIZE>, idx: usize) -> Result<Instruction, DecodeError> {
@@ -54,8 +54,8 @@ enum DecodeError {
 impl DecodeError {
     fn byte_size(&self) -> usize {
         match self {
-            DecodeError::OpOnly(..) => 1,
-            DecodeError::InvalidOp(..) => 0,
+            Self::OpOnly(..) => 1,
+            Self::InvalidOp(..) => 0,
         }
     }
 }
@@ -63,8 +63,8 @@ impl DecodeError {
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DecodeError::OpOnly(op, err) => write!(f, "{} [{}]", op, err),
-            DecodeError::InvalidOp(err) => write!(f, "{}", err),
+            Self::OpOnly(op, err) => write!(f, "{} [{}]", op, err),
+            Self::InvalidOp(err) => write!(f, "{}", err),
         }
     }
 }

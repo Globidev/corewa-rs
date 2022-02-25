@@ -59,7 +59,7 @@ impl CompileError {
 }
 
 impl From<language::ReadError> for CompileError {
-    fn from(err: language::ReadError) -> CompileError {
+    fn from(err: language::ReadError) -> Self {
         let (region, reason) = match err {
             language::ReadError::ParseError(e, line) => {
                 let line = line as u32;
@@ -78,12 +78,12 @@ impl From<language::ReadError> for CompileError {
             language::ReadError::IOError(e) => (None, format!("Unexpected IO error: {}", e)),
         };
 
-        CompileError { region, reason }
+        Self { region, reason }
     }
 }
 
 impl From<language::WriteError> for CompileError {
-    fn from(err: language::WriteError) -> CompileError {
+    fn from(err: language::WriteError) -> Self {
         let reason = match err {
             language::WriteError::CompileError(e) => {
                 format!("Error while compiling champion: {}", e)
@@ -93,7 +93,7 @@ impl From<language::WriteError> for CompileError {
             }
         };
 
-        CompileError {
+        Self {
             region: None,
             reason,
         }
