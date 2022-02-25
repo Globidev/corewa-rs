@@ -40,7 +40,7 @@ pub fn exec_add(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
 
     let lhs = ctx.get_reg(lhs_p);
     let rhs = ctx.get_reg(rhs_p);
-    let result = lhs + rhs;
+    let result = lhs.wrapping_add(rhs);
     ctx.set_reg(dst_p, result);
 
     ctx.process.zf = result == 0;
@@ -51,7 +51,7 @@ pub fn exec_sub(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
 
     let lhs = ctx.get_reg(lhs_p);
     let rhs = ctx.get_reg(rhs_p);
-    let result = lhs - rhs;
+    let result = lhs.wrapping_sub(rhs);
     ctx.set_reg(dst_p, result);
 
     ctx.process.zf = result == 0;
