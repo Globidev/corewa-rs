@@ -41,7 +41,7 @@ impl ProcessInfo {
             registers: process.registers,
             zf: process.zf,
             last_live_cycle: process.last_live_cycle,
-            state: process.state.clone(),
+            state: process.state,
         }
     }
 }

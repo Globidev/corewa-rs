@@ -16,7 +16,7 @@ pub struct Process {
     pub last_live_cycle: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ProcessState {
     Idle,
     Executing { op: OpType, exec_at: u32 },
