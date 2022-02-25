@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Converter as MarkdownConverter } from "showdown";
 
 // @ts-ignore
-import documentation from "../../README.md";
+import documentation from "../../README.md?url";
 
 export const Help = ({}) => {
   const [markdown, setMarkdown] = useState("");

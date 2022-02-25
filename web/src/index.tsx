@@ -3,7 +3,7 @@ import "codemirror/keymap/sublime";
 import "codemirror/addon/lint/lint";
 import "codemirror/addon/hint/show-hint";
 
-import "../public/style.css";
+import "./style.css";
 
 import { StrictMode } from "react";
 import { render } from "react-dom";
@@ -11,11 +11,17 @@ import { render } from "react-dom";
 import { VirtualMachine } from "./virtual_machine";
 import { CorewarLayout } from "./components/layout";
 
-const App = () => <CorewarLayout vm={new VirtualMachine()} />;
+import initWasm from "corewa-rs";
 
-render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-  document.getElementById("app")
-);
+async function main() {
+  const { memory } = await initWasm();
+
+  render(
+    <StrictMode>
+      <CorewarLayout vm={new VirtualMachine()} wasmMemory={memory} />
+    </StrictMode>,
+    document.getElementById("app")
+  );
+}
+
+main();

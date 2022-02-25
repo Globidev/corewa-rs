@@ -6,7 +6,7 @@ import { Player } from "./virtual_machine";
 import cells from "./assets/cells.png";
 
 import type { Memory } from "corewa-rs";
-import { memory as wasm_memory } from "corewa-rs/corewa_rs_wasm_bg.wasm";
+// import { memory as wasm_memory } from "corewa-rs/corewa_rs_wasm_bg.wasm";
 
 PIXI.utils.skipHello();
 
@@ -48,7 +48,7 @@ export class PIXIRenderer {
   cells: Cell[] = [];
   cellTextures: PIXI.Texture[] = [];
 
-  constructor(setup: RendererSetup) {
+  constructor(setup: RendererSetup, private wasmMemory: WebAssembly.Memory) {
     const app = new PIXI.Application({
       view: setup.canvas,
       width: MEM_WIDTH,
@@ -102,22 +102,22 @@ export class PIXIRenderer {
 
   update(ctx: RenderContext) {
     const cellValues = new Uint8Array(
-      wasm_memory.buffer,
+      this.wasmMemory.buffer,
       ctx.memory.values_ptr,
       MEM_SIZE
     );
     const cellAges = new Uint16Array(
-      wasm_memory.buffer,
+      this.wasmMemory.buffer,
       ctx.memory.ages_ptr,
       MEM_SIZE
     );
     const cellOwners = new Int32Array(
-      wasm_memory.buffer,
+      this.wasmMemory.buffer,
       ctx.memory.owners_ptr,
       MEM_SIZE
     );
     const pcCounts = new Uint32Array(
-      wasm_memory.buffer,
+      this.wasmMemory.buffer,
       ctx.memory.pc_count_ptr,
       MEM_SIZE
     );

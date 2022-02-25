@@ -15,6 +15,7 @@ const enum PaneComponent {
 
 interface ICorewarLayoutProps {
   vm: VirtualMachine;
+  wasmMemory: WebAssembly.Memory;
 }
 
 export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
@@ -58,6 +59,7 @@ export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
         return (
           <VM
             vm={vm}
+            wasmMemory={this.props.wasmMemory}
             onNewPlayerRequested={() => this.onNewPlayerRequested()}
             onHelpRequested={() => this.onHelpRequested()}
           />

@@ -13,7 +13,6 @@ import { ContendersPanel } from "./panels/contenders";
 import { CellPanel } from "./panels/cell";
 
 import type { DecodeResult, ProcessCollection } from "corewa-rs";
-import { memory as wasm_memory } from "corewa-rs/corewa_rs_wasm_bg.wasm";
 
 type Selection = {
   decoded: DecodeResult;
@@ -22,6 +21,7 @@ type Selection = {
 
 interface IVMProps {
   vm: VirtualMachine;
+  wasmMemory: WebAssembly.Memory;
   onNewPlayerRequested: () => void;
   onHelpRequested: () => void;
 }
@@ -52,20 +52,23 @@ export class VM extends React.Component<IVMProps> {
     const canvas = this.canvasRef.current;
 
     if (canvas) {
-      const renderer = new PIXIRenderer({
-        canvas,
-        onCellClicked: (cellIdx, modifiers) => {
-          if (!modifiers.ctrl) this.clearSelections();
-          this.toggleSelection(cellIdx);
-        },
-        onLoad: () => {
-          observe(this.vm, "cycles", (_) => {
-            this.updateSelections();
+      const renderer = new PIXIRenderer(
+        {
+          canvas,
+          onCellClicked: (cellIdx, modifiers) => {
+            if (!modifiers.ctrl) this.clearSelections();
+            this.toggleSelection(cellIdx);
+          },
+          onLoad: () => {
+            observe(this.vm, "cycles", (_) => {
+              this.updateSelections();
+              this.draw(renderer);
+            });
             this.draw(renderer);
-          });
-          this.draw(renderer);
+          },
         },
-      });
+        this.props.wasmMemory
+      );
 
       reaction(
         () => this.selections.size,
@@ -87,7 +90,7 @@ export class VM extends React.Component<IVMProps> {
     });
 
     const cellOwners = new Int32Array(
-      wasm_memory.buffer,
+      this.props.wasmMemory.buffer,
       memory.owners_ptr,
       4096
     );
