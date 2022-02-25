@@ -9,5 +9,4 @@ dev
 web/src/assets/champions.ts
 web/README.md
 .vscode
-Cargo.lock
 pack-champions.py
