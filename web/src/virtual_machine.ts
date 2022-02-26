@@ -35,8 +35,8 @@ export class VirtualMachine {
   engine = new VMBuilder().finish();
   cycles?: number;
 
-  playing: boolean = false;
-  speed: number = 1;
+  playing = false;
+  speed = 1;
 
   playTimeout?: number;
   lastFrameTime = 0;
@@ -102,7 +102,7 @@ export class VirtualMachine {
     )
       return;
 
-    let player = this.playersById.get(oldId);
+    const player = this.playersById.get(oldId);
     if (player === undefined) return;
 
     player.id = newId;
@@ -113,7 +113,7 @@ export class VirtualMachine {
   }
 
   tick(n: number) {
-    let before = performance.now();
+    const before = performance.now();
     let processes = 0;
     for (let i = 0; i < n; ++i) {
       if (this.engine.tick()) {
@@ -126,7 +126,7 @@ export class VirtualMachine {
 
     this.cycles = this.engine.cycles();
 
-    let duration = performance.now() - before;
+    const duration = performance.now() - before;
     if (duration > 16)
       console.warn(
         `${n} cycles took too long to compute:\n${duration} ms | ${processes} procs`

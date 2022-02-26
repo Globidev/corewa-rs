@@ -43,7 +43,7 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
       }
 
       switch (component) {
-        case "editor":
+        case "editor": {
           const config = node.getConfig();
           const player =
             vm.playersById.get(config.playerId ?? 0) ?? vm.newPlayer();
@@ -62,6 +62,7 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
               onClosed={() => vm.removePlayer(player.id)}
             />
           );
+        }
 
         case "vm":
           return (

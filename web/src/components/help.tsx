@@ -1,19 +1,14 @@
 import { useEffect, useState } from "react";
 import { Converter as MarkdownConverter } from "showdown";
 
-// @ts-ignore
-import documentation from "../../README.md?url";
+import documentationAsRawMd from "../../README.md?raw";
 
-export const Help = ({}) => {
+export const Help = () => {
   const [markdown, setMarkdown] = useState("");
 
   useEffect(() => {
-    fetch(documentation)
-      .then((r) => r.text())
-      .then((rawMd) => {
-        const md = new MarkdownConverter({ tables: true }).makeHtml(rawMd);
-        setMarkdown(md);
-      });
+    const converter = new MarkdownConverter({ tables: true });
+    setMarkdown(converter.makeHtml(documentationAsRawMd));
   }, [setMarkdown]);
 
   return (

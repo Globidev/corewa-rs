@@ -23,7 +23,7 @@ function randomChampionName() {
 @observer
 export class Editor extends React.Component<IEditorProps> {
   domContainer = React.createRef<HTMLDivElement>();
-  debounceId: number = 0;
+  debounceId = 0;
   editor: CodeMirror.Editor | null = null;
   initialChampion = randomChampionName();
 
@@ -48,7 +48,6 @@ export class Editor extends React.Component<IEditorProps> {
         extraKeys: { "Ctrl-Space": "autocomplete" },
       });
 
-      // @ts-ignore
       editor.on("change", (_e, _ch) => {
         clearTimeout(this.debounceId);
         this.debounceId = window.setTimeout(
@@ -67,7 +66,7 @@ export class Editor extends React.Component<IEditorProps> {
   }
 
   compile(code: string) {
-    let champion = compile_champion(code);
+    const champion = compile_champion(code);
     this.props.onCodeChanged(code, champion);
   }
 
@@ -120,23 +119,19 @@ CodeMirror.registerHelper(
       opts.editor.props.onCodeChanged(code, null);
       const compileError = err as CompileError;
       const region = compileError.region() as Region | null;
-      let [from_row, from_col, to_row, to_col] = (() => {
-        if (region != null)
-          return [
+      const [from_row, from_col, to_row, to_col] = region
+        ? [
             region.from_row - 1,
             region.from_col,
             region.to_row - 1,
             region.to_col,
-          ];
-        else return [0, 0, 5000, 5000];
-      })();
-
-      if (from_col == to_col) ++to_col;
+          ]
+        : [0, 0, 5000, 5000];
 
       return [
         {
           from: CodeMirror.Pos(from_row, from_col),
-          to: CodeMirror.Pos(to_row, to_col),
+          to: CodeMirror.Pos(to_row, from_col == to_col ? to_col + 1 : to_col),
           message: compileError.reason(),
         },
       ];
@@ -147,11 +142,8 @@ CodeMirror.registerHelper(
 CodeMirror.registerHelper(
   "hint",
   ASM_LANGUAGE_ID,
-  function (editor: CodeMirror.Doc, _opts: any) {
-    //@ts-ignore
-    const cursor = editor.getCursor();
-
-    // console.log(cursor)
+  function (_editor: CodeMirror.Doc, _opts: unknown) {
+    // const cursor = editor.getCursor();
     // return {
     //   list: ['st r1, 42', 'd', 'efghij', 'kl'],
     //   from: CodeMirror.Pos(cursor.line, 0),
@@ -204,7 +196,7 @@ CodeMirror.defineMode(ASM_LANGUAGE_ID, function (_config, _parserConfig) {
         return null;
       }
 
-      let ch = stream.next();
+      const ch = stream.next();
 
       if (ch == null) return null;
 
@@ -331,9 +323,8 @@ function toggleLineComment(line: string): ToggleComment {
 
 CodeMirror.defineExtension(
   "toggleComment",
-  function (this: CodeMirror.Doc, _options: any) {
-    const document = this,
-      selections = document.listSelections();
+  function (document: CodeMirror.Doc, _options: unknown) {
+    const selections = document.listSelections();
 
     const selectedLineNumbers = selections.reduce((nums, selection) => {
       let [low, high] = [selection.anchor.line, selection.head.line];
@@ -347,10 +338,13 @@ CodeMirror.defineExtension(
       const toggle = toggleLineComment(line);
       const fromPos = CodeMirror.Pos(lineNum, toggle.col);
       switch (toggle.kind) {
-        case "remove":
+        case "remove": {
           const toPos = CodeMirror.Pos(lineNum, toggle.col + toggle.length);
           document.replaceRange("", fromPos, toPos);
+
           break;
+        }
+
         case "insert":
           document.replaceRange(COMMENT_CHAR + " ", fromPos);
           break;

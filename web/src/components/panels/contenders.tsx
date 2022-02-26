@@ -17,10 +17,12 @@ export const ContendersPanel = observer(({ vm, coverages }: Props) => {
       {Array.from(vm.playersById.values()).map((player, i) => {
         if (vm.cycles === null) return null;
 
-        let playerInfo = vm.engine.player_info(player.id) as PlayerInfo | null;
+        const playerInfo = vm.engine.player_info(
+          player.id
+        ) as PlayerInfo | null;
         if (playerInfo === null) return null;
 
-        let championInfo = vm.engine.champion_info(player.id);
+        const championInfo = vm.engine.champion_info(player.id);
         const coverage = coverages.get(player.id) || 0;
 
         const playerIdInput = (

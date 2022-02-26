@@ -63,7 +63,7 @@ export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
 
 const cellString = (decoded: DecodeResult) => {
   let str = decoded.to_string();
-  let length = decoded.byte_size();
+  const length = decoded.byte_size();
 
   if (length > 1) str += ` # ${length} bytes`;
 
