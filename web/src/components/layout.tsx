@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Model, Layout, TabNode } from "flexlayout-react";
+import { useCallback, useRef, useState } from "react";
+import {
+  Model,
+  Layout,
+  TabNode,
+  IJsonTabNode,
+  IJsonModel,
+} from "flexlayout-react";
 import { observer } from "mobx-react";
 
 import { autorun } from "mobx";
@@ -8,12 +14,6 @@ import { VirtualMachine } from "../virtual_machine";
 import { Help } from "./help";
 import { VM } from "./vm";
 import { Editor } from "./editor";
-
-const enum PaneComponent {
-  Editor = "editor",
-  VM = "vm",
-  Help = "help",
-}
 
 export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
   const flexLayout = useRef<Layout>(null);
@@ -24,25 +24,11 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
     return Model.fromJson(layout);
   });
 
-  useEffect(() => {
-    return () => {
-      localStorage.setItem(
-        LAYOUT_STORAGE_KEY,
-        JSON.stringify(layoutModel.toJson())
-      );
-    };
-  });
-
   const newTab = useCallback(
-    (component: PaneComponent, name: string) => {
+    (tabData: TypedJsonTabNode) => {
       flexLayout.current?.addTabWithDragAndDropIndirect(
         "Add panel<br>(Drag to location)",
-        {
-          component,
-          name,
-          config: {},
-        },
-        () => {}
+        tabData
       );
     },
     [flexLayout]
@@ -51,10 +37,14 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
   const layoutFactory = useCallback(
     (node: TabNode) => {
       const component = node.getComponent();
-      const config = node.getConfig();
+
+      if (!isPaneComponent(component)) {
+        return undefined;
+      }
 
       switch (component) {
-        case PaneComponent.Editor:
+        case "editor":
+          const config = node.getConfig();
           const player =
             vm.playersById.get(config.playerId ?? 0) ?? vm.newPlayer();
           config.playerId = player.id;
@@ -72,22 +62,28 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
               onClosed={() => vm.removePlayer(player.id)}
             />
           );
-        case PaneComponent.VM:
+
+        case "vm":
           return (
             <VM
               vm={vm}
               onNewPlayerRequested={() =>
-                newTab(PaneComponent.Editor, "Champion")
+                newTab({
+                  component: "editor",
+                  name: "Champion",
+                })
               }
               onHelpRequested={() =>
-                newTab(PaneComponent.Help, "Documentation")
+                newTab({
+                  component: "help",
+                  name: "Documentation",
+                })
               }
             />
           );
-        case PaneComponent.Help:
+
+        case "help":
           return <Help />;
-        default:
-          return null;
       }
     },
     [vm]
@@ -98,14 +94,31 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
       ref={flexLayout}
       model={layoutModel}
       factory={layoutFactory}
-      onModelChange={() => console.log("model change")}
+      onModelChange={(model) =>
+        localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(model.toJson()))
+      }
     />
   );
 });
 
-const LAYOUT_STORAGE_KEY = "layout";
+const LAYOUT_STORAGE_KEY = "ui::layout";
 
-const DEFAULT_LAYOUT = {
+const PANE_COMPONENTS = ["editor", "vm", "help"] as const;
+type PaneComponent = typeof PANE_COMPONENTS[number];
+
+function isPaneComponent(
+  rawComponent: string | undefined
+): rawComponent is PaneComponent {
+  return (PANE_COMPONENTS as readonly (string | undefined)[]).includes(
+    rawComponent
+  );
+}
+
+type TypedJsonTabNode = Omit<IJsonTabNode, "component"> & {
+  component: PaneComponent;
+};
+
+const DEFAULT_LAYOUT: IJsonModel = {
   global: {},
   layout: {
     type: "row",
@@ -123,7 +136,7 @@ const DEFAULT_LAYOUT = {
               {
                 type: "tab",
                 name: "Champion",
-                component: PaneComponent.Editor,
+                component: "editor",
                 config: {},
               },
             ],
@@ -132,12 +145,12 @@ const DEFAULT_LAYOUT = {
             type: "tabset",
             weight: 50,
             selected: 0,
-            location: "bottom",
+            tabLocation: "bottom",
             children: [
               {
                 type: "tab",
                 name: "Champion",
-                component: PaneComponent.Editor,
+                component: "editor",
                 config: {},
               },
             ],
@@ -153,13 +166,13 @@ const DEFAULT_LAYOUT = {
             type: "tab",
             name: "Virtual Machine",
             enableClose: false,
-            component: PaneComponent.VM,
+            component: "vm",
             config: {},
           },
           {
             type: "tab",
             name: "Documentation",
-            component: PaneComponent.Help,
+            component: "help",
             config: {},
           },
         ],
