@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "description": "A custom implementation of the Core War programming game",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "start": "webpack serve --host 0.0.0.0"
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "dev": "vite --host 0.0.0.0"
   },
   "dependencies": {
     "codemirror": "^5.61.1",
