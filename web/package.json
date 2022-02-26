@@ -10,7 +10,7 @@
   "dependencies": {
     "codemirror": "^5.61.1",
     "corewa-rs": "file:../corewa-rs-wasm/pkg",
-    "flexlayout-react": "^0.5.10",
+    "flexlayout-react": "^0.6.8",
     "github-markdown-css": "^4.0.0",
     "mobx": "^6.3.2",
     "mobx-react": "^7.2.0",

@@ -1,11 +1,11 @@
 import React from "react";
-import * as Flex from "flexlayout-react";
+import { Model, Layout, TabNode } from "flexlayout-react";
+import { autorun } from "mobx";
 
 import { VirtualMachine, Player } from "../virtual_machine";
 import { Help } from "./help";
 import { VM } from "./vm";
 import { Editor } from "./editor";
-import { autorun } from "mobx";
 
 const enum PaneComponent {
   Editor = "editor",
@@ -19,18 +19,18 @@ interface ICorewarLayoutProps {
 }
 
 export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
-  layoutRef = React.createRef<Flex.Layout>();
-  model: Flex.Model;
+  layoutRef = React.createRef<Layout>();
+  model: Model;
 
   constructor(props: ICorewarLayoutProps) {
     super(props);
 
     const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY);
     const layout = savedLayout ? JSON.parse(savedLayout) : DEFAULT_LAYOUT;
-    this.model = Flex.Model.fromJson(layout);
+    this.model = Model.fromJson(layout);
   }
 
-  factory(node: Flex.TabNode) {
+  factory(node: TabNode) {
     const vm = this.props.vm;
 
     const component = node.getComponent();
@@ -79,7 +79,7 @@ export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
     return this.props.vm.newPlayer();
   }
 
-  onModelChange(model: Flex.Model) {
+  onModelChange(model: Model) {
     localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(model.toJson()));
   }
 
@@ -114,7 +114,7 @@ export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
 
   render() {
     return (
-      <Flex.Layout
+      <Layout
         ref={this.layoutRef}
         model={this.model}
         factory={this.factory.bind(this)}
