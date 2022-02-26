@@ -72,7 +72,7 @@ export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
   }
 
   getPlayer(id: number | undefined): Player {
-    let found = this.props.vm.playersById.get(id || 0);
+    let found = this.props.vm.playersById.get(id ?? 0);
 
     if (found !== undefined) return found;
 

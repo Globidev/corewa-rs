@@ -6,7 +6,6 @@ import { Player } from "./virtual_machine";
 import cells from "./assets/cells.png";
 
 import type { Memory } from "corewa-rs";
-// import { memory as wasm_memory } from "corewa-rs/corewa_rs_wasm_bg.wasm";
 
 PIXI.utils.skipHello();
 
@@ -129,7 +128,7 @@ export class PIXIRenderer {
       const pcCount = pcCounts[i];
 
       let player = ctx.playersById.get(cellOwner);
-      let color = player !== undefined ? player.color : 0x404040;
+      let color = player?.color ?? 0x404040;
 
       this.cells[i].update(
         this.cellTextures[cellValue],

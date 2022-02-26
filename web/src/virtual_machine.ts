@@ -82,13 +82,12 @@ export class VirtualMachine {
     return id;
   }
 
-  newPlayer() {
+  newPlayer(): Player {
     const id = this.randomPlayerId();
     const color = PLAYER_COLORS[this.playersById.size];
-    const player = { id, color, champion: null };
+    const player = observable({ id, color, champion: null });
     this.playersById.set(id, player);
-    // ⚠ cannot return player directly because of the observable map
-    return this.playersById.get(id) as Player;
+    return player;
   }
 
   changePlayerId(oldId: number, newId: number) {
