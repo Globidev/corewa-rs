@@ -44,7 +44,7 @@ export class VirtualMachine {
   playersById = new Map<number, Player>();
   matchResult?: MatchResult;
 
-  constructor() {
+  constructor(public wasmMemory: WebAssembly.Memory) {
     makeObservable(this, {
       cycles: observable,
       playing: observable,

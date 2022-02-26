@@ -1,8 +1,10 @@
-import React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Model, Layout, TabNode } from "flexlayout-react";
+import { observer } from "mobx-react";
+
 import { autorun } from "mobx";
 
-import { VirtualMachine, Player } from "../virtual_machine";
+import { VirtualMachine } from "../virtual_machine";
 import { Help } from "./help";
 import { VM } from "./vm";
 import { Editor } from "./editor";
@@ -13,116 +15,93 @@ const enum PaneComponent {
   Help = "help",
 }
 
-interface ICorewarLayoutProps {
-  vm: VirtualMachine;
-  wasmMemory: WebAssembly.Memory;
-}
+export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
+  const flexLayout = useRef<Layout>(null);
 
-export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
-  layoutRef = React.createRef<Layout>();
-  model: Model;
-
-  constructor(props: ICorewarLayoutProps) {
-    super(props);
-
+  const [layoutModel] = useState(() => {
     const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY);
     const layout = savedLayout ? JSON.parse(savedLayout) : DEFAULT_LAYOUT;
-    this.model = Model.fromJson(layout);
-  }
+    return Model.fromJson(layout);
+  });
 
-  factory(node: TabNode) {
-    const vm = this.props.vm;
+  useEffect(() => {
+    return () => {
+      localStorage.setItem(
+        LAYOUT_STORAGE_KEY,
+        JSON.stringify(layoutModel.toJson())
+      );
+    };
+  });
 
-    const component = node.getComponent();
-    const config = node.getConfig();
-
-    switch (component) {
-      case PaneComponent.Editor:
-        const player = this.getPlayer(config.playerId);
-        config.playerId = player.id;
-        // Update this editor's player id if it were to be changed
-        autorun(() => (config.playerId = player.id));
-
-        return (
-          <Editor
-            code={config.code}
-            onCodeChanged={(code, champion) => {
-              config.code = code;
-              this.onModelChange(this.model);
-              player.champion = champion;
-              vm.compile();
-            }}
-            onClosed={() => vm.removePlayer(player.id)}
-          />
-        );
-      case PaneComponent.VM:
-        return (
-          <VM
-            vm={vm}
-            wasmMemory={this.props.wasmMemory}
-            onNewPlayerRequested={() => this.onNewPlayerRequested()}
-            onHelpRequested={() => this.onHelpRequested()}
-          />
-        );
-      case PaneComponent.Help:
-        return <Help />;
-      default:
-        return null;
-    }
-  }
-
-  getPlayer(id: number | undefined): Player {
-    let found = this.props.vm.playersById.get(id ?? 0);
-
-    if (found !== undefined) return found;
-
-    return this.props.vm.newPlayer();
-  }
-
-  onModelChange(model: Model) {
-    localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(model.toJson()));
-  }
-
-  onNewPlayerRequested() {
-    const layout = this.layoutRef.current;
-    if (layout) {
-      layout.addTabWithDragAndDropIndirect(
+  const newTab = useCallback(
+    (component: PaneComponent, name: string) => {
+      flexLayout.current?.addTabWithDragAndDropIndirect(
         "Add panel<br>(Drag to location)",
         {
-          component: PaneComponent.Editor,
-          name: `Champion`,
+          component,
+          name,
           config: {},
         },
         () => {}
       );
-    }
-  }
+    },
+    [flexLayout]
+  );
 
-  onHelpRequested() {
-    const layout = this.layoutRef.current;
-    if (layout) {
-      layout.addTabWithDragAndDropIndirect(
-        "Add panel<br>(Drag to location)",
-        {
-          component: PaneComponent.Help,
-          name: `Documentation`,
-        },
-        () => {}
-      );
-    }
-  }
+  const layoutFactory = useCallback(
+    (node: TabNode) => {
+      const component = node.getComponent();
+      const config = node.getConfig();
 
-  render() {
-    return (
-      <Layout
-        ref={this.layoutRef}
-        model={this.model}
-        factory={this.factory.bind(this)}
-        onModelChange={this.onModelChange.bind(this)}
-      />
-    );
-  }
-}
+      switch (component) {
+        case PaneComponent.Editor:
+          const player =
+            vm.playersById.get(config.playerId ?? 0) ?? vm.newPlayer();
+          config.playerId = player.id;
+          // Update this editor's player id if it were to be changed
+          autorun(() => (config.playerId = player.id));
+
+          return (
+            <Editor
+              code={config.code}
+              onCodeChanged={(code, champion) => {
+                config.code = code;
+                player.champion = champion;
+                vm.compile();
+              }}
+              onClosed={() => vm.removePlayer(player.id)}
+            />
+          );
+        case PaneComponent.VM:
+          return (
+            <VM
+              vm={vm}
+              onNewPlayerRequested={() =>
+                newTab(PaneComponent.Editor, "Champion")
+              }
+              onHelpRequested={() =>
+                newTab(PaneComponent.Help, "Documentation")
+              }
+            />
+          );
+        case PaneComponent.Help:
+          return <Help />;
+        default:
+          return null;
+      }
+    },
+    [vm]
+  );
+
+  return (
+    <Layout
+      ref={flexLayout}
+      model={layoutModel}
+      factory={layoutFactory}
+      onModelChange={() => console.log("model change")}
+    />
+  );
+});
 
 const LAYOUT_STORAGE_KEY = "layout";
 

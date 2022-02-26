@@ -21,7 +21,6 @@ type Selection = {
 
 interface IVMProps {
   vm: VirtualMachine;
-  wasmMemory: WebAssembly.Memory;
   onNewPlayerRequested: () => void;
   onHelpRequested: () => void;
 }
@@ -67,7 +66,7 @@ export class VM extends React.Component<IVMProps> {
             this.draw(renderer);
           },
         },
-        this.props.wasmMemory
+        this.props.vm.wasmMemory
       );
 
       reaction(
@@ -90,7 +89,7 @@ export class VM extends React.Component<IVMProps> {
     });
 
     const cellOwners = new Int32Array(
-      this.props.wasmMemory.buffer,
+      this.props.vm.wasmMemory.buffer,
       memory.owners_ptr,
       4096
     );

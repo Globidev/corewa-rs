@@ -18,7 +18,7 @@ async function main() {
 
   render(
     <StrictMode>
-      <CorewarLayout vm={new VirtualMachine()} wasmMemory={memory} />
+      <CorewarLayout vm={new VirtualMachine(memory)} />
     </StrictMode>,
     document.getElementById("app")
   );
