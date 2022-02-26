@@ -45,7 +45,7 @@ export class CorewarLayout extends React.Component<ICorewarLayoutProps> {
 
         return (
           <Editor
-            config={config}
+            code={config.code}
             onCodeChanged={(code, champion) => {
               config.code = code;
               this.onModelChange(this.model);

@@ -10,7 +10,7 @@ import { compile_champion } from "corewa-rs";
 type CompiledChampion = Uint8Array;
 
 interface IEditorProps {
-  config: any;
+  code?: string;
   onCodeChanged: (code: string, champion: CompiledChampion | null) => void;
   onClosed: () => void;
 }
@@ -29,7 +29,7 @@ export class Editor extends React.Component<IEditorProps> {
 
   componentDidMount() {
     const container = this.domContainer.current;
-    const initialText = this.props.config.code || null;
+    const initialText = this.props.code || null;
 
     if (container) {
       const editor = CodeMirror(container, {
@@ -82,14 +82,12 @@ export class Editor extends React.Component<IEditorProps> {
           <div>Load model: </div>
           <select
             defaultValue={
-              this.props.config.code !== undefined
-                ? "Custom"
-                : this.initialChampion
+              this.props.code !== undefined ? "Custom" : this.initialChampion
             }
             onChange={(e) => {
               if (this.editor)
                 this.editor.setValue(
-                  champions[e.target.value] || this.props.config.code || ""
+                  champions[e.target.value] || this.props.code || ""
                 );
             }}
           >
