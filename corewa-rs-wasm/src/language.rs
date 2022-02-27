@@ -48,11 +48,8 @@ impl CompileError {
         self.reason.clone()
     }
 
-    pub fn region(&self) -> JsValue {
-        self.region
-            .clone()
-            .map(JsValue::from)
-            .unwrap_or(JsValue::NULL)
+    pub fn region(&self) -> Option<Region> {
+        self.region.clone()
     }
 }
 

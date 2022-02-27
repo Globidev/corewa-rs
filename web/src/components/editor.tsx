@@ -4,7 +4,7 @@ import CodeMirror from "codemirror";
 import { champions } from "../assets/champions";
 import { observer } from "mobx-react";
 
-import type { CompileError, Region } from "corewa-rs";
+import { CompileError } from "corewa-rs";
 import { compile_champion } from "corewa-rs";
 
 type CompiledChampion = Uint8Array;
@@ -116,9 +116,10 @@ CodeMirror.registerHelper(
       opts.editor.compile(code);
       return [];
     } catch (err) {
+      if (!(err instanceof CompileError)) return;
+
       opts.editor.props.onCodeChanged(code, null);
-      const compileError = err as CompileError;
-      const region = compileError.region() as Region | null;
+      const region = err.region();
       const [from_row, from_col, to_row, to_col] = region
         ? [
             region.from_row - 1,
@@ -132,7 +133,7 @@ CodeMirror.registerHelper(
         {
           from: CodeMirror.Pos(from_row, from_col),
           to: CodeMirror.Pos(to_row, from_col == to_col ? to_col + 1 : to_col),
-          message: compileError.reason(),
+          message: err.reason(),
         },
       ];
     }

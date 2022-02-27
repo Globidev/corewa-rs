@@ -45,14 +45,12 @@ impl VirtualMachine {
         self.0.players.len()
     }
 
-    pub fn player_info(&self, player_id: PlayerId) -> JsValue {
+    pub fn player_info(&self, player_id: PlayerId) -> Option<PlayerInfo> {
         self.0
             .players
             .iter()
             .find(|p| p.id == player_id)
             .map(PlayerInfo::from_player)
-            .map(JsValue::from)
-            .unwrap_or(JsValue::NULL)
     }
 
     pub fn champion_info(&self, player_id: PlayerId) -> ChampionInfo {

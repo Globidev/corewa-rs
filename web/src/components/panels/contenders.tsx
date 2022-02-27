@@ -3,8 +3,6 @@ import { observer } from "mobx-react";
 import { VirtualMachine } from "../../virtual_machine";
 import { toCssColor, Info } from "./common";
 
-import type { PlayerInfo } from "corewa-rs";
-
 type Props = {
   vm: VirtualMachine;
   coverages: Map<number, number>;
@@ -17,10 +15,8 @@ export const ContendersPanel = observer(({ vm, coverages }: Props) => {
       {Array.from(vm.playersById.values()).map((player, i) => {
         if (vm.cycles === null) return null;
 
-        const playerInfo = vm.engine.player_info(
-          player.id
-        ) as PlayerInfo | null;
-        if (playerInfo === null) return null;
+        const playerInfo = vm.engine.player_info(player.id);
+        if (playerInfo === undefined) return undefined;
 
         const championInfo = vm.engine.champion_info(player.id);
         const coverage = coverages.get(player.id) || 0;
