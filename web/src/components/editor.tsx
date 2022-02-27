@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import CodeMirror from "codemirror";
 
 import { champions } from "../assets/champions";
-import { observer } from "mobx-react";
+import { observer } from "mobx-react-lite";
 
 import { compile_champion, CompileError } from "corewa-rs";
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { observer, useLocalObservable } from "mobx-react";
+import { observer, useLocalObservable } from "mobx-react-lite";
 import { action, observe, reaction } from "mobx";
 
 import { VirtualMachine } from "../virtual_machine";

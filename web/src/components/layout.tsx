@@ -6,7 +6,7 @@ import {
   IJsonTabNode,
   IJsonModel,
 } from "flexlayout-react";
-import { observer } from "mobx-react";
+import { observer } from "mobx-react-lite";
 
 import { autorun } from "mobx";
 
