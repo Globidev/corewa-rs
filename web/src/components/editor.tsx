@@ -63,7 +63,7 @@ export const Editor = observer(
       }
 
       return onClosed;
-    }, []);
+    }, [editorContainerRef]);
 
     return (
       <div className="editor-container">

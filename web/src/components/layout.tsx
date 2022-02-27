@@ -34,6 +34,24 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
     [flexLayout]
   );
 
+  const newPlayerTab = useCallback(
+    () =>
+      newTab({
+        component: "editor",
+        name: "Champion",
+      }),
+    [newTab]
+  );
+
+  const newHelpTab = useCallback(
+    () =>
+      newTab({
+        component: "help",
+        name: "Documentation",
+      }),
+    [newTab]
+  );
+
   const layoutFactory = useCallback(
     (node: TabNode) => {
       const component = node.getComponent();
@@ -68,18 +86,8 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
           return (
             <VM
               vm={vm}
-              onNewPlayerRequested={() =>
-                newTab({
-                  component: "editor",
-                  name: "Champion",
-                })
-              }
-              onHelpRequested={() =>
-                newTab({
-                  component: "help",
-                  name: "Documentation",
-                })
-              }
+              onNewPlayerRequested={newPlayerTab}
+              onHelpRequested={newHelpTab}
             />
           );
 
@@ -87,7 +95,7 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
           return <Help />;
       }
     },
-    [vm]
+    [vm, newPlayerTab, newHelpTab]
   );
 
   return (

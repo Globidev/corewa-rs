@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { observer, useLocalObservable } from "mobx-react-lite";
-import { action, observe, reaction } from "mobx";
+import { action, reaction } from "mobx";
 
 import { VirtualMachine } from "../virtual_machine";
 import { PIXIRenderer, MARGIN, MEM_HEIGHT, MEM_WIDTH } from "../renderer";
@@ -99,10 +99,13 @@ export const VM = observer(
             toggleSelection(cellIdx);
           },
           onLoad: () => {
-            observe(vm, "cycles", (_) => {
-              updateSelections();
-              draw(renderer);
-            });
+            reaction(
+              () => vm.cycles,
+              () => {
+                updateSelections();
+                draw(renderer);
+              }
+            );
             draw(renderer);
           },
         },
@@ -113,7 +116,7 @@ export const VM = observer(
         () => selections.size,
         () => draw(renderer)
       );
-    }, []);
+    }, [canvasRef]);
 
     const helpButton = (
       <button className="ctrl-btn" onClick={onHelpRequested}>

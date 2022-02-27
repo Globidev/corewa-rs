@@ -13,7 +13,7 @@ type Props = {
 };
 
 export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
-  const editorContainer = useRef<HTMLDivElement>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<CodeMirror.Editor | null>(null);
 
   const idxDiff = () => {
@@ -27,11 +27,10 @@ export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
   };
 
   useEffect(() => {
-    const container = editorContainer.current;
+    const container = editorContainerRef.current;
     if (!container) return;
 
     const editor = CodeMirror(container, {
-      value: cellString(decoded),
       theme: "monokai",
       mode: ASM_LANGUAGE_ID,
       keyMap: "sublime",
@@ -39,13 +38,13 @@ export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
     });
 
     setEditor(editor);
-  }, [editorContainer]);
+  }, [editorContainerRef]);
 
   useEffect(() => {
     if (editor) {
       editor.setValue(cellString(decoded));
     }
-  }, [decoded]);
+  }, [editor, decoded]);
 
   return (
     <div>
@@ -56,7 +55,7 @@ export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
         <button onClick={() => onDiscard()}>❌</button>
       </div>
 
-      <div ref={editorContainer} />
+      <div ref={editorContainerRef} />
     </div>
   );
 };
