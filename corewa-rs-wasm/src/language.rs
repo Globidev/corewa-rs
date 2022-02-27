@@ -4,8 +4,6 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn compile_champion(input: &str) -> Result<Vec<u8>, JsValue> {
-    super::utils::set_panic_hook();
-
     compile_champion_impl(input).map_err(JsValue::from)
 }
 
