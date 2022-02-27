@@ -28,7 +28,7 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
     (tabData: TypedJsonTabNode) => {
       flexLayout.current?.addTabWithDragAndDropIndirect(
         "Add panel<br>(Drag to location)",
-        tabData
+        { ...tabData, config: {} }
       );
     },
     [flexLayout]

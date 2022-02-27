@@ -1,11 +1,10 @@
-import React from "react";
+import { useEffect, useRef, useState } from "react";
 import CodeMirror from "codemirror";
 
 import { champions } from "../assets/champions";
 import { observer } from "mobx-react";
 
-import { CompileError } from "corewa-rs";
-import { compile_champion } from "corewa-rs";
+import { compile_champion, CompileError } from "corewa-rs";
 
 type CompiledChampion = Uint8Array;
 
@@ -20,74 +19,60 @@ function randomChampionName() {
   return keys[(keys.length * Math.random()) << 0];
 }
 
-@observer
-export class Editor extends React.Component<IEditorProps> {
-  domContainer = React.createRef<HTMLDivElement>();
-  debounceId = 0;
-  editor: CodeMirror.Editor | null = null;
-  initialChampion = randomChampionName();
+export const Editor = observer(
+  ({ code, onCodeChanged, onClosed }: IEditorProps) => {
+    const editorContainerRef = useRef<HTMLDivElement>(null);
+    const [debounceHandle, setDebounceHandle] = useState<number>();
+    const [initialChampionName] = useState(randomChampionName);
+    const [editor, setEditor] = useState<CodeMirror.Editor>();
 
-  componentDidMount() {
-    const container = this.domContainer.current;
-    const initialText = this.props.code || null;
+    useEffect(() => {
+      const editorContainer = editorContainerRef.current;
+      const initialText = code ?? null;
 
-    if (container) {
-      const editor = CodeMirror(container, {
-        lineNumbers: true,
-        theme: "monokai",
-        mode: ASM_LANGUAGE_ID,
-        lint: {
-          lintOnChange: false,
-          options: {
-            editor: this,
+      if (editorContainer) {
+        const editor = CodeMirror(editorContainer, {
+          lineNumbers: true,
+          theme: "monokai",
+          mode: ASM_LANGUAGE_ID,
+          lint: {
+            lintOnChange: false,
+            options: {
+              onCodeChanged,
+            },
           },
-        },
-        value:
-          initialText !== null ? initialText : champions[this.initialChampion],
-        keyMap: "sublime",
-        extraKeys: { "Ctrl-Space": "autocomplete" },
-      });
+          value:
+            initialText !== null ? initialText : champions[initialChampionName],
+          keyMap: "sublime",
+          extraKeys: { "Ctrl-Space": "autocomplete" },
+        });
 
-      editor.on("change", (_e, _ch) => {
-        clearTimeout(this.debounceId);
-        this.debounceId = window.setTimeout(
-          editor.performLint.bind(editor),
-          100
-        );
-      });
+        editor.on("change", (_e, _ch) => {
+          clearTimeout(debounceHandle);
+          setDebounceHandle(
+            window.setTimeout(editor.performLint.bind(editor), 100)
+          );
+        });
 
-      // ?????
-      setTimeout(() => {
-        editor.refresh();
-      }, 0);
+        // ?????
+        setTimeout(() => {
+          editor.refresh();
+        }, 0);
 
-      this.editor = editor;
-    }
-  }
+        setEditor(editor);
+      }
 
-  compile(code: string) {
-    const champion = compile_champion(code);
-    this.props.onCodeChanged(code, champion);
-  }
+      return onClosed;
+    }, []);
 
-  componentWillUnmount() {
-    this.props.onClosed();
-  }
-
-  render() {
     return (
       <div className="editor-container">
         <div style={{ display: "flex" }}>
           <div>Load model: </div>
           <select
-            defaultValue={
-              this.props.code !== undefined ? "Custom" : this.initialChampion
-            }
+            defaultValue={code !== undefined ? "Custom" : initialChampionName}
             onChange={(e) => {
-              if (this.editor)
-                this.editor.setValue(
-                  champions[e.target.value] || this.props.code || ""
-                );
+              editor?.setValue(champions[e.target.value] ?? code ?? "");
             }}
           >
             {Object.keys(champions).map((ch) => {
@@ -100,25 +85,29 @@ export class Editor extends React.Component<IEditorProps> {
             <option value="Custom">Custom</option>
           </select>
         </div>
-        <div className="editor" ref={this.domContainer} />
+        <div className="editor" ref={editorContainerRef} />
       </div>
     );
   }
-}
+);
 
 export const ASM_LANGUAGE_ID = "corewar-asm";
 
 CodeMirror.registerHelper(
   "lint",
   ASM_LANGUAGE_ID,
-  function (code: string, opts: { editor: Editor }) {
+  function (
+    code: string,
+    opts: { onCodeChanged: IEditorProps["onCodeChanged"] }
+  ) {
     try {
-      opts.editor.compile(code);
+      const champion = compile_champion(code);
+      opts.onCodeChanged(code, champion);
       return [];
     } catch (err) {
       if (!(err instanceof CompileError)) return;
 
-      opts.editor.props.onCodeChanged(code, null);
+      opts.onCodeChanged(code, null);
       const region = err.region();
       const [from_row, from_col, to_row, to_col] = region
         ? [
