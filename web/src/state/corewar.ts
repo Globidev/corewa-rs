@@ -52,7 +52,6 @@ export class Corewar {
       },
       {
         name: "update vm players",
-        delay: 500,
       }
     );
 
