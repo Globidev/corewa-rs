@@ -4,20 +4,13 @@ import { action, IReactionDisposer, reaction } from "mobx";
 
 import { PIXIRenderer, MARGIN, MEM_HEIGHT, MEM_WIDTH } from "../renderer";
 
-import { ProcessPanel } from "./panels/process";
 import { ControlPanel } from "./panels/control";
 import { ResultsPanel } from "./panels/results";
 import { StatePanel } from "./panels/state";
 import { ContendersPanel } from "./panels/contenders";
-import { CellPanel } from "./panels/cell";
+import { Selection, SelectionPanels } from "./panels/selections";
 
-import type { DecodeResult, ProcessCollection } from "corewa-rs";
 import { Corewar } from "../state/corewar";
-
-type Selection = {
-  decoded: DecodeResult;
-  processes: ProcessCollection;
-};
 
 interface IVMProps {
   corewar: Corewar;
@@ -27,7 +20,6 @@ interface IVMProps {
 
 export const VM = observer(
   ({ corewar, onHelpRequested, onNewPlayerRequested }: IVMProps) => {
-    console.log("VM render");
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const selections = useLocalObservable(() => new Map<number, Selection>());
@@ -164,41 +156,5 @@ export const VM = observer(
         </div>
       </div>
     );
-  }
-);
-
-const SelectionPanels = observer(
-  ({
-    corewar,
-    selections,
-  }: {
-    corewar: Corewar;
-    selections: Map<number, Selection>;
-  }) => {
-    const discardSelection = action((idx: number) => {
-      selections.delete(idx);
-    });
-
-    const selectionsAsArray = Array.from(selections);
-    const panels = selectionsAsArray.map(([cellIdx, selection], idx) => (
-      <div key={cellIdx}>
-        <hr />
-        <CellPanel
-          idx={cellIdx}
-          previousIdx={idx > 0 ? selectionsAsArray[idx - 1][0] : null}
-          decoded={selection.decoded}
-          onDiscard={() => discardSelection(cellIdx)}
-        />
-        <div className="pad-top">
-          <ProcessPanel
-            processes={selection.processes}
-            cycles={corewar.vm.cycles}
-            playerColors={corewar.playerColors}
-          />
-        </div>
-      </div>
-    ));
-
-    return <>{panels}</>;
   }
 );
