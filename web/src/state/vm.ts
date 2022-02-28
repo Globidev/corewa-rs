@@ -3,17 +3,10 @@ import { observable, action, makeObservable } from "mobx";
 import type { PlayerInfo } from "corewa-rs";
 import { VMBuilder } from "corewa-rs";
 
-export type Player = {
-  id: number;
-  color: number;
-  champion: Uint8Array | null;
-};
-
 export type MatchResult = PlayerInfo[];
 
 const MAX_SPEED = 64;
 const TARGET_UPS = 60;
-const PLAYER_COLORS = [0x0fd5ff, 0xffa517, 0x7649cc, 0x14cc57];
 
 // Webassembly memory can only grow (for now). Pages cannot be reclaimed which
 // can lead to leaks overtime. The only way to effectively free the memory is
@@ -33,7 +26,7 @@ export class VirtualMachine {
   // observe the vm.
   // INVARIANT TO MAINTAIN: cycles === engine.cycles
   engine = new VMBuilder().finish();
-  cycles?: number;
+  cycles = 0;
 
   playing = false;
   speed = 1;
@@ -41,25 +34,21 @@ export class VirtualMachine {
   playTimeout?: number;
   lastFrameTime = 0;
 
-  playersById = new Map<number, Player>();
   matchResult?: MatchResult;
+  players: { id: number; champion: Uint8Array }[] = [];
 
   constructor(public wasmMemory: WebAssembly.Memory) {
     makeObservable(this, {
+      engine: observable,
       cycles: observable,
       playing: observable,
       speed: observable,
-      playersById: observable,
       matchResult: observable,
 
-      newPlayer: action,
-      changePlayerId: action,
       tick: action,
       updateMatchResult: action,
       playLoop: action,
       compile: action,
-      compileImpl: action,
-      removePlayer: action,
       togglePlay: action,
       play: action,
       pause: action,
@@ -67,49 +56,9 @@ export class VirtualMachine {
       step: action,
       nextSpeed: action,
       setCycle: action,
+
+      setPlayers: action,
     });
-  }
-
-  randomPlayerId() {
-    let id = undefined;
-
-    do {
-      const randomIds = new Int32Array(8);
-      crypto.getRandomValues(randomIds);
-      id = randomIds.find((n) => n != 0 && !this.playersById.has(n));
-    } while (id === undefined);
-
-    return id;
-  }
-
-  newPlayer(): Player {
-    const id = this.randomPlayerId();
-    const color = PLAYER_COLORS[this.playersById.size];
-    const player = observable({ id, color, champion: null });
-    this.playersById.set(id, player);
-    return player;
-  }
-
-  changePlayerId(oldId: number, newId: number) {
-    // Already taken
-    if (this.playersById.has(newId)) return;
-    // Must not be NaN, must be non zero and must fit on a signed 32bit integer
-    if (
-      Number.isNaN(newId) ||
-      newId == 0 ||
-      newId < -(2 ** 31) ||
-      newId >= 2 ** 31
-    )
-      return;
-
-    const player = this.playersById.get(oldId);
-    if (player === undefined) return;
-
-    player.id = newId;
-    const players = Array.from(this.playersById.values());
-
-    this.playersById = new Map(players.map((p) => [p.id, p]));
-    this.compile();
   }
 
   tick(n: number) {
@@ -134,11 +83,11 @@ export class VirtualMachine {
   }
 
   updateMatchResult() {
-    const info = Array.from(this.playersById.keys()).map(
-      (playerId) =>
+    const info = this.players.map(
+      (player) =>
         <const>[
-          this.engine.player_info(playerId)!,
-          this.engine.champion_info(playerId),
+          this.engine.player_info(player.id)!,
+          this.engine.champion_info(player.id),
         ]
     );
 
@@ -167,30 +116,14 @@ export class VirtualMachine {
   compile() {
     this.pause();
     this.matchResult = undefined;
-    this.cycles = undefined; // effectively resets the VM observed
-    this.compileImpl();
-  }
-
-  compileImpl() {
-    this.engine = Array.from(this.playersById.values())
+    this.engine = this.players
       .reduce(
-        (builder, player) =>
-          player.champion
-            ? builder.with_player(player.id, player.champion)
-            : builder,
+        (builder, player) => builder.with_player(player.id, player.champion),
         new VMBuilder()
       )
       .finish();
 
     this.cycles = this.engine.cycles();
-  }
-
-  removePlayer(playerId: number) {
-    this.playersById.delete(playerId);
-    Array.from(this.playersById.values()).forEach((player, idx) => {
-      player.color = PLAYER_COLORS[idx];
-    });
-    this.compile();
   }
 
   togglePlay() {
@@ -237,5 +170,10 @@ export class VirtualMachine {
       this.compile();
       this.tick(cycle);
     }
+  }
+
+  setPlayers(players: typeof this["players"]) {
+    this.players = players;
+    this.compile();
   }
 }

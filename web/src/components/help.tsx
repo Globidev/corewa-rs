@@ -1,19 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Converter as MarkdownConverter } from "showdown";
 
-import documentationAsRawMd from "../../README.md?raw";
+import documentationMarkdown from "../../README.md?raw";
 
 export const Help = () => {
-  const [markdown, setMarkdown] = useState("");
-
-  useEffect(() => {
+  const [documentationHTML] = useState(() => {
     const converter = new MarkdownConverter({ tables: true });
-    setMarkdown(converter.makeHtml(documentationAsRawMd));
-  }, [setMarkdown]);
+    return converter.makeHtml(documentationMarkdown);
+  });
 
   return (
     <div className="markdown-body">
-      <div dangerouslySetInnerHTML={{ __html: markdown }} />
+      <div dangerouslySetInnerHTML={{ __html: documentationHTML }} />
     </div>
   );
 };

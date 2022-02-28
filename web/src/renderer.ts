@@ -1,7 +1,5 @@
 import * as PIXI from "pixi.js";
 
-import { Player } from "./virtual_machine";
-
 import cells from "./assets/cells.png?url";
 
 import type { Memory } from "corewa-rs";
@@ -38,7 +36,7 @@ interface RendererSetup {
 interface RenderContext {
   memory: Memory;
   selections: { idx: number; length: number }[];
-  playersById: Map<number, Player>;
+  playerColors: number[];
 }
 
 export class PIXIRenderer {
@@ -126,8 +124,7 @@ export class PIXIRenderer {
       const cellAge = cellAges[i];
       const pcCount = pcCounts[i];
 
-      const player = ctx.playersById.get(cellOwner);
-      const color = player?.color ?? 0x404040;
+      const color = ctx.playerColors[cellOwner] ?? 0x404040;
 
       this.cells[i].update(
         this.cellTextures[cellValue],

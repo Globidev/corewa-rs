@@ -1,17 +1,16 @@
 import { observer } from "mobx-react-lite";
 
-import { VirtualMachine, MatchResult } from "../../virtual_machine";
+import { MatchResult } from "../../state/vm";
 import { toCssColor } from "./common";
 
 type Props = {
   result: MatchResult;
-  vm: VirtualMachine;
+  playerColors: number[];
 };
 
-export const ResultsPanel = observer(({ result, vm }: Props) => {
+export const ResultsPanel = observer(({ result, playerColors }: Props) => {
   const nameSpans = result.map((p, i) => {
-    const playerColor = vm.playersById.get(p.id)!.color; // Not having the player entry would mean an invariant is broken
-    const color = toCssColor(playerColor);
+    const color = toCssColor(playerColors[p.id]);
     return (
       <span key={i} style={{ color }}>
         {p.champion_name()}

@@ -1,113 +1,86 @@
 import { useEffect, useRef, useState } from "react";
 import CodeMirror from "codemirror";
 
-import { champions } from "../assets/champions";
 import { observer } from "mobx-react-lite";
 
-import { compile_champion, CompileError } from "corewa-rs";
+import { CompileError } from "corewa-rs";
+import { CorewarPlayer } from "../state/corewar";
+import { champions } from "../assets/champions";
 
-type CompiledChampion = Uint8Array;
+export const Editor = observer(({ player }: { player: CorewarPlayer }) => {
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const [debounceHandle, setDebounceHandle] = useState<number>();
+  const [editor, setEditor] = useState<CodeMirror.Editor>();
 
-interface IEditorProps {
-  code?: string;
-  onCodeChanged: (code: string, champion: CompiledChampion | null) => void;
-  onClosed: () => void;
-}
+  useEffect(() => {
+    const editorContainer = editorContainerRef.current;
 
-function randomChampionName() {
-  const keys = Object.keys(champions);
-  return keys[(keys.length * Math.random()) << 0];
-}
-
-export const Editor = observer(
-  ({ code, onCodeChanged, onClosed }: IEditorProps) => {
-    const editorContainerRef = useRef<HTMLDivElement>(null);
-    const [debounceHandle, setDebounceHandle] = useState<number>();
-    const [initialChampionName] = useState(randomChampionName);
-    const [editor, setEditor] = useState<CodeMirror.Editor>();
-
-    useEffect(() => {
-      const editorContainer = editorContainerRef.current;
-      const initialText = code ?? null;
-
-      if (editorContainer) {
-        const editor = CodeMirror(editorContainer, {
-          lineNumbers: true,
-          theme: "monokai",
-          mode: ASM_LANGUAGE_ID,
-          lint: {
-            lintOnChange: false,
-            options: {
-              onCodeChanged,
-            },
+    if (editorContainer) {
+      const editor = CodeMirror(editorContainer, {
+        lineNumbers: true,
+        theme: "monokai",
+        mode: ASM_LANGUAGE_ID,
+        lint: {
+          lintOnChange: false,
+          options: {
+            player,
           },
-          value:
-            initialText !== null ? initialText : champions[initialChampionName],
-          keyMap: "sublime",
-          extraKeys: { "Ctrl-Space": "autocomplete" },
-        });
+        },
+        value: player.code,
+        keyMap: "sublime",
+        extraKeys: { "Ctrl-Space": "autocomplete" },
+      });
 
-        editor.on("change", (_e, _ch) => {
-          clearTimeout(debounceHandle);
-          setDebounceHandle(
-            window.setTimeout(editor.performLint.bind(editor), 100)
-          );
-        });
+      editor.on("change", (_e, _ch) => {
+        clearTimeout(debounceHandle);
+        setDebounceHandle(window.setTimeout(() => editor.performLint(), 100));
+      });
 
-        // ?????
-        setTimeout(() => {
-          editor.refresh();
-        }, 0);
+      setEditor(editor);
+    }
 
-        setEditor(editor);
-      }
+    return () => player.delete();
+  }, [editorContainerRef]);
 
-      return onClosed;
-    }, [editorContainerRef]);
-
-    return (
-      <div className="editor-container">
-        <div style={{ display: "flex" }}>
-          <div>Load model: </div>
-          <select
-            defaultValue={code !== undefined ? "Custom" : initialChampionName}
-            onChange={(e) => {
-              editor?.setValue(champions[e.target.value] ?? code ?? "");
-            }}
-          >
-            {Object.keys(champions).map((ch) => {
-              return (
-                <option key={ch} value={ch}>
-                  {ch}
-                </option>
-              );
-            })}
-            <option value="Custom">Custom</option>
-          </select>
-        </div>
-        <div className="editor" ref={editorContainerRef} />
+  return (
+    <div className="editor-container">
+      <div style={{ display: "flex" }}>
+        <select
+          onChange={(e) => {
+            const championCode = (champions as { [_: string]: string })[
+              e.target.value
+            ];
+            editor?.setValue(championCode ?? player.code);
+          }}
+          value="load"
+        >
+          <option value="load">Load Model…</option>
+          {Object.keys(champions).map((ch) => {
+            return (
+              <option key={ch} value={ch}>
+                {ch}
+              </option>
+            );
+          })}
+        </select>
       </div>
-    );
-  }
-);
+      <div className="editor" ref={editorContainerRef} />
+    </div>
+  );
+});
 
 export const ASM_LANGUAGE_ID = "corewar-asm";
 
 CodeMirror.registerHelper(
   "lint",
   ASM_LANGUAGE_ID,
-  function (
-    code: string,
-    opts: { onCodeChanged: IEditorProps["onCodeChanged"] }
-  ) {
+  (code: string, { player }: { player: CorewarPlayer }) => {
     try {
-      const champion = compile_champion(code);
-      opts.onCodeChanged(code, champion);
+      player.compile(code);
       return [];
     } catch (err) {
       if (!(err instanceof CompileError)) return;
 
-      opts.onCodeChanged(code, null);
       const region = err.region();
       const [from_row, from_col, to_row, to_col] = region
         ? [

@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 
-import { VirtualMachine } from "../../virtual_machine";
+import { VirtualMachine } from "../../state/vm";
 import { Info } from "./common";
 
 type Props = {

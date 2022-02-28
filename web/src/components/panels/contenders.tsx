@@ -1,24 +1,22 @@
 import { observer } from "mobx-react-lite";
+import { Corewar } from "../../state/corewar";
 
-import { VirtualMachine } from "../../virtual_machine";
 import { toCssColor, Info } from "./common";
 
 type Props = {
-  vm: VirtualMachine;
+  corewar: Corewar;
   coverages: Map<number, number>;
 };
 
-export const ContendersPanel = observer(({ vm, coverages }: Props) => {
+export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
   return (
     <div>
-      <div>{vm.playersById.size} contenders:</div>
-      {Array.from(vm.playersById.values()).map((player, i) => {
-        if (vm.cycles === null) return null;
-
-        const playerInfo = vm.engine.player_info(player.id);
+      <div>{corewar.players.length} contenders:</div>
+      {corewar.players.map((player) => {
+        const playerInfo = corewar.vm.engine.player_info(player.id);
         if (playerInfo === undefined) return undefined;
 
-        const championInfo = vm.engine.champion_info(player.id);
+        const championInfo = corewar.vm.engine.champion_info(player.id);
         const coverage = coverages.get(player.id) || 0;
 
         const playerIdInput = (
@@ -28,13 +26,16 @@ export const ContendersPanel = observer(({ vm, coverages }: Props) => {
             value={player.id}
             onChange={(ev) => {
               const newId = parseInt(ev.target.value);
-              vm.changePlayerId(player.id, newId);
+              player.setId(newId);
             }}
           />
         );
 
         return (
-          <details key={i} style={{ color: toCssColor(player.color) }}>
+          <details
+            key={player.editorId}
+            style={{ color: toCssColor(player.color) }}
+          >
             <summary>{playerInfo.champion_name()}</summary>
             <Info title="Player ID">{playerIdInput}</Info>
             <Info title="Size">{playerInfo.champion_size}</Info>

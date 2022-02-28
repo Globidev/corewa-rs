@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import { observer, useLocalObservable } from "mobx-react-lite";
-import { action, reaction } from "mobx";
+import { action, IReactionDisposer, reaction } from "mobx";
 
-import { VirtualMachine } from "../virtual_machine";
 import { PIXIRenderer, MARGIN, MEM_HEIGHT, MEM_WIDTH } from "../renderer";
 
 import { ProcessPanel } from "./panels/process";
@@ -13,6 +12,7 @@ import { ContendersPanel } from "./panels/contenders";
 import { CellPanel } from "./panels/cell";
 
 import type { DecodeResult, ProcessCollection } from "corewa-rs";
+import { Corewar } from "../state/corewar";
 
 type Selection = {
   decoded: DecodeResult;
@@ -20,13 +20,14 @@ type Selection = {
 };
 
 interface IVMProps {
-  vm: VirtualMachine;
+  corewar: Corewar;
   onNewPlayerRequested: () => void;
   onHelpRequested: () => void;
 }
 
 export const VM = observer(
-  ({ vm, onHelpRequested, onNewPlayerRequested }: IVMProps) => {
+  ({ corewar, onHelpRequested, onNewPlayerRequested }: IVMProps) => {
+    console.log("VM render");
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const selections = useLocalObservable(() => new Map<number, Selection>());
@@ -34,17 +35,17 @@ export const VM = observer(
 
     const selectionAt = (idx: number) => {
       return {
-        decoded: vm.engine.decode(idx),
-        processes: vm.engine.processes_at(idx),
+        decoded: corewar.vm.engine.decode(idx),
+        processes: corewar.vm.engine.processes_at(idx),
       };
     };
 
     const onNewClicked = () => {
-      if (vm.playersById.size < 4) onNewPlayerRequested();
+      if (corewar.players.length < 4) onNewPlayerRequested();
     };
 
     const draw = action((renderer: PIXIRenderer) => {
-      const memory = vm.engine.memory();
+      const memory = corewar.vm.engine.memory();
 
       renderer.update({
         memory,
@@ -52,11 +53,11 @@ export const VM = observer(
           idx,
           length: Math.max(selection.decoded.byte_size(), 1),
         })),
-        playersById: vm.playersById,
+        playerColors: corewar.playerColors,
       });
 
       const cellOwners = new Int32Array(
-        vm.wasmMemory.buffer,
+        corewar.vm.wasmMemory.buffer,
         memory.owners_ptr,
         4096
       );
@@ -66,10 +67,6 @@ export const VM = observer(
         const previous = coverages.get(owner) ?? 0;
         coverages.set(owner, previous + 1);
       });
-    });
-
-    const discardSelection = action((idx: number) => {
-      selections.delete(idx);
     });
 
     const clearSelections = action(() => {
@@ -91,6 +88,8 @@ export const VM = observer(
       const canvas = canvasRef.current;
       if (!canvas) return;
 
+      let disposer: IReactionDisposer | undefined;
+
       const renderer = new PIXIRenderer(
         {
           canvas,
@@ -99,8 +98,8 @@ export const VM = observer(
             toggleSelection(cellIdx);
           },
           onLoad: () => {
-            reaction(
-              () => vm.cycles,
+            disposer = reaction(
+              () => [corewar.vm.engine, corewar.vm.cycles, selections.size],
               () => {
                 updateSelections();
                 draw(renderer);
@@ -109,13 +108,10 @@ export const VM = observer(
             draw(renderer);
           },
         },
-        vm.wasmMemory
+        corewar.vm.wasmMemory
       );
 
-      reaction(
-        () => selections.size,
-        () => draw(renderer)
-      );
+      return () => disposer?.();
     }, [canvasRef]);
 
     const helpButton = (
@@ -124,28 +120,10 @@ export const VM = observer(
       </button>
     );
 
-    const addPlayerButton = vm.playersById.size < 4 && (
+    const addPlayerButton = corewar.players.length < 4 && (
       <button className="ctrl-btn" onClick={onNewClicked}>
         ➕
       </button>
-    );
-
-    const selectionsAsArray = Array.from(selections);
-    const selectionPanels = selectionsAsArray.map(
-      ([cellIdx, selection], idx) => (
-        <div key={idx}>
-          <hr />
-          <CellPanel
-            idx={cellIdx}
-            previousIdx={idx > 0 ? selectionsAsArray[idx - 1][0] : null}
-            decoded={selection.decoded}
-            onDiscard={() => discardSelection(cellIdx)}
-          />
-          <div className="pad-top">
-            <ProcessPanel processes={selection.processes} vm={vm} />
-          </div>
-        </div>
-      )
     );
 
     const arena = (
@@ -169,17 +147,58 @@ export const VM = observer(
               {helpButton}
               {addPlayerButton}
             </div>
-            <ControlPanel vm={vm} />
-            {vm.matchResult && <ResultsPanel result={vm.matchResult} vm={vm} />}
+            <ControlPanel vm={corewar.vm} />
+            {corewar.vm.matchResult && (
+              <ResultsPanel
+                result={corewar.vm.matchResult}
+                playerColors={corewar.playerColors}
+              />
+            )}
             <hr />
-            <StatePanel vm={vm} />
+            <StatePanel vm={corewar.vm} />
             <hr />
-            <ContendersPanel vm={vm} coverages={coverages} />
-            {selectionPanels}
+            <ContendersPanel corewar={corewar} coverages={coverages} />
+            <SelectionPanels corewar={corewar} selections={selections} />
           </div>
           {arena}
         </div>
       </div>
     );
+  }
+);
+
+const SelectionPanels = observer(
+  ({
+    corewar,
+    selections,
+  }: {
+    corewar: Corewar;
+    selections: Map<number, Selection>;
+  }) => {
+    const discardSelection = action((idx: number) => {
+      selections.delete(idx);
+    });
+
+    const selectionsAsArray = Array.from(selections);
+    const panels = selectionsAsArray.map(([cellIdx, selection], idx) => (
+      <div key={cellIdx}>
+        <hr />
+        <CellPanel
+          idx={cellIdx}
+          previousIdx={idx > 0 ? selectionsAsArray[idx - 1][0] : null}
+          decoded={selection.decoded}
+          onDiscard={() => discardSelection(cellIdx)}
+        />
+        <div className="pad-top">
+          <ProcessPanel
+            processes={selection.processes}
+            cycles={corewar.vm.cycles}
+            playerColors={corewar.playerColors}
+          />
+        </div>
+      </div>
+    ));
+
+    return <>{panels}</>;
   }
 );

@@ -8,19 +8,18 @@ import {
 } from "flexlayout-react";
 import { observer } from "mobx-react-lite";
 
-import { autorun } from "mobx";
+import { Corewar } from "../state/corewar";
+import { load, save } from "../state/persistent";
 
-import { VirtualMachine } from "../virtual_machine";
 import { Help } from "./help";
 import { VM } from "./vm";
 import { Editor } from "./editor";
 
-export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
+export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
   const flexLayout = useRef<Layout>(null);
 
   const [layoutModel] = useState(() => {
-    const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY);
-    const layout = savedLayout ? JSON.parse(savedLayout) : DEFAULT_LAYOUT;
+    const layout = load("ui::layout") ?? DEFAULT_LAYOUT;
     return Model.fromJson(layout);
   });
 
@@ -28,7 +27,7 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
     (tabData: TypedJsonTabNode) => {
       flexLayout.current?.addTabWithDragAndDropIndirect(
         "Add panel<br>(Drag to location)",
-        { ...tabData, config: {} }
+        tabData
       );
     },
     [flexLayout]
@@ -39,8 +38,9 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
       newTab({
         component: "editor",
         name: "Champion",
+        config: { id: corewar.nextEditorId() },
       }),
-    [newTab]
+    [newTab, corewar]
   );
 
   const newHelpTab = useCallback(
@@ -63,29 +63,18 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
       switch (component) {
         case "editor": {
           const config = node.getConfig();
-          const player =
-            vm.playersById.get(config.playerId ?? 0) ?? vm.newPlayer();
-          config.playerId = player.id;
-          // Update this editor's player id if it were to be changed
-          autorun(() => (config.playerId = player.id));
 
-          return (
-            <Editor
-              code={config.code}
-              onCodeChanged={(code, champion) => {
-                config.code = code;
-                player.champion = champion;
-                vm.compile();
-              }}
-              onClosed={() => vm.removePlayer(player.id)}
-            />
-          );
+          if (typeof config.id !== "number") {
+            return undefined;
+          }
+
+          return <Editor player={corewar.getPlayer(config.id)} />;
         }
 
         case "vm":
           return (
             <VM
-              vm={vm}
+              corewar={corewar}
               onNewPlayerRequested={newPlayerTab}
               onHelpRequested={newHelpTab}
             />
@@ -95,7 +84,7 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
           return <Help />;
       }
     },
-    [vm, newPlayerTab, newHelpTab]
+    [corewar, newPlayerTab, newHelpTab]
   );
 
   return (
@@ -103,14 +92,10 @@ export const CorewarLayout = observer(({ vm }: { vm: VirtualMachine }) => {
       ref={flexLayout}
       model={layoutModel}
       factory={layoutFactory}
-      onModelChange={(model) =>
-        localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(model.toJson()))
-      }
+      onModelChange={(model) => save("ui::layout", model.toJson())}
     />
   );
 });
-
-const LAYOUT_STORAGE_KEY = "ui::layout";
 
 const PANE_COMPONENTS = ["editor", "vm", "help"] as const;
 type PaneComponent = typeof PANE_COMPONENTS[number];
@@ -146,7 +131,9 @@ const DEFAULT_LAYOUT: IJsonModel = {
                 type: "tab",
                 name: "Champion",
                 component: "editor",
-                config: {},
+                config: {
+                  id: 0,
+                },
               },
             ],
           },
@@ -160,7 +147,9 @@ const DEFAULT_LAYOUT: IJsonModel = {
                 type: "tab",
                 name: "Champion",
                 component: "editor",
-                config: {},
+                config: {
+                  id: 1,
+                },
               },
             ],
           },

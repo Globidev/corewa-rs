@@ -8,7 +8,9 @@ import "./style.css";
 import { StrictMode } from "react";
 import { render } from "react-dom";
 
-import { VirtualMachine } from "./virtual_machine";
+import { Corewar } from "./state/corewar";
+import { VirtualMachine } from "./state/vm";
+
 import { CorewarLayout } from "./components/layout";
 
 import initWasm from "corewa-rs";
@@ -16,9 +18,11 @@ import initWasm from "corewa-rs";
 async function main() {
   const { memory } = await initWasm();
 
+  const vm = new VirtualMachine(memory);
+
   render(
     <StrictMode>
-      <CorewarLayout vm={new VirtualMachine(memory)} />
+      <CorewarLayout corewar={new Corewar(vm)} />
     </StrictMode>,
     document.getElementById("app")
   );
