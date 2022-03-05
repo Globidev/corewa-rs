@@ -20,7 +20,6 @@ interface IVMProps {
 
 export const VM = observer(
   ({ corewar, onHelpRequested, onNewPlayerRequested }: IVMProps) => {
-    console.log("vm render");
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const selections = useLocalObservable(() => new Map<number, Selection>());

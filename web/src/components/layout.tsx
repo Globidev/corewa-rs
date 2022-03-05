@@ -17,6 +17,7 @@ import { Help } from "./help";
 import { VM } from "./vm";
 import { Editor } from "./editor";
 import { runInAction } from "mobx";
+import { toCssColor } from "./panels/common";
 
 export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
   const flexLayout = useRef<Layout>(null);
@@ -72,6 +73,7 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
   const newPlayerTab = useCallback(() => {
     newTab({
       component: "editor",
+      enableRename: false,
       name: `Champion`,
       config: { type: "editor", playerId: corewar.randomPlayerId() },
     });
@@ -159,20 +161,21 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
       factory={layoutFactory}
       onModelChange={(model) => save("ui::layout", model.toJson())}
       onAction={onAction}
-      // onRenderTab={(node, values) => {
-      //   const editorId = node.getConfig().id;
-      //   if (typeof editorId === "number") {
-      //     const player = corewar.getPlayer(editorId);
-      //     // values.leading =
-      //     values.name = "A";
-      //     values.buttons = ["a"];
-      //     values.content = (
-      //       <>
-      //         <div style={{ color: toCssColor(player.color) }}>Champion</div>
-      //       </>
-      //     );
-      //   }
-      // }}
+      titleFactory={(node) => {
+        const config = node.getConfig() as TypedNodeConfig;
+
+        if (config?.type === "editor") {
+          const playerInfo = corewar.vm.engine.player_info(config.playerId);
+          const player = corewar.getPlayer(config.playerId);
+          if (playerInfo && player) {
+            return (
+              <div style={{ color: toCssColor(player.color) }}>
+                {playerInfo.champion_name()}
+              </div>
+            );
+          }
+        }
+      }}
     />
   );
 });
@@ -199,9 +202,9 @@ type TypedJsonTabNode = Omit<IJsonTabNode, "component" | "config"> & {
 
 const DEFAULT_LAYOUT: IJsonModel = {
   global: {},
+  borders: [],
   layout: {
     type: "row",
-    weight: 100,
     children: [
       {
         type: "row",
@@ -210,25 +213,25 @@ const DEFAULT_LAYOUT: IJsonModel = {
           {
             type: "tabset",
             weight: 50,
-            selected: 0,
             children: [
               {
                 type: "tab",
                 name: "Champion",
                 component: "editor",
+                enableRename: false,
               },
             ],
           },
           {
             type: "tabset",
             weight: 50,
-            selected: 0,
             tabLocation: "bottom",
             children: [
               {
                 type: "tab",
                 name: "Champion",
                 component: "editor",
+                enableRename: false,
               },
             ],
           },
@@ -236,15 +239,21 @@ const DEFAULT_LAYOUT: IJsonModel = {
       },
       {
         type: "tabset",
-        weight: 80,
-        selected: 0,
+        weight: 60,
         children: [
           {
             type: "tab",
             name: "Virtual Machine",
-            enableClose: false,
             component: "vm",
+            enableClose: false,
           },
+        ],
+        active: true,
+      },
+      {
+        type: "tabset",
+        weight: 20,
+        children: [
           {
             type: "tab",
             name: "Documentation",
