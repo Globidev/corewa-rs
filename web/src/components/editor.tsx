@@ -16,10 +16,9 @@ type Props = {
 
 export const Editor = observer(({ player, onChanged }: Props) => {
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  const [debounceHandle, setDebounceHandle] = useState<number>();
+  const editorChangedDebounceHandler = useRef<number>();
+  const colorChangedDebounceHandle = useRef<number>();
   const [editor, setEditor] = useState<CodeMirror.Editor>();
-  const [colorChangedDebounceHandle, setColorChangedDebouceHandle] =
-    useState<number>();
 
   useEffect(() => {
     const editorContainer = editorContainerRef.current;
@@ -41,8 +40,11 @@ export const Editor = observer(({ player, onChanged }: Props) => {
       });
 
       editor.on("change", (_e, _ch) => {
-        clearTimeout(debounceHandle);
-        setDebounceHandle(window.setTimeout(() => editor.performLint(), 100));
+        clearTimeout(editorChangedDebounceHandler.current);
+        editorChangedDebounceHandler.current = setTimeout(
+          () => editor.performLint(),
+          100
+        );
       });
 
       setEditor(editor);
@@ -89,12 +91,11 @@ export const Editor = observer(({ player, onChanged }: Props) => {
           value={toCssColor(player.color)}
           onChange={(e) => {
             const cssColor = e.target.value;
-            clearTimeout(colorChangedDebounceHandle);
-            const debounceHandle = setTimeout(() => {
+            clearTimeout(colorChangedDebounceHandle.current);
+            colorChangedDebounceHandle.current = setTimeout(() => {
               const color = parseInt(cssColor.slice(1), 16);
               player.setColor(color);
-            }, 300);
-            setColorChangedDebouceHandle(debounceHandle);
+            }, 100);
           }}
         />
         <input
