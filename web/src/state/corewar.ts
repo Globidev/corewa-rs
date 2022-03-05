@@ -1,14 +1,7 @@
-import {
-  action,
-  autorun,
-  IObservableArray,
-  makeObservable,
-  observable,
-} from "mobx";
+import { action, autorun, makeObservable, observable } from "mobx";
 
 import { compile_champion } from "corewa-rs";
 
-import { load, save } from "./persistent";
 import { VirtualMachine } from "./vm";
 
 import { champions } from "../assets/champions";
@@ -22,7 +15,7 @@ const DEFAULT_CHAMPIONS = <const>[
 ];
 
 export class Corewar {
-  players: IObservableArray<CorewarPlayer> = observable([]);
+  players = observable<CorewarPlayer>([]);
   playerColors: number[] = [];
 
   constructor(public vm: VirtualMachine) {
@@ -31,10 +24,7 @@ export class Corewar {
 
       getPlayer: action.bound,
       removePlayer: action.bound,
-      loadPlayers: action.bound,
     });
-
-    this.loadPlayers();
 
     autorun(
       () => {
@@ -54,30 +44,6 @@ export class Corewar {
         name: "update vm players",
       }
     );
-
-    autorun(
-      () => {
-        const data = this.players.map((p) => ({
-          code: p.code,
-          id: p.id,
-          editorId: p.editorId,
-        }));
-        save("data::players", data);
-      },
-      {
-        name: "save player data",
-        delay: 1_000,
-      }
-    );
-  }
-
-  loadPlayers() {
-    const savedPlayers = load("data::players") ?? [];
-
-    for (const { code, id, editorId } of savedPlayers) {
-      const color = PLAYER_COLORS[this.players.length];
-      this.players.push(new CorewarPlayer(code, id, color, editorId, this));
-    }
   }
 
   memoizePlayerColors() {
@@ -90,26 +56,35 @@ export class Corewar {
     this.playerColors = colorsById;
   }
 
-  nextEditorId(): number {
-    const maxId = Math.max(...this.players.map((p) => p.editorId));
-    return maxId + 1;
+  getPlayer(id: number): CorewarPlayer | undefined {
+    const player = this.players.find((p) => p.id === id);
+    if (player !== undefined) {
+      return player;
+    }
   }
 
-  getPlayer(editorId: number): CorewarPlayer {
-    const player = this.players.find((p) => p.editorId === editorId);
+  createPlayer(id: number, code?: string, color?: number): CorewarPlayer {
+    const player = this.getPlayer(id);
     if (player !== undefined) {
       return player;
     }
 
     const newPlayer = new CorewarPlayer(
-      champions[DEFAULT_CHAMPIONS[this.players.length]],
-      this.randomPlayerId(),
-      PLAYER_COLORS[this.players.length],
-      editorId,
+      code ?? champions[DEFAULT_CHAMPIONS[Math.min(this.players.length, 3)]],
+      id,
+      color ?? this.nextPlayerColor(),
       this
     );
     this.players.push(newPlayer);
     return newPlayer;
+  }
+
+  nextPlayerColor() {
+    for (const color of PLAYER_COLORS) {
+      if (!this.players.some((p) => p.color === color)) return color;
+    }
+
+    return 0xff0000;
   }
 
   removePlayer(player: CorewarPlayer) {
@@ -138,7 +113,6 @@ export class CorewarPlayer {
     public code: string,
     public id: number,
     public color: number,
-    public editorId: number,
     public store: Corewar
   ) {
     makeObservable(this, {
@@ -151,11 +125,13 @@ export class CorewarPlayer {
       compile: action.bound,
       delete: action.bound,
       setId: action.bound,
+      setColor: action.bound,
     });
   }
 
   compile(newCode: string) {
     this.code = newCode;
+    this.compiledChampion = undefined;
     this.compiledChampion = compile_champion(newCode);
   }
 
@@ -176,5 +152,9 @@ export class CorewarPlayer {
       return;
 
     this.id = newId;
+  }
+
+  setColor(color: number) {
+    this.color = color;
   }
 }

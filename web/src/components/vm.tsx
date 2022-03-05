@@ -20,6 +20,7 @@ interface IVMProps {
 
 export const VM = observer(
   ({ corewar, onHelpRequested, onNewPlayerRequested }: IVMProps) => {
+    console.log("vm render");
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const selections = useLocalObservable(() => new Map<number, Selection>());
@@ -112,8 +113,12 @@ export const VM = observer(
       </button>
     );
 
-    const addPlayerButton = corewar.players.length < 4 && (
-      <button className="ctrl-btn" onClick={onNewClicked}>
+    const addPlayerButton = (
+      <button
+        className="ctrl-btn"
+        onClick={onNewClicked}
+        disabled={corewar.players.length >= 4}
+      >
         ➕
       </button>
     );

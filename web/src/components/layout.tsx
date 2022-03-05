@@ -1,10 +1,12 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   Model,
   Layout,
   TabNode,
   IJsonTabNode,
   IJsonModel,
+  Action,
+  Actions,
 } from "flexlayout-react";
 import { observer } from "mobx-react-lite";
 
@@ -14,14 +16,48 @@ import { load, save } from "../state/persistent";
 import { Help } from "./help";
 import { VM } from "./vm";
 import { Editor } from "./editor";
+import { runInAction } from "mobx";
 
 export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
   const flexLayout = useRef<Layout>(null);
 
-  const [layoutModel] = useState(() => {
+  const layoutModel = useMemo(() => {
     const layout = load("ui::layout") ?? DEFAULT_LAYOUT;
     return Model.fromJson(layout);
-  });
+  }, []);
+
+  const updateNodeConfig = useCallback(
+    (nodeId: string, config: TypedNodeConfig) => {
+      layoutModel.doAction(Actions.updateNodeAttributes(nodeId, { config }));
+    },
+    [layoutModel]
+  );
+
+  const createPlayerForEditor = useCallback(
+    (nodeId: string, config: TypedNodeConfig) => {
+      let playerId = config?.playerId;
+
+      if (playerId === undefined) {
+        playerId = corewar.randomPlayerId();
+        updateNodeConfig(nodeId, {
+          type: "editor",
+          playerId,
+        });
+      }
+
+      const pid = playerId;
+      runInAction(() => corewar.createPlayer(pid, config?.code, config?.color));
+    },
+    [corewar, updateNodeConfig]
+  );
+
+  useEffect(() => {
+    layoutModel.visitNodes((node) => {
+      if (node instanceof TabNode && node.getComponent() === "editor") {
+        createPlayerForEditor(node.getId(), node.getConfig());
+      }
+    });
+  }, [layoutModel, createPlayerForEditor]);
 
   const newTab = useCallback(
     (tabData: TypedJsonTabNode) => {
@@ -33,15 +69,13 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
     [flexLayout]
   );
 
-  const newPlayerTab = useCallback(
-    () =>
-      newTab({
-        component: "editor",
-        name: "Champion",
-        config: { id: corewar.nextEditorId() },
-      }),
-    [newTab, corewar]
-  );
+  const newPlayerTab = useCallback(() => {
+    newTab({
+      component: "editor",
+      name: `Champion`,
+      config: { type: "editor", playerId: corewar.randomPlayerId() },
+    });
+  }, [newTab, corewar]);
 
   const newHelpTab = useCallback(
     () =>
@@ -50,6 +84,20 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
         name: "Documentation",
       }),
     [newTab]
+  );
+
+  const onAction = useCallback(
+    (action: Action) => {
+      if (action.type === Actions.ADD_NODE) {
+        const component = action.data.json?.component;
+        if (isPaneComponent(component) && component === "editor") {
+          const config = action.data.json.config as TypedNodeConfig;
+          createPlayerForEditor(action.data.toNode, config);
+        }
+      }
+      return action;
+    },
+    [createPlayerForEditor]
   );
 
   const layoutFactory = useCallback(
@@ -62,13 +110,30 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
 
       switch (component) {
         case "editor": {
-          const config = node.getConfig();
+          const config = node.getConfig() as TypedNodeConfig;
 
-          if (typeof config.id !== "number") {
+          if (config?.type !== "editor") {
             return undefined;
           }
 
-          return <Editor player={corewar.getPlayer(config.id)} />;
+          const player = corewar.getPlayer(config.playerId);
+
+          if (player === undefined) {
+            console.warn("editor <=> player invariant broken");
+            return undefined;
+          }
+
+          return (
+            <Editor
+              player={player}
+              onChanged={(config) => {
+                updateNodeConfig(node.getId(), {
+                  type: "editor",
+                  ...config,
+                });
+              }}
+            />
+          );
         }
 
         case "vm":
@@ -84,7 +149,7 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
           return <Help />;
       }
     },
-    [corewar, newPlayerTab, newHelpTab]
+    [corewar, newPlayerTab, newHelpTab, updateNodeConfig]
   );
 
   return (
@@ -93,6 +158,21 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
       model={layoutModel}
       factory={layoutFactory}
       onModelChange={(model) => save("ui::layout", model.toJson())}
+      onAction={onAction}
+      // onRenderTab={(node, values) => {
+      //   const editorId = node.getConfig().id;
+      //   if (typeof editorId === "number") {
+      //     const player = corewar.getPlayer(editorId);
+      //     // values.leading =
+      //     values.name = "A";
+      //     values.buttons = ["a"];
+      //     values.content = (
+      //       <>
+      //         <div style={{ color: toCssColor(player.color) }}>Champion</div>
+      //       </>
+      //     );
+      //   }
+      // }}
     />
   );
 });
@@ -108,8 +188,13 @@ function isPaneComponent(
   );
 }
 
-type TypedJsonTabNode = Omit<IJsonTabNode, "component"> & {
+type TypedNodeConfig =
+  | { type: "editor"; playerId: number; code?: string; color?: number }
+  | undefined;
+
+type TypedJsonTabNode = Omit<IJsonTabNode, "component" | "config"> & {
   component: PaneComponent;
+  config?: TypedNodeConfig;
 };
 
 const DEFAULT_LAYOUT: IJsonModel = {
@@ -131,9 +216,6 @@ const DEFAULT_LAYOUT: IJsonModel = {
                 type: "tab",
                 name: "Champion",
                 component: "editor",
-                config: {
-                  id: 0,
-                },
               },
             ],
           },
@@ -147,9 +229,6 @@ const DEFAULT_LAYOUT: IJsonModel = {
                 type: "tab",
                 name: "Champion",
                 component: "editor",
-                config: {
-                  id: 1,
-                },
               },
             ],
           },
@@ -165,13 +244,11 @@ const DEFAULT_LAYOUT: IJsonModel = {
             name: "Virtual Machine",
             enableClose: false,
             component: "vm",
-            config: {},
           },
           {
             type: "tab",
             name: "Documentation",
             component: "help",
-            config: {},
           },
         ],
       },

@@ -12,33 +12,21 @@ export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
   return (
     <div>
       <div>{corewar.players.length} contenders:</div>
-      {corewar.players.map((player) => {
+      {corewar.players.map((player, idx) => {
         const playerInfo = corewar.vm.engine.player_info(player.id);
-        if (playerInfo === undefined) return undefined;
+
+        if (playerInfo === undefined) {
+          return undefined;
+        }
 
         const championInfo = corewar.vm.engine.champion_info(player.id);
-        const coverage = coverages.get(player.id) || 0;
-
-        const playerIdInput = (
-          <input
-            className="player-id-input"
-            type="number"
-            value={player.id}
-            onChange={(ev) => {
-              const newId = parseInt(ev.target.value);
-              player.setId(newId);
-            }}
-          />
-        );
+        const coverage = coverages.get(player.id) ?? 0;
 
         return (
-          <details
-            key={player.editorId}
-            style={{ color: toCssColor(player.color) }}
-          >
-            <summary>{playerInfo.champion_name()}</summary>
-            <Info title="Player ID">{playerIdInput}</Info>
-            <Info title="Size">{playerInfo.champion_size}</Info>
+          <details key={idx} style={{ color: toCssColor(player.color) }}>
+            <summary>{playerInfo?.champion_name()}</summary>
+            <Info title="Player ID">{player.id}</Info>
+            <Info title="Size">{playerInfo?.champion_size}</Info>
             <Info title="Coverage">{`${((coverage / 4096) * 100).toFixed(
               2
             )} %`}</Info>

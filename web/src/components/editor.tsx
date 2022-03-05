@@ -6,11 +6,20 @@ import { observer } from "mobx-react-lite";
 import { CompileError } from "corewa-rs";
 import { CorewarPlayer } from "../state/corewar";
 import { champions } from "../assets/champions";
+import { toCssColor } from "./panels/common";
+import { autorun } from "mobx";
 
-export const Editor = observer(({ player }: { player: CorewarPlayer }) => {
+type Props = {
+  player: CorewarPlayer;
+  onChanged: (_: { color: number; code: string; playerId: number }) => void;
+};
+
+export const Editor = observer(({ player, onChanged }: Props) => {
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const [debounceHandle, setDebounceHandle] = useState<number>();
   const [editor, setEditor] = useState<CodeMirror.Editor>();
+  const [colorChangedDebounceHandle, setColorChangedDebouceHandle] =
+    useState<number>();
 
   useEffect(() => {
     const editorContainer = editorContainerRef.current;
@@ -42,6 +51,18 @@ export const Editor = observer(({ player }: { player: CorewarPlayer }) => {
     return () => player.delete();
   }, [editorContainerRef]);
 
+  useEffect(() => {
+    const updateDisposer = autorun(() => {
+      onChanged({
+        playerId: player.id,
+        color: player.color,
+        code: player.code,
+      });
+    });
+
+    return updateDisposer;
+  }, [player]);
+
   return (
     <div className="editor-container">
       <div style={{ display: "flex" }}>
@@ -63,6 +84,24 @@ export const Editor = observer(({ player }: { player: CorewarPlayer }) => {
             );
           })}
         </select>
+        <input
+          type="color"
+          value={toCssColor(player.color)}
+          onChange={(e) => {
+            const cssColor = e.target.value;
+            clearTimeout(colorChangedDebounceHandle);
+            const debounceHandle = setTimeout(() => {
+              const color = parseInt(cssColor.slice(1), 16);
+              player.setColor(color);
+            }, 300);
+            setColorChangedDebouceHandle(debounceHandle);
+          }}
+        />
+        <input
+          type="number"
+          value={player.id}
+          onChange={(e) => player.setId(e.target.valueAsNumber)}
+        />
       </div>
       <div className="editor" ref={editorContainerRef} />
     </div>

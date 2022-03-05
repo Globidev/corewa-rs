@@ -2,7 +2,6 @@ import type { IJsonModel } from "flexlayout-react";
 
 type Storage = {
   "ui::layout": IJsonModel;
-  "data::players": { code: string; id: number; editorId: number }[];
 };
 
 export function save<K extends keyof Storage>(key: K, value: Storage[K]) {
