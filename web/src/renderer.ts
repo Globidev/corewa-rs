@@ -29,7 +29,6 @@ type Modifiers = {
 interface RendererSetup {
   canvas: HTMLCanvasElement;
   onCellClicked: (idx: number, modifiers: Modifiers) => void;
-  onLoad: () => void;
 }
 
 interface RenderContext {
@@ -42,8 +41,8 @@ interface RenderContext {
 export class PIXIRenderer {
   application: PIXI.Application;
   cells: Cell[] = [];
-  cellTextures: PIXI.Texture[] = [];
-  cellTextures2: PIXI.Texture[] = [];
+  valueTexturesDark: PIXI.Texture[] = [];
+  valueTexturesLight: PIXI.Texture[] = [];
 
   constructor(setup: RendererSetup, private wasmMemory: WebAssembly.Memory) {
     const app = new PIXI.Application({
@@ -55,47 +54,33 @@ export class PIXIRenderer {
     // Stop the automatic rendering since we do not continuously update
     app.stop();
 
-    // TODO
-    setTimeout(() => {
-      this.load(setup);
-    }, 0);
-
     this.application = app;
+
+    this.load(setup);
   }
 
   load(setup: RendererSetup) {
-    // const cellSheet = PIXI.utils.TextureCache[cells] as PIXI.Texture;
+    const textStyle = <const>{
+      fontFamily: "'Roboto Mono', monospace",
+      align: "center",
+      fontSize: BYTE_WIDTH,
+      fontWeight: "600",
+    };
 
-    for (let i = 0; i <= 0xff; ++i) {
-      {
-        const cellText = new PIXI.Text(
-          i.toString(16).padStart(2, "0").toUpperCase(),
-          {
-            fontFamily: "'Roboto Mono', monospace",
-            fill: 0x000000,
-            // align: "center",
-            // fontSize: ,
-            fontWeight: "600",
-          }
-        );
-        cellText.width = BYTE_WIDTH;
-        cellText.height = BYTE_HEIGHT;
-        this.cellTextures.push(cellText.texture);
+    const passes = [
+      { fill: 0x000000, container: this.valueTexturesDark },
+      { fill: 0xaaaaaa, container: this.valueTexturesLight },
+    ];
+
+    for (let val = 0; val <= 0xff; ++val) {
+      const textValue = val.toString(16).padStart(2, "0").toUpperCase();
+
+      for (const { fill, container } of passes) {
+        const text = new PIXI.Text(textValue, { ...textStyle, fill });
+        text.width = BYTE_WIDTH;
+        text.height = BYTE_HEIGHT;
+        container.push(text.texture);
       }
-
-      const cellText = new PIXI.Text(
-        i.toString(16).padStart(2, "0").toUpperCase(),
-        {
-          fontFamily: "'Roboto Mono', monospace",
-          fill: 0xaaaaaa,
-          // align: "center",
-          // fontSize: ,
-          fontWeight: "500",
-        }
-      );
-      cellText.width = BYTE_WIDTH;
-      cellText.height = BYTE_HEIGHT;
-      this.cellTextures2.push(cellText.texture);
     }
 
     for (let i = 0; i < MEM_SIZE; ++i) {
@@ -114,8 +99,6 @@ export class PIXIRenderer {
       this.cells.push(cell);
       this.application.stage.addChild(cell.sp);
     }
-
-    setup.onLoad();
   }
 
   update(ctx: RenderContext) {
@@ -152,8 +135,8 @@ export class PIXIRenderer {
 
       this.cells[i].update(
         contrasting < 0x888888
-          ? this.cellTextures[cellValue]
-          : this.cellTextures2[cellValue],
+          ? this.valueTexturesDark[cellValue]
+          : this.valueTexturesLight[cellValue],
         cellOwner,
         cellAge,
         pcCount,
@@ -188,8 +171,10 @@ class Cell {
     sp.interactive = true;
 
     const value = new PIXI.Sprite();
-    value.width = BYTE_WIDTH - 2;
-    value.height = BYTE_HEIGHT;
+    value.x = (BYTE_WIDTH - BYTE_WIDTH / 1.5) / 2 - 1;
+    value.y = (BYTE_HEIGHT - BYTE_HEIGHT / 1.5) / 2 + 1;
+    value.width = BYTE_WIDTH / 1.5;
+    value.height = BYTE_HEIGHT / 1.5;
 
     const pcSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
 
