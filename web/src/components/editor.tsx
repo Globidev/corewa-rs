@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import CodeMirror from "codemirror";
 
 import { observer } from "mobx-react-lite";
@@ -6,7 +6,7 @@ import { observer } from "mobx-react-lite";
 import { CompileError } from "corewa-rs";
 import { CorewarPlayer } from "../state/corewar";
 import { champions } from "../assets/champions";
-import { toCssColor } from "./panels/common";
+import { toCssColor } from "../utils";
 import { autorun } from "mobx";
 
 type Props = {
@@ -16,15 +16,15 @@ type Props = {
 
 export const Editor = observer(({ player, onChanged }: Props) => {
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  const editorChangedDebounceHandler = useRef<number>();
+  const editorChangedDebounceHandle = useRef<number>();
   const colorChangedDebounceHandle = useRef<number>();
-  const [editor, setEditor] = useState<CodeMirror.Editor>();
+  const editor = useRef<CodeMirror.Editor>();
 
   useEffect(() => {
     const editorContainer = editorContainerRef.current;
 
     if (editorContainer) {
-      const editor = CodeMirror(editorContainer, {
+      const newEditor = CodeMirror(editorContainer, {
         lineNumbers: true,
         theme: "monokai",
         mode: ASM_LANGUAGE_ID,
@@ -39,19 +39,19 @@ export const Editor = observer(({ player, onChanged }: Props) => {
         extraKeys: { "Ctrl-Space": "autocomplete" },
       });
 
-      editor.on("change", (_e, _ch) => {
-        clearTimeout(editorChangedDebounceHandler.current);
-        editorChangedDebounceHandler.current = setTimeout(
-          () => editor.performLint(),
+      newEditor.on("change", (_e, _ch) => {
+        clearTimeout(editorChangedDebounceHandle.current);
+        editorChangedDebounceHandle.current = setTimeout(
+          () => newEditor.performLint(),
           100
         );
       });
 
-      setEditor(editor);
+      editor.current = newEditor;
     }
 
     return () => player.delete();
-  }, [editorContainerRef]);
+  }, [editorContainerRef, player]);
 
   useEffect(() => {
     const updateDisposer = autorun(() => {
@@ -73,7 +73,7 @@ export const Editor = observer(({ player, onChanged }: Props) => {
             const championCode = (champions as { [_: string]: string })[
               e.target.value
             ];
-            editor?.setValue(championCode ?? player.code);
+            editor.current?.setValue(championCode ?? player.code);
           }}
           value="load"
         >
@@ -86,18 +86,20 @@ export const Editor = observer(({ player, onChanged }: Props) => {
             );
           })}
         </select>
-        <input
-          type="color"
-          value={toCssColor(player.color)}
-          onChange={(e) => {
-            const cssColor = e.target.value;
-            clearTimeout(colorChangedDebounceHandle.current);
-            colorChangedDebounceHandle.current = setTimeout(() => {
-              const color = parseInt(cssColor.slice(1), 16);
-              player.setColor(color);
-            }, 100);
-          }}
-        />
+        <div style={{ flexGrow: 1 }}>
+          <input
+            type="color"
+            value={toCssColor(player.color)}
+            onChange={(e) => {
+              const cssColor = e.target.value;
+              clearTimeout(colorChangedDebounceHandle.current);
+              colorChangedDebounceHandle.current = setTimeout(() => {
+                const color = parseInt(cssColor.slice(1), 16);
+                player.setColor(color);
+              }, 100);
+            }}
+          />
+        </div>
         <input
           type="number"
           value={player.id}

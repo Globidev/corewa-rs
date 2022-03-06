@@ -136,28 +136,26 @@ export const VM = observer(
     );
 
     return (
-      <div id="vm-container">
-        <div style={{ display: "flex" }}>
-          <div className="pad-left pad-top panel-area">
-            <div style={{ display: "flex" }}>
-              {helpButton}
-              {addPlayerButton}
-            </div>
-            <ControlPanel vm={corewar.vm} />
-            {corewar.vm.matchResult && (
-              <ResultsPanel
-                result={corewar.vm.matchResult}
-                playerColors={corewar.playerColors}
-              />
-            )}
-            <hr />
-            <StatePanel vm={corewar.vm} />
-            <hr />
-            <ContendersPanel corewar={corewar} coverages={coverages} />
-            <SelectionPanels corewar={corewar} selections={selections} />
+      <div className="vm-container">
+        <div className="pad-left pad-top panel-area">
+          <div style={{ display: "flex" }}>
+            {helpButton}
+            {addPlayerButton}
           </div>
-          {arena}
+          <ControlPanel vm={corewar.vm} />
+          {corewar.vm.matchResult && (
+            <ResultsPanel
+              result={corewar.vm.matchResult}
+              playerColors={corewar.playerColors}
+            />
+          )}
+          <hr />
+          <StatePanel vm={corewar.vm} />
+          <hr />
+          <ContendersPanel corewar={corewar} coverages={coverages} />
+          <SelectionPanels corewar={corewar} selections={selections} />
         </div>
+        {arena}
       </div>
     );
   }

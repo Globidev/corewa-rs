@@ -1,8 +1,10 @@
 import { observer } from "mobx-react-lite";
 
-import { toCssColor, Info } from "./common";
+import { Info } from "./common";
 
 import type { ProcessCollection } from "corewa-rs";
+
+import { toCssColor } from "../../utils";
 
 const MAX_PROCESS_DISPLAYED = 32;
 

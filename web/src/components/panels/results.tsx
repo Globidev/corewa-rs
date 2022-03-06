@@ -1,7 +1,7 @@
 import { observer } from "mobx-react-lite";
 
 import { MatchResult } from "../../state/vm";
-import { toCssColor } from "./common";
+import { toCssColor } from "../../utils";
 
 type Props = {
   result: MatchResult;

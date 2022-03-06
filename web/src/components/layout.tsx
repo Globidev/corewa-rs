@@ -17,7 +17,7 @@ import { Help } from "./help";
 import { VM } from "./vm";
 import { Editor } from "./editor";
 import { runInAction } from "mobx";
-import { toCssColor } from "./panels/common";
+import { toCssColor, contrastingColor } from "../utils";
 
 export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
   const flexLayout = useRef<Layout>(null);
@@ -169,7 +169,12 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
           const player = corewar.getPlayer(config.playerId);
           if (playerInfo && player) {
             return (
-              <div style={{ color: toCssColor(player.color) }}>
+              <div
+                style={{
+                  color: toCssColor(player.color),
+                  background: toCssColor(contrastingColor(player.color)),
+                }}
+              >
                 {playerInfo.champion_name()}
               </div>
             );

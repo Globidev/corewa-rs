@@ -5,6 +5,10 @@ body {
   margin: 0;
   background-color: #36393f;
   color: #dcddde;
+
+.vm-container {
+  display: flex;
+  justify-content: center;
 }
 
 .editor-container,
@@ -45,7 +49,7 @@ body {
 }
 
 .code {
-  background-color: white;
+  background-color: #eeeeee;
   color: black;
   padding: 0.2em 0.4em;
   border-radius: 3px;

@@ -1,7 +1,9 @@
 import { observer } from "mobx-react-lite";
-import { Corewar } from "../../state/corewar";
 
-import { toCssColor, Info } from "./common";
+import { Info } from "./common";
+
+import { Corewar } from "../../state/corewar";
+import { toCssColor } from "../../utils";
 
 type Props = {
   corewar: Corewar;
@@ -24,7 +26,16 @@ export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
 
         return (
           <details key={idx} style={{ color: toCssColor(player.color) }}>
-            <summary>{playerInfo?.champion_name()}</summary>
+            <summary>
+              <span
+                style={{
+                  color: "#eeeeee",
+                }}
+              >
+                {playerInfo?.champion_name()}
+              </span>
+            </summary>
+
             <Info title="Player ID">{player.id}</Info>
             <Info title="Size">{playerInfo?.champion_size}</Info>
             <Info title="Coverage">{`${((coverage / 4096) * 100).toFixed(
