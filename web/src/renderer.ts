@@ -1,25 +1,24 @@
 import * as PIXI from "pixi.js";
 
-import cells from "./assets/cells.png?url";
-
 import type { Memory } from "corewa-rs";
+import { contrastingColor } from "./utils";
 
 PIXI.utils.skipHello();
 
 const MAX_CELL_AGE = 1024;
 const MEM_SIZE = 4096;
 const BYTE_WIDTH = 18;
-const BYTE_HEIGHT = 13;
+const BYTE_HEIGHT = 15;
 const ROWS = 64;
 const COLUMNS = 64;
 const X_SPACING = 2;
-const Y_SPACING = 1;
+const Y_SPACING = 2;
 
-export const MARGIN = 5;
+export const MARGIN = 3;
 export const MEM_WIDTH =
-  (BYTE_WIDTH + X_SPACING) * COLUMNS + (MARGIN - X_SPACING);
+  (BYTE_WIDTH + X_SPACING) * COLUMNS + MARGIN * 2 - X_SPACING;
 export const MEM_HEIGHT =
-  (BYTE_HEIGHT + Y_SPACING) * ROWS + (MARGIN - Y_SPACING);
+  (BYTE_HEIGHT + Y_SPACING) * ROWS + MARGIN * 2 - Y_SPACING;
 
 type Modifiers = {
   ctrl: boolean;
@@ -34,6 +33,7 @@ interface RendererSetup {
 }
 
 interface RenderContext {
+  showValues: boolean;
   memory: Memory;
   selections: { idx: number; length: number }[];
   playerColors: number[];
@@ -43,6 +43,7 @@ export class PIXIRenderer {
   application: PIXI.Application;
   cells: Cell[] = [];
   cellTextures: PIXI.Texture[] = [];
+  cellTextures2: PIXI.Texture[] = [];
 
   constructor(setup: RendererSetup, private wasmMemory: WebAssembly.Memory) {
     const app = new PIXI.Application({
@@ -54,33 +55,54 @@ export class PIXIRenderer {
     // Stop the automatic rendering since we do not continuously update
     app.stop();
 
-    app.loader.add(cells).load(() => this.load(setup));
+    // TODO
+    setTimeout(() => {
+      this.load(setup);
+    }, 0);
 
     this.application = app;
   }
 
   load(setup: RendererSetup) {
-    const cellSheet = PIXI.utils.TextureCache[cells] as PIXI.Texture;
+    // const cellSheet = PIXI.utils.TextureCache[cells] as PIXI.Texture;
 
     for (let i = 0; i <= 0xff; ++i) {
-      const [x, y] = cellPos(i);
+      {
+        const cellText = new PIXI.Text(
+          i.toString(16).padStart(2, "0").toUpperCase(),
+          {
+            fontFamily: "'Roboto Mono', monospace",
+            fill: 0x000000,
+            // align: "center",
+            // fontSize: ,
+            fontWeight: "600",
+          }
+        );
+        cellText.width = BYTE_WIDTH;
+        cellText.height = BYTE_HEIGHT;
+        this.cellTextures.push(cellText.texture);
+      }
 
-      const frame = new PIXI.Rectangle(
-        x * BYTE_WIDTH,
-        y * BYTE_HEIGHT,
-        BYTE_WIDTH,
-        BYTE_HEIGHT
+      const cellText = new PIXI.Text(
+        i.toString(16).padStart(2, "0").toUpperCase(),
+        {
+          fontFamily: "'Roboto Mono', monospace",
+          fill: 0xaaaaaa,
+          // align: "center",
+          // fontSize: ,
+          fontWeight: "500",
+        }
       );
-      cellSheet.frame = frame;
-
-      this.cellTextures.push(cellSheet.clone());
+      cellText.width = BYTE_WIDTH;
+      cellText.height = BYTE_HEIGHT;
+      this.cellTextures2.push(cellText.texture);
     }
 
     for (let i = 0; i < MEM_SIZE; ++i) {
       const [x, y] = cellPos(i);
 
       const cell = new Cell(x, y);
-      cell.valueSprite.on("click", (pixiEvent: PIXI.InteractionEvent) => {
+      cell.sp.on("click", (pixiEvent: PIXI.InteractionEvent) => {
         const event = pixiEvent.data.originalEvent;
         setup.onCellClicked(i, {
           ctrl: event.ctrlKey,
@@ -90,7 +112,7 @@ export class PIXIRenderer {
       });
 
       this.cells.push(cell);
-      this.application.stage.addChild(cell.valueSprite);
+      this.application.stage.addChild(cell.sp);
     }
 
     setup.onLoad();
@@ -125,13 +147,18 @@ export class PIXIRenderer {
       const pcCount = pcCounts[i];
 
       const color = ctx.playerColors[cellOwner] ?? 0x404040;
+      const contrasting = contrastingColor(color);
+      // const valueAlpha = valueTint > 0x888888 ? 0.7 : 1.0;
 
       this.cells[i].update(
-        this.cellTextures[cellValue],
+        contrasting < 0x888888
+          ? this.cellTextures[cellValue]
+          : this.cellTextures2[cellValue],
         cellOwner,
         cellAge,
         pcCount,
-        color
+        color,
+        ctx.showValues
       );
     }
 
@@ -146,41 +173,38 @@ export class PIXIRenderer {
 }
 
 class Cell {
-  valueSprite: PIXI.Sprite;
+  sp: PIXI.Sprite;
+  value: PIXI.Sprite;
   pcSprite: PIXI.Sprite;
   ageSprite: PIXI.Sprite;
   selectionSprite: PIXI.Sprite;
 
   constructor(x: number, y: number) {
-    const valueSprite = new PIXI.Sprite();
-    valueSprite.x = MARGIN + x * (BYTE_WIDTH + X_SPACING);
-    valueSprite.y = MARGIN + y * (BYTE_HEIGHT + Y_SPACING);
-    valueSprite.interactive = true;
+    const sp = new PIXI.Sprite(PIXI.Texture.WHITE);
+    sp.x = MARGIN + x * (BYTE_WIDTH + X_SPACING);
+    sp.y = MARGIN + y * (BYTE_HEIGHT + Y_SPACING);
+    sp.width = BYTE_WIDTH;
+    sp.height = BYTE_HEIGHT;
+    sp.interactive = true;
+
+    const value = new PIXI.Sprite();
+    value.width = BYTE_WIDTH - 2;
+    value.height = BYTE_HEIGHT;
 
     const pcSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    pcSprite.width = BYTE_WIDTH;
-    pcSprite.height = BYTE_HEIGHT;
-    pcSprite.x = -X_SPACING;
-    pcSprite.y = -Y_SPACING;
 
     const ageSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    ageSprite.width = BYTE_WIDTH;
-    ageSprite.height = BYTE_HEIGHT;
-    ageSprite.x = -X_SPACING;
-    ageSprite.y = -Y_SPACING;
+    ageSprite.tint = 0xcccccc;
 
     const selectionSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
     selectionSprite.tint = 0xff0000;
     selectionSprite.alpha = 0.4;
-    selectionSprite.width = BYTE_WIDTH;
-    selectionSprite.height = BYTE_HEIGHT;
-    selectionSprite.x = -X_SPACING;
-    selectionSprite.y = -Y_SPACING;
     selectionSprite.visible = false;
 
-    valueSprite.addChild(pcSprite, ageSprite, selectionSprite);
+    sp.addChild(value, pcSprite, ageSprite, selectionSprite);
 
-    this.valueSprite = valueSprite;
+    this.sp = sp;
+    this.value = value;
     this.pcSprite = pcSprite;
     this.ageSprite = ageSprite;
     this.selectionSprite = selectionSprite;
@@ -191,16 +215,20 @@ class Cell {
     owner: number,
     age: number,
     pcCount: number,
-    color: number
+    color: number,
+    showValue: boolean
   ) {
     const pcAlpha = pcCount !== 0 ? 0.5 + (pcCount - 1) * 0.05 : 0;
-    const ageAlpha = owner !== 0 ? 0.35 * (age / MAX_CELL_AGE) : 0;
+    const ageAlpha = owner !== 0 ? 0.3 * (age / MAX_CELL_AGE) : 0;
 
-    this.valueSprite.texture = valueTexture;
-    this.valueSprite.tint = color;
+    this.sp.tint = color;
+
+    this.value.texture = valueTexture;
+    this.value.visible = showValue;
+
     this.pcSprite.alpha = pcAlpha;
-    this.ageSprite.tint = color;
     this.ageSprite.alpha = ageAlpha;
+
     this.selectionSprite.visible = false;
   }
 }

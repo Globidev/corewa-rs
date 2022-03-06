@@ -18,7 +18,7 @@ export function toCssColor(color: number) {
 
 export function contrastingColor(color: number): number {
   const [r, g, b] = toRgb(color);
-  const v = (r + g + b) / 3 > 128 ? 0x30 : 0x90;
+  const v = (r + g + b) / 3 > 128 ? 0x30 : 0xd0;
 
   return (v << 16) | (v << 8) | v;
 }

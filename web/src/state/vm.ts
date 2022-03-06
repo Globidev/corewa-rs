@@ -37,6 +37,8 @@ export class VirtualMachine {
   matchResult?: MatchResult;
   players: { id: number; champion: Uint8Array }[] = [];
 
+  showValues = false;
+
   constructor(public wasmMemory: WebAssembly.Memory) {
     makeObservable(this, {
       engine: observable,
@@ -44,6 +46,7 @@ export class VirtualMachine {
       playing: observable,
       speed: observable,
       matchResult: observable,
+      showValues: observable,
 
       tick: action,
       updateMatchResult: action,
@@ -80,6 +83,7 @@ export class VirtualMachine {
       console.warn(
         `${n} cycles took too long to compute:\n${duration} ms | ${processes} procs`
       );
+    console.debug(duration);
   }
 
   updateMatchResult() {

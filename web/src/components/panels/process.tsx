@@ -30,7 +30,7 @@ export const ProcessPanel = observer(
         const coloredPlayerId = (
           <div
             style={{
-              backgroundColor: toCssColor(playerColor),
+              color: toCssColor(playerColor),
             }}
           >
             {process.player_id}

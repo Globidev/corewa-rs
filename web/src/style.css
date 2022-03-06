@@ -5,10 +5,14 @@ body {
   margin: 0;
   background-color: #36393f;
   color: #dcddde;
+  font-family: "Roboto";
+}
 
 .vm-container {
   display: flex;
   justify-content: center;
+  align-items: center;
+  height: 100%;
 }
 
 .editor-container,
@@ -37,6 +41,7 @@ body {
 .cycle-input {
   max-width: 70px;
   text-align: center;
+  font-family: "Roboto Mono";
 }
 
 .player-id-input {
@@ -53,12 +58,15 @@ body {
   color: black;
   padding: 0.2em 0.4em;
   border-radius: 3px;
+  font-family: "Roboto Mono";
+}
+
+summary {
+  cursor: pointer;
 }
 
 .panel-area {
-  overflow: auto;
   min-width: 200px;
-  max-height: 97vh;
 }
 
 .state-panel > div {
@@ -67,6 +75,7 @@ body {
 
 canvas {
   cursor: pointer !important;
+  margin: 1em;
 }
 
 .flexlayout__tab {
@@ -78,6 +87,7 @@ canvas {
 
 .markdown-body {
   color: inherit;
+  padding: 0.5em;
 }
 
 .markdown-body code {

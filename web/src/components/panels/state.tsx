@@ -21,7 +21,7 @@ export const StatePanel = observer(({ vm }: Props) => {
 
   return (
     <div className="state-panel">
-      <Info minWidth={100} title="Cycles">
+      <Info title="Cycles">
         <input
           className="cycle-input"
           type="number"
@@ -29,24 +29,12 @@ export const StatePanel = observer(({ vm }: Props) => {
           onChange={(ev) => vm.setCycle(parseInt(ev.target.value))}
         />
       </Info>
-      <Info minWidth={100} title="Processes">
-        {processes}
-      </Info>
-      <Info minWidth={100} title="Check interval">
-        {interval}
-      </Info>
-      <Info minWidth={100} title="Next check">
-        {nextCheck}
-      </Info>
-      <Info minWidth={100} title="Last check">
-        {lastLive}
-      </Info>
-      <Info minWidth={100} title="Live count">
-        {liveCount}
-      </Info>
-      <Info minWidth={100} title="Checks passed">
-        {checksPassed}
-      </Info>
+      <Info title="Processes">{processes}</Info>
+      <Info title="Check interval">{interval}</Info>
+      <Info title="Next check">{nextCheck}</Info>
+      <Info title="Last check">{lastLive}</Info>
+      <Info title="Live count">{liveCount}</Info>
+      <Info title="Checks passed">{checksPassed}</Info>
     </div>
   );
 });

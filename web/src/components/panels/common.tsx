@@ -6,11 +6,12 @@ type InfoProps = {
   minWidth?: number;
 };
 
-export const Info: FC<InfoProps> = ({ title, children, minWidth = 80 }) => (
-  <div className="pad-top" style={{ display: "flex" }}>
-    <div className="pad-left" style={{ minWidth: `${minWidth}px` }}>
-      {title}
-    </div>
+export const Info: FC<InfoProps> = ({ title, children }) => (
+  <div
+    className="pad-top"
+    style={{ display: "flex", justifyContent: "space-between" }}
+  >
+    <label>{title}</label>
     <div className="code">{children}</div>
   </div>
 );

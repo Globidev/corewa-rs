@@ -40,6 +40,7 @@ export const VM = observer(
       const memory = corewar.vm.engine.memory();
 
       renderer.update({
+        showValues: corewar.vm.showValues,
         memory,
         selections: Array.from(selections).map(([idx, selection]) => ({
           idx,
@@ -91,7 +92,12 @@ export const VM = observer(
           },
           onLoad: () => {
             disposer = reaction(
-              () => [corewar.vm.engine, corewar.vm.cycles, selections.size],
+              () => [
+                corewar.vm.engine,
+                corewar.vm.cycles,
+                corewar.vm.showValues,
+                selections.size,
+              ],
               () => {
                 updateSelections();
                 draw(renderer);
@@ -106,43 +112,30 @@ export const VM = observer(
       return () => disposer?.();
     }, [canvasRef]);
 
-    const helpButton = (
-      <button className="ctrl-btn" onClick={onHelpRequested}>
-        ❓
-      </button>
-    );
-
-    const addPlayerButton = (
-      <button
-        className="ctrl-btn"
-        onClick={onNewClicked}
-        disabled={corewar.players.length >= 4}
-      >
-        ➕
-      </button>
-    );
-
-    const arena = (
-      <canvas
-        ref={canvasRef}
-        width={MEM_WIDTH}
-        height={MEM_HEIGHT}
-        style={{
-          margin: `${MARGIN}px ${MARGIN}px ${MARGIN}px ${MARGIN}px`,
-          maxHeight: `${MEM_HEIGHT}px`,
-          maxWidth: `${MEM_WIDTH}px`,
-        }}
-      />
-    );
-
     return (
       <div className="vm-container">
-        <div className="pad-left pad-top panel-area">
+        <div className="panel-area">
           <div style={{ display: "flex" }}>
-            {helpButton}
-            {addPlayerButton}
+            <button className="ctrl-btn" onClick={onHelpRequested}>
+              ❓
+            </button>
+            <button
+              className="ctrl-btn"
+              onClick={onNewClicked}
+              disabled={corewar.players.length >= 4}
+            >
+              ➕
+            </button>
           </div>
           <ControlPanel vm={corewar.vm} />
+          <div>
+            <input
+              type="checkbox"
+              checked={corewar.vm.showValues}
+              onChange={(e) => (corewar.vm.showValues = e.target.checked)}
+            />
+            <label>Cell values</label>
+          </div>
           {corewar.vm.matchResult && (
             <ResultsPanel
               result={corewar.vm.matchResult}
@@ -155,7 +148,9 @@ export const VM = observer(
           <ContendersPanel corewar={corewar} coverages={coverages} />
           <SelectionPanels corewar={corewar} selections={selections} />
         </div>
-        {arena}
+        <div>
+          <canvas ref={canvasRef} width={MEM_WIDTH} height={MEM_HEIGHT} />
+        </div>
       </div>
     );
   }
