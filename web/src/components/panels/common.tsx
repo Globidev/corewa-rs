@@ -1,4 +1,4 @@
-import { ReactNode, FC } from "react";
+import { ReactNode } from "react";
 
 type InfoProps = {
   title: string;
@@ -6,9 +6,9 @@ type InfoProps = {
   minWidth?: number;
 };
 
-export const Info: FC<InfoProps> = ({ title, children }) => (
+export const Info = ({ title, children }: InfoProps) => (
   <div
-    className="pad-top"
+    className="pad-top info"
     style={{ display: "flex", justifyContent: "space-between" }}
   >
     <label>{title}</label>

@@ -9,6 +9,7 @@ type Props = {
 
 export const StatePanel = observer(({ vm }: Props) => {
   if (vm.cycles === undefined) return null;
+  Number.MAX_VALUE;
 
   const engine = vm.engine,
     cycles = engine.cycles(),
@@ -19,6 +20,15 @@ export const StatePanel = observer(({ vm }: Props) => {
     liveCount = engine.live_count_since_last_check(),
     checksPassed = engine.checks_without_cycle_decrement();
 
+  const sections = [
+    { title: "Processes", value: processes },
+    { title: "Check interval", value: interval },
+    { title: "Next check", value: nextCheck },
+    { title: "Last check", value: lastLive },
+    { title: "Live count", value: liveCount },
+    { title: "Checks passed", value: checksPassed },
+  ];
+
   return (
     <div className="state-panel">
       <Info title="Cycles">
@@ -27,14 +37,16 @@ export const StatePanel = observer(({ vm }: Props) => {
           type="number"
           value={cycles}
           onChange={(ev) => vm.setCycle(parseInt(ev.target.value))}
+          min={0}
+          max={999_999}
         />
       </Info>
-      <Info title="Processes">{processes}</Info>
-      <Info title="Check interval">{interval}</Info>
-      <Info title="Next check">{nextCheck}</Info>
-      <Info title="Last check">{lastLive}</Info>
-      <Info title="Live count">{liveCount}</Info>
-      <Info title="Checks passed">{checksPassed}</Info>
+
+      {sections.map(({ title, value }) => (
+        <Info key={title} title={title}>
+          {value.toString().padStart(5, "\u00A0")}
+        </Info>
+      ))}
     </div>
   );
 });

@@ -24,6 +24,23 @@ export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
         const championInfo = corewar.vm.engine.champion_info(player.id);
         const coverage = coverages.get(player.id) ?? 0;
 
+        const sections = [
+          {
+            title: "Player id",
+            value: `0x${remEuclid(player.id, 0xffffffff)
+              .toString(16)
+              .toUpperCase()
+              .padStart(8, "0")}`,
+          },
+          { title: "Size", value: playerInfo?.champion_size },
+          {
+            title: "Coverage",
+            value: `${((coverage / 4096) * 100).toFixed(2)}%`,
+          },
+          { title: "Processes", value: championInfo.process_count },
+          { title: "Last live", value: championInfo.last_live },
+        ];
+
         return (
           <details key={idx} style={{ color: toCssColor(player.color) }}>
             <summary>
@@ -35,17 +52,18 @@ export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
                 {playerInfo?.champion_name()}
               </span>
             </summary>
-
-            <Info title="Player ID">{player.id}</Info>
-            <Info title="Size">{playerInfo?.champion_size}</Info>
-            <Info title="Coverage">{`${((coverage / 4096) * 100).toFixed(
-              2
-            )} %`}</Info>
-            <Info title="Processes">{championInfo.process_count}</Info>
-            <Info title="Last live">{championInfo.last_live}</Info>
+            {sections.map(({ title, value }) => (
+              <Info key={title} title={title}>
+                {value.toString().padStart(6, "\u00A0")}
+              </Info>
+            ))}
           </details>
         );
       })}
     </div>
   );
 });
+
+function remEuclid(x: number, m: number) {
+  return ((x % m) + m) % m;
+}

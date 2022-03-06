@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { observer, useLocalObservable } from "mobx-react-lite";
-import { action, IReactionDisposer, reaction } from "mobx";
+import { action, reaction } from "mobx";
 
-import { PIXIRenderer, MARGIN, MEM_HEIGHT, MEM_WIDTH } from "../renderer";
+import { PIXIRenderer, MEM_HEIGHT, MEM_WIDTH } from "../renderer";
 
 import { ControlPanel } from "./panels/control";
 import { ResultsPanel } from "./panels/results";
@@ -81,75 +81,81 @@ export const VM = observer(
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      let disposer: IReactionDisposer | undefined;
-
       const renderer = new PIXIRenderer(
         {
           canvas,
           onCellClicked: (cellIdx, modifiers) => {
-            if (!modifiers.ctrl) clearSelections();
+            // if (!modifiers.ctrl) clearSelections();
             toggleSelection(cellIdx);
-          },
-          onLoad: () => {
-            disposer = reaction(
-              () => [
-                corewar.vm.engine,
-                corewar.vm.cycles,
-                corewar.vm.showValues,
-                selections.size,
-              ],
-              () => {
-                updateSelections();
-                draw(renderer);
-              }
-            );
-            draw(renderer);
           },
         },
         corewar.vm.wasmMemory
       );
 
-      return () => disposer?.();
+      const disposer = reaction(
+        () => [
+          corewar.vm.engine,
+          corewar.vm.cycles,
+          corewar.vm.showValues,
+          selections.size,
+        ],
+        () => {
+          updateSelections();
+          draw(renderer);
+        }
+      );
+
+      draw(renderer);
+
+      return () => disposer();
     }, [canvasRef]);
 
     return (
       <div className="vm-container">
-        <div className="panel-area">
-          <div style={{ display: "flex" }}>
-            <button className="ctrl-btn" onClick={onHelpRequested}>
-              ❓
-            </button>
-            <button
-              className="ctrl-btn"
-              onClick={onNewClicked}
-              disabled={corewar.players.length >= 4}
-            >
-              ➕
-            </button>
+        <div className="vm-container-inner">
+          <div className="vm-left-panel" style={{ maxHeight: MEM_HEIGHT }}>
+            <div style={{ display: "flex" }}>
+              <button className="ctrl-btn" onClick={onHelpRequested}>
+                ❓
+              </button>
+              <button
+                className="ctrl-btn"
+                onClick={onNewClicked}
+                disabled={corewar.players.length >= 4}
+              >
+                ➕
+              </button>
+            </div>
+
+            <ControlPanel vm={corewar.vm} />
+
+            <div>
+              <input
+                type="checkbox"
+                checked={corewar.vm.showValues}
+                onChange={(e) => (corewar.vm.showValues = e.target.checked)}
+              />
+              <label>Cell values</label>
+            </div>
+
+            {corewar.vm.matchResult && (
+              <ResultsPanel
+                result={corewar.vm.matchResult}
+                playerColors={corewar.playerColors}
+              />
+            )}
+            <hr />
+
+            <StatePanel vm={corewar.vm} />
+            <hr />
+
+            <ContendersPanel corewar={corewar} coverages={coverages} />
+            <SelectionPanels corewar={corewar} selections={selections} />
           </div>
-          <ControlPanel vm={corewar.vm} />
-          <div>
-            <input
-              type="checkbox"
-              checked={corewar.vm.showValues}
-              onChange={(e) => (corewar.vm.showValues = e.target.checked)}
-            />
-            <label>Cell values</label>
+
+          <div className="vm-arena-container">
+            <canvas ref={canvasRef} width={MEM_WIDTH} height={MEM_HEIGHT} />
           </div>
-          {corewar.vm.matchResult && (
-            <ResultsPanel
-              result={corewar.vm.matchResult}
-              playerColors={corewar.playerColors}
-            />
-          )}
-          <hr />
-          <StatePanel vm={corewar.vm} />
-          <hr />
-          <ContendersPanel corewar={corewar} coverages={coverages} />
-          <SelectionPanels corewar={corewar} selections={selections} />
-        </div>
-        <div>
-          <canvas ref={canvasRef} width={MEM_WIDTH} height={MEM_HEIGHT} />
         </div>
       </div>
     );

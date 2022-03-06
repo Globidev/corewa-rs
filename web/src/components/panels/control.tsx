@@ -1,4 +1,4 @@
-import { ButtonHTMLAttributes, FC } from "react";
+import { ButtonHTMLAttributes } from "react";
 import { observer } from "mobx-react-lite";
 
 import { VirtualMachine } from "../../state/vm";
@@ -8,10 +8,6 @@ type ControlPanelProps = {
 };
 
 export const ControlPanel = observer(({ vm }: ControlPanelProps) => {
-  const CtrlBtn: FC<ButtonHTMLAttributes<HTMLButtonElement>> = (props) => (
-    <button className="ctrl-btn" {...props} />
-  );
-
   return (
     <div style={{ display: "flex" }}>
       <CtrlBtn onClick={() => vm.togglePlay()}>
@@ -23,3 +19,7 @@ export const ControlPanel = observer(({ vm }: ControlPanelProps) => {
     </div>
   );
 });
+
+const CtrlBtn = (props: ButtonHTMLAttributes<HTMLButtonElement>) => (
+  <button className="ctrl-btn" {...props} />
+);

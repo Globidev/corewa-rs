@@ -217,7 +217,7 @@ const DEFAULT_LAYOUT: IJsonModel = {
         children: [
           {
             type: "tabset",
-            weight: 50,
+            weight: 25,
             children: [
               {
                 type: "tab",
@@ -229,8 +229,31 @@ const DEFAULT_LAYOUT: IJsonModel = {
           },
           {
             type: "tabset",
-            weight: 50,
-            tabLocation: "bottom",
+            weight: 25,
+            children: [
+              {
+                type: "tab",
+                name: "Champion",
+                component: "editor",
+                enableRename: false,
+              },
+            ],
+          },
+          {
+            type: "tabset",
+            weight: 25,
+            children: [
+              {
+                type: "tab",
+                name: "Champion",
+                component: "editor",
+                enableRename: false,
+              },
+            ],
+          },
+          {
+            type: "tabset",
+            weight: 25,
             children: [
               {
                 type: "tab",

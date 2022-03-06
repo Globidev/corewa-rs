@@ -10,9 +10,12 @@ body {
 
 .vm-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
   height: 100%;
+}
+
+.vm-container-inner {
+  display: flex;
+  margin: auto;
 }
 
 .editor-container,
@@ -40,7 +43,7 @@ body {
 
 .cycle-input {
   max-width: 70px;
-  text-align: center;
+  text-align: right;
   font-family: "Roboto Mono";
 }
 
@@ -65,8 +68,20 @@ summary {
   cursor: pointer;
 }
 
-.panel-area {
+.info {
+  font-size: 0.9em;
+}
+
+.vm-left-panel {
+  margin-left: 1em;
+  padding-left: 1em;
   min-width: 200px;
+  overflow: auto;
+  direction: rtl;
+}
+
+.vm-left-panel div {
+  direction: ltr;
 }
 
 .state-panel > div {
@@ -75,7 +90,7 @@ summary {
 
 canvas {
   cursor: pointer !important;
-  margin: 1em;
+  margin: 0 1em;
 }
 
 .flexlayout__tab {
