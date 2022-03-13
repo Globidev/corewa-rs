@@ -328,8 +328,8 @@ function toggleLineComment(line: string): ToggleComment {
 
 CodeMirror.defineExtension(
   "toggleComment",
-  function (document: CodeMirror.Doc, _options: unknown) {
-    const selections = document.listSelections();
+  function (this: CodeMirror.Editor, _options: unknown) {
+    const selections = this.listSelections();
 
     const selectedLineNumbers = selections.reduce((nums, selection) => {
       let [low, high] = [selection.anchor.line, selection.head.line];
@@ -339,19 +339,19 @@ CodeMirror.defineExtension(
     }, new Set<number>());
 
     selectedLineNumbers.forEach((lineNum) => {
-      const line = document.getLine(lineNum);
+      const line = this.getLine(lineNum);
       const toggle = toggleLineComment(line);
       const fromPos = CodeMirror.Pos(lineNum, toggle.col);
       switch (toggle.kind) {
         case "remove": {
           const toPos = CodeMirror.Pos(lineNum, toggle.col + toggle.length);
-          document.replaceRange("", fromPos, toPos);
+          this.replaceRange("", fromPos, toPos);
 
           break;
         }
 
         case "insert":
-          document.replaceRange(COMMENT_CHAR + " ", fromPos);
+          this.replaceRange(COMMENT_CHAR + " ", fromPos);
           break;
       }
     });
