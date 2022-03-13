@@ -11,6 +11,7 @@ import { ContendersPanel } from "./panels/contenders";
 import { Selection, SelectionsPanel } from "./panels/selections";
 
 import { Corewar } from "../state/corewar";
+import { SectionTitle } from "./panels/common";
 
 interface IVMProps {
   corewar: Corewar;
@@ -144,10 +145,10 @@ export const VM = observer(
                 playerColors={corewar.playerColors}
               />
             )}
-            <hr />
+
+            <SectionTitle title="Display settings" />
 
             <StatePanel vm={corewar.vm} />
-            <hr />
 
             <ContendersPanel corewar={corewar} coverages={coverages} />
             <SelectionsPanel corewar={corewar} selections={selections} />

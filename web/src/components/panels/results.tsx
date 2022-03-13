@@ -2,6 +2,7 @@ import { observer } from "mobx-react-lite";
 
 import { MatchResult } from "../../state/vm";
 import { toCssColor } from "../../utils";
+import { SectionTitle } from "./common";
 
 type Props = {
   result: MatchResult;
@@ -31,7 +32,7 @@ export const ResultsPanel = observer(({ result, playerColors }: Props) => {
 
   return (
     <div>
-      <hr />
+      <SectionTitle title="Match results" />
       {result.length > 1 ? (
         <div>
           {"Draw between "}

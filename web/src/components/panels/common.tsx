@@ -13,5 +13,12 @@ export const Info = ({ title, children }: InfoProps) => (
   >
     <label>{title}</label>
     <div className="code">{children}</div>
+    </div>
+  );
+};
+
+export const SectionTitle = ({ title }: { title: string }) => (
+  <div className="section-title-line">
+    <span className="section-title-text">{title}</span>
   </div>
 );

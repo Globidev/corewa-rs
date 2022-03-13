@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 
-import { Info } from "./common";
+import { Info, SectionTitle } from "./common";
 
 import { Corewar } from "../../state/corewar";
 import { toCssColor } from "../../utils";
@@ -13,7 +13,7 @@ type Props = {
 export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
   return (
     <div>
-      <div>{corewar.players.length} contenders:</div>
+      <SectionTitle title={`${corewar.players.length} contenders`} />
       {corewar.players.map((player, idx) => {
         const playerInfo = corewar.vm.engine.player_info(player.id);
 

@@ -1,7 +1,7 @@
 import { observer } from "mobx-react-lite";
 
 import { VirtualMachine } from "../../state/vm";
-import { Info } from "./common";
+import { Info, SectionTitle } from "./common";
 
 type Props = {
   vm: VirtualMachine;
@@ -30,23 +30,26 @@ export const StatePanel = observer(({ vm }: Props) => {
   ];
 
   return (
-    <div className="state-panel">
-      <Info title="Cycles">
-        <input
-          className="cycle-input"
-          type="number"
-          value={cycles}
-          onChange={(ev) => vm.setCycle(parseInt(ev.target.value))}
-          min={0}
-          max={999_999}
-        />
-      </Info>
-
-      {sections.map(({ title, value }) => (
-        <Info key={title} title={title}>
-          {value.toString().padStart(5, "\u00A0")}
+    <>
+      <SectionTitle title="VM State" />
+      <div className="state-panel">
+        <Info title="Cycles">
+          <input
+            className="cycle-input"
+            type="number"
+            value={cycles}
+            onChange={(ev) => vm.setCycle(parseInt(ev.target.value))}
+            min={0}
+            max={999_999}
+          />
         </Info>
-      ))}
-    </div>
+
+        {sections.map(({ title, value }) => (
+          <Info key={title} title={title}>
+            {value.toString().padStart(5, "\u00A0")}
+          </Info>
+        ))}
+      </div>
+    </>
   );
 });
