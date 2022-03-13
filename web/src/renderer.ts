@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 
 import type { Memory } from "corewa-rs";
-import { contrastingColor } from "./utils";
+import { clamp, contrastingColor } from "./utils";
 
 PIXI.utils.skipHello();
 
@@ -44,6 +44,9 @@ export class PIXIRenderer {
   valueTexturesDark: PIXI.Texture[] = [];
   valueTexturesLight: PIXI.Texture[] = [];
 
+  renderTimeoutHandle: number | undefined;
+  renderTimeoutCleared = 0;
+
   constructor(setup: RendererSetup, private wasmMemory: WebAssembly.Memory) {
     const app = new PIXI.Application({
       view: setup.canvas,
@@ -60,6 +63,8 @@ export class PIXIRenderer {
   }
 
   load(setup: RendererSetup) {
+    const stage = this.application.stage;
+
     const textStyle = <const>{
       fontFamily: "'Roboto Mono', monospace",
       align: "center",
@@ -97,8 +102,65 @@ export class PIXIRenderer {
       });
 
       this.cells.push(cell);
-      this.application.stage.addChild(cell.sp);
+      stage.addChild(cell.sp);
     }
+
+    stage.interactive = true;
+
+    stage.addListener("mousemove", (event) => {
+      if (event.data.buttons === 1) {
+        event.data.originalEvent.preventDefault();
+
+        const { movementX: dx, movementY: dy } = event.data.originalEvent;
+        this.moveViewport(dx, dy);
+        this.renderLater();
+      }
+    });
+
+    setup.canvas.addEventListener("wheel", (event) => {
+      const { deltaY } = event;
+      this.scaleViewport((-deltaY / 100) * 0.1);
+      this.renderLater();
+    });
+  }
+
+  renderLater() {
+    if (this.renderTimeoutHandle !== undefined) {
+      clearTimeout(this.renderTimeoutHandle);
+      this.renderTimeoutCleared += 1;
+    }
+
+    if (this.renderTimeoutCleared >= 3) {
+      this.renderTimeoutCleared = 0;
+      this.application.render();
+    }
+
+    this.renderTimeoutHandle = setTimeout(() => {
+      this.application.render();
+      this.renderTimeoutHandle = undefined;
+    }, 10);
+  }
+
+  moveViewport(dx: number, dy: number) {
+    const stage = this.application.stage;
+    const scaleFactor = stage.scale.x;
+    const { x, y } = stage.position;
+
+    const nx = clamp(x + dx, [MEM_WIDTH * (1 - scaleFactor), 0]);
+    const ny = clamp(y + dy, [MEM_HEIGHT * (1 - scaleFactor), 0]);
+
+    stage.position.set(nx, ny);
+  }
+
+  scaleViewport(delta: number) {
+    const stage = this.application.stage;
+    const scaleFactor = stage.scale.x;
+
+    const nf = Math.max(scaleFactor + delta, 1);
+
+    stage.scale.set(nf, nf);
+
+    this.moveViewport(0, 0); // Recalibrate viewport to avoid out of bounds when unzooming
   }
 
   update(ctx: RenderContext) {
