@@ -31,7 +31,7 @@ export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
     if (!container) return;
 
     const editor = CodeMirror(container, {
-      theme: "monokai",
+      theme: "nord",
       mode: ASM_LANGUAGE_ID,
       keyMap: "sublime",
       readOnly: true,

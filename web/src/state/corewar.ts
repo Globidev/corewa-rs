@@ -6,7 +6,7 @@ import { VirtualMachine } from "./vm";
 
 import { champions } from "../assets/champions";
 
-const PLAYER_COLORS = [0x7493e9, 0xe38fb8, 0x36ce9f, 0xf49c73];
+const PLAYER_COLORS = [0x81a1c1, 0xb48ead, 0xa3be8c, 0xbf616a];
 const DEFAULT_CHAMPIONS = <const>[
   "sweepmaster",
   "kappa",

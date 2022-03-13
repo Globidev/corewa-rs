@@ -26,7 +26,7 @@ export const Editor = observer(({ player, onChanged }: Props) => {
     if (editorContainer) {
       const newEditor = CodeMirror(editorContainer, {
         lineNumbers: true,
-        theme: "monokai",
+        theme: "nord",
         mode: ASM_LANGUAGE_ID,
         lint: {
           lintOnChange: false,
