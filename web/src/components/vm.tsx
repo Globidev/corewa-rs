@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import Switch from "react-switch";
 import { observer, useLocalObservable } from "mobx-react-lite";
 import { action, reaction } from "mobx";
 
@@ -130,15 +131,6 @@ export const VM = observer(
 
             <ControlPanel vm={corewar.vm} />
 
-            <div>
-              <input
-                type="checkbox"
-                checked={corewar.vm.showValues}
-                onChange={(e) => (corewar.vm.showValues = e.target.checked)}
-              />
-              <label>Cell values</label>
-            </div>
-
             {corewar.vm.matchResult && (
               <ResultsPanel
                 result={corewar.vm.matchResult}
@@ -147,6 +139,21 @@ export const VM = observer(
             )}
 
             <SectionTitle title="Display settings" />
+            <div>
+              <label className="cell-values-switch">
+                <span>Show cell values</span>
+                <Switch
+                  checked={corewar.vm.showValues}
+                  onChange={(checked) => corewar.vm.setShowValues(checked)}
+                  checkedIcon={false}
+                  uncheckedIcon={false}
+                  height={20}
+                  width={40}
+                  handleDiameter={15}
+                  onColor="#0078d7"
+                />
+              </label>
+            </div>
 
             <StatePanel vm={corewar.vm} />
 

@@ -18,6 +18,11 @@ body {
   margin: auto;
 }
 
+.cell-values-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
 .section-title-line {
   border-bottom: 2px solid #dcddde;
