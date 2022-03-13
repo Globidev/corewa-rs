@@ -12,7 +12,7 @@ export type Selection = {
   processes: ProcessCollection;
 };
 
-export const SelectionPanels = observer(
+export const SelectionsPanel = observer(
   ({
     corewar,
     selections,

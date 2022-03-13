@@ -8,7 +8,7 @@ import { ControlPanel } from "./panels/control";
 import { ResultsPanel } from "./panels/results";
 import { StatePanel } from "./panels/state";
 import { ContendersPanel } from "./panels/contenders";
-import { Selection, SelectionPanels } from "./panels/selections";
+import { Selection, SelectionsPanel } from "./panels/selections";
 
 import { Corewar } from "../state/corewar";
 
@@ -150,7 +150,7 @@ export const VM = observer(
             <hr />
 
             <ContendersPanel corewar={corewar} coverages={coverages} />
-            <SelectionPanels corewar={corewar} selections={selections} />
+            <SelectionsPanel corewar={corewar} selections={selections} />
           </div>
 
           <div className="vm-arena-container">
