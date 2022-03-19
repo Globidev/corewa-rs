@@ -67,7 +67,7 @@ impl VirtualMachine {
     pub fn processes_at(&self, idx: usize) -> ProcessCollection {
         let cell_processes = self.0.processes.iter().filter(|p| p.pc.addr() == idx);
 
-        ProcessCollection::from(cell_processes)
+        cell_processes.collect()
     }
 
     pub fn decode(&self, idx: usize) -> DecodeResult {

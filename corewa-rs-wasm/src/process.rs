@@ -1,3 +1,6 @@
+use std::iter::FromIterator;
+
+use arrayvec::ArrayVec;
 use corewa_rs::{
     spec::*,
     vm::{
@@ -27,9 +30,12 @@ pub struct ExecutingState {
     pub exec_at: u32,
 }
 
+const MAX_PROCESS_COLLECTION: usize = 32;
+
 #[wasm_bindgen]
 pub struct ProcessCollection {
-    processes: Vec<ProcessInfo>,
+    processes: ArrayVec<ProcessInfo, MAX_PROCESS_COLLECTION>,
+    pub extra_len: usize,
 }
 
 impl ProcessInfo {
@@ -73,7 +79,7 @@ impl ProcessCollection {
         self.processes.is_empty()
     }
 
-    pub fn len(&self) -> usize {
+    pub fn visible_len(&self) -> usize {
         self.processes.len()
     }
 
@@ -82,11 +88,19 @@ impl ProcessCollection {
     }
 }
 
-impl<'a, T: Iterator<Item = &'a Process>> From<T> for ProcessCollection {
-    fn from(processes: T) -> Self {
-        // TODO: Careful with many processes, might want to limit them
-        let processes = processes.map(ProcessInfo::from_process).collect();
+impl<'p> FromIterator<&'p Process> for ProcessCollection {
+    fn from_iter<T: IntoIterator<Item = &'p Process>>(iter: T) -> Self {
+        let mut iter = iter.into_iter();
 
-        Self { processes }
+        let processes = iter
+            .by_ref()
+            .map(ProcessInfo::from_process)
+            .take(MAX_PROCESS_COLLECTION)
+            .collect();
+
+        Self {
+            processes,
+            extra_len: iter.count(),
+        }
     }
 }
