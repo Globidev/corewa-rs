@@ -1,3 +1,6 @@
+// #[wasm_bindgen] currently triggers this lint
+#![allow(clippy::unused_unit)]
+
 pub mod champion;
 pub mod decoder;
 pub mod language;
