@@ -38,8 +38,11 @@ input[type="radio"]:checked:after {
 }
 
 .panel {
-  max-width: 200px;
 }
+
+.panel-content {
+}
+
 .vm-container {
   display: flex;
   height: 100%;
@@ -75,6 +78,16 @@ input[type="radio"]:checked:after {
   height: 1em;
   border-radius: 1em;
   overflow: hidden;
+}
+
+.selections-container > div:not(:last-child) {
+  margin-bottom: 1em;
+}
+
+.empty-selections-tip,
+.add-more-selections-tip {
+  font-style: italic;
+  font-size: smaller;
 }
 
 .editor-container,
@@ -146,9 +159,8 @@ summary {
 }
 
 .vm-left-panel {
-  margin-left: 1em;
   padding-left: 1em;
-  min-width: 200px;
+  width: 14em;
   overflow: auto;
   direction: rtl;
 }
