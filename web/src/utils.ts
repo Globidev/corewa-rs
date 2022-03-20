@@ -39,3 +39,7 @@ export function formatNumber(num: number, radix: Radix): string {
       return `0x${numStr.toUpperCase()}`;
   }
 }
+
+export function remEuclid(x: number, m: number) {
+  return ((x % m) + m) % m;
+}

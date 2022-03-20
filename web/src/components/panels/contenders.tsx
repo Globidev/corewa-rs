@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import { Info, SectionTitle } from "./common";
 
 import { Corewar } from "../../state/corewar";
-import { toCssColor } from "../../utils";
+import { toCssColor, remEuclid } from "../../utils";
 
 type Props = {
   corewar: Corewar;
@@ -91,7 +91,3 @@ export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
     </div>
   );
 });
-
-function remEuclid(x: number, m: number) {
-  return ((x % m) + m) % m;
-}
