@@ -32,6 +32,7 @@ export const ContendersPanel = observer(({ game, coverages }: Props) => {
                 flexGrow: coverage,
                 backgroundColor: toCssColor(player.color),
               }}
+              data-tooltip={player.champion.name}
             ></div>
           );
         })}
@@ -40,6 +41,7 @@ export const ContendersPanel = observer(({ game, coverages }: Props) => {
             flexGrow: 4096 - playerCoverage,
             backgroundColor: "#404040",
           }}
+          data-tooltip="unowned"
         ></div>
       </div>
 

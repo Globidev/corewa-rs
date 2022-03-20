@@ -190,6 +190,31 @@ canvas {
   color: #dcddde;
 }
 
+/* Tooltips (from: https://stackoverflow.com/a/25813336/1592289) */
+
+[data-tooltip]:before {
+  content: attr(data-tooltip);
+  position: absolute;
+  opacity: 0;
+
+  padding: 0.5em;
+  color: var(--main-text-color);
+  border-radius: 0.2em;
+  /* box-shadow: 2px 2px 1px silver; */
+}
+
+[data-tooltip]:hover:before {
+  opacity: 1;
+
+  background: #ffffff;
+  margin-top: -50px;
+  margin-left: 20px;
+}
+
+[data-tooltip]:not([data-tooltip-persistent]):before {
+  pointer-events: none;
+}
+
 /* Markdown overrides */
 
 .markdown-body {
