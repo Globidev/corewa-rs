@@ -11,9 +11,37 @@ type Props = {
 };
 
 export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
+  const playerCoverage = corewar.players.reduce(
+    (s, p) => s + (coverages.get(p.id) ?? 0),
+    0
+  );
+
   return (
     <div>
       <SectionTitle title={`${corewar.players.length} contenders`} />
+
+      <div className="coverage-container">
+        {corewar.players.map((player) => {
+          const coverage = coverages.get(player.id) ?? 0;
+
+          return (
+            <div
+              key={player.id}
+              style={{
+                flexGrow: coverage,
+                backgroundColor: toCssColor(player.color),
+              }}
+            ></div>
+          );
+        })}
+        <div
+          style={{
+            flexGrow: 4096 - playerCoverage,
+            backgroundColor: "#404040",
+          }}
+        ></div>
+      </div>
+
       {corewar.players.map((player, idx) => {
         const playerInfo = corewar.vm.engine.player_info(player.id);
 
@@ -27,7 +55,7 @@ export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
         const sections = [
           {
             title: "Player id",
-            value: `0x${remEuclid(player.id, 0xffffffff)
+            value: `0x${remEuclid(player.id, 0xffff_ffff)
               .toString(16)
               .toUpperCase()
               .padStart(8, "0")}`,
@@ -42,8 +70,8 @@ export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
         ];
 
         return (
-          <details key={idx} style={{ color: toCssColor(player.color) }}>
-            <summary>
+          <details key={idx}>
+            <summary style={{ color: toCssColor(player.color) }}>
               <span
                 style={{
                   color: "#eeeeee",
