@@ -30,13 +30,13 @@ export function clamp(num: number, [min, max]: [number, number]): number {
 export type Radix = 10 | 16;
 
 export function formatNumber(num: number, radix: Radix): string {
-  const numStr = num.toString(radix);
-
   switch (radix) {
     case 10:
-      return numStr;
-    case 16:
+      return num.toString(10);
+    case 16: {
+      const numStr = remEuclid(num, 0xffff_ffff).toString(16);
       return `0x${numStr.toUpperCase()}`;
+    }
   }
 }
 
