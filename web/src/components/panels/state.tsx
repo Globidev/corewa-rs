@@ -9,7 +9,6 @@ type Props = {
 
 export const StatePanel = observer(({ vm }: Props) => {
   if (vm.cycles === undefined) return null;
-  Number.MAX_VALUE;
 
   const engine = vm.engine,
     cycles = engine.cycles(),

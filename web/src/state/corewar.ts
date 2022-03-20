@@ -5,6 +5,7 @@ import { compile_champion } from "corewa-rs";
 import { VirtualMachine } from "./vm";
 
 import { champions } from "../assets/champions";
+import { Options } from "./options";
 
 const PLAYER_COLORS = [0x81a1c1, 0xb48ead, 0xa3be8c, 0xbf616a];
 const DEFAULT_CHAMPIONS = <const>[
@@ -18,9 +19,12 @@ export class Corewar {
   players = observable<CorewarPlayer>([]);
   playerColors: number[] = [];
 
+  options = new Options();
+
   constructor(public vm: VirtualMachine) {
     makeObservable(this, {
       playerColors: false,
+      options: observable,
 
       getPlayer: action.bound,
       removePlayer: action.bound,

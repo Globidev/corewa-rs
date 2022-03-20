@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import Switch from "react-switch";
 import { observer, useLocalObservable } from "mobx-react-lite";
 import { action, reaction } from "mobx";
 
@@ -12,7 +11,7 @@ import { ContendersPanel } from "./panels/contenders";
 import { Selection, SelectionsPanel } from "./panels/selections";
 
 import { Corewar } from "../state/corewar";
-import { SectionTitle } from "./panels/common";
+import { DisplaySettingsPanel } from "./panels/display-settings";
 
 interface IVMProps {
   corewar: Corewar;
@@ -41,8 +40,9 @@ export const VM = observer(
     const draw = action((renderer: PIXIRenderer) => {
       const memory = corewar.vm.engine.memory();
 
+      const t0 = performance.now();
       renderer.update({
-        showValues: corewar.vm.showValues,
+        showValues: corewar.options.showCellValues,
         memory,
         selections: Array.from(selections).map(([idx, selection]) => ({
           idx,
@@ -51,6 +51,7 @@ export const VM = observer(
         playerColors: corewar.playerColors,
       });
 
+      const t1 = performance.now();
       const cellOwners = new Int32Array(
         corewar.vm.wasmMemory.buffer,
         memory.owners_ptr,
@@ -62,6 +63,10 @@ export const VM = observer(
         const previous = coverages.get(owner) ?? 0;
         coverages.set(owner, previous + 1);
       });
+      const t2 = performance.now();
+
+      console.log(`render: ${(t1 - t0).toFixed(2)} ms`);
+      console.log(`cellOwners: ${(t2 - t1).toFixed(2)} ms`);
     });
 
     const clearSelections = action(() => {
@@ -98,7 +103,7 @@ export const VM = observer(
         () => [
           corewar.vm.engine,
           corewar.vm.cycles,
-          corewar.vm.showValues,
+          corewar.options.showCellValues,
           selections.size,
         ],
         () => {
@@ -138,25 +143,8 @@ export const VM = observer(
               />
             )}
 
-            <SectionTitle title="Display settings" />
-            <div>
-              <label className="cell-values-switch">
-                <span>Show cell values</span>
-                <Switch
-                  checked={corewar.vm.showValues}
-                  onChange={(checked) => corewar.vm.setShowValues(checked)}
-                  checkedIcon={false}
-                  uncheckedIcon={false}
-                  height={20}
-                  width={40}
-                  handleDiameter={15}
-                  onColor="#0078d7"
-                />
-              </label>
-            </div>
-
+            <DisplaySettingsPanel options={corewar.options} />
             <StatePanel vm={corewar.vm} />
-
             <ContendersPanel corewar={corewar} coverages={coverages} />
             <SelectionsPanel corewar={corewar} selections={selections} />
           </div>

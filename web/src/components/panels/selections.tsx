@@ -12,38 +12,31 @@ export type Selection = {
   processes: ProcessCollection;
 };
 
-export const SelectionsPanel = observer(
-  ({
-    corewar,
-    selections,
-  }: {
-    corewar: Corewar;
-    selections: Map<number, Selection>;
-  }) => {
-    const discardSelection = action((idx: number) => {
-      selections.delete(idx);
-    });
+type Props = {
+  corewar: Corewar;
+  selections: Map<number, Selection>;
+};
 
-    const selectionsAsArray = Array.from(selections);
-    const panels = selectionsAsArray.map(([cellIdx, selection], idx) => (
-      <div key={cellIdx}>
-        <hr />
-        <CellPanel
-          idx={cellIdx}
-          previousIdx={idx > 0 ? selectionsAsArray[idx - 1][0] : null}
-          decoded={selection.decoded}
-          onDiscard={() => discardSelection(cellIdx)}
-        />
-        <div className="pad-top">
-          <ProcessPanel
-            processes={selection.processes}
-            cycles={corewar.vm.cycles}
-            playerColors={corewar.playerColors}
-          />
-        </div>
+export const SelectionsPanel = observer(({ corewar, selections }: Props) => {
+  const discardSelection = action((idx: number) => {
+    selections.delete(idx);
+  });
+
+  const selectionsAsArray = Array.from(selections);
+  const panels = selectionsAsArray.map(([cellIdx, selection], idx) => (
+    <div key={cellIdx}>
+      <hr />
+      <CellPanel
+        idx={cellIdx}
+        previousIdx={idx > 0 ? selectionsAsArray[idx - 1][0] : null}
+        decoded={selection.decoded}
+        onDiscard={() => discardSelection(cellIdx)}
+      />
+      <div className="pad-top">
+        <ProcessPanel processes={selection.processes} corewar={corewar} />
       </div>
-    ));
+    </div>
+  ));
 
-    return <>{panels}</>;
-  }
-);
+  return <>{panels}</>;
+});

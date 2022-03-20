@@ -1,7 +1,11 @@
 import type { IJsonModel } from "flexlayout-react";
+import { Radix } from "../utils";
 
 type Storage = {
   "ui::layout": IJsonModel;
+
+  "options::show-cell-values": boolean;
+  "options::reg-values-radix": Radix;
 };
 
 export function save<K extends keyof Storage>(key: K, value: Storage[K]) {

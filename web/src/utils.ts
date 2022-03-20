@@ -22,3 +22,20 @@ export function contrastingColor(color: number): number {
 
   return (v << 16) | (v << 8) | v;
 }
+
+export function clamp(num: number, [min, max]: [number, number]): number {
+  return Math.min(Math.max(num, min), max);
+}
+
+export type Radix = 10 | 16;
+
+export function formatNumber(num: number, radix: Radix): string {
+  const numStr = num.toString(radix);
+
+  switch (radix) {
+    case 10:
+      return numStr;
+    case 16:
+      return `0x${numStr.toUpperCase()}`;
+  }
+}
