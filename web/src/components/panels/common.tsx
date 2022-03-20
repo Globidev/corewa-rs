@@ -3,16 +3,19 @@ import { ReactNode } from "react";
 type InfoProps = {
   title: string;
   children?: ReactNode;
-  minWidth?: number;
+  theme?: "light" | "dark";
 };
 
-export const Info = ({ title, children }: InfoProps) => (
-  <div
-    className="pad-top info"
-    style={{ display: "flex", justifyContent: "space-between" }}
-  >
-    <label>{title}</label>
-    <div className="code">{children}</div>
+export const Info = ({ title, children, theme }: InfoProps) => {
+  const bgTheme = theme ?? "light";
+
+  return (
+    <div
+      className="pad-top info"
+      style={{ display: "flex", justifyContent: "space-between" }}
+    >
+      <label>{title}</label>
+      <div className={`code code-${bgTheme}`}>{children}</div>
     </div>
   );
 };
