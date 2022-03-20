@@ -1,6 +1,7 @@
 import { observer } from "mobx-react-lite";
 
-import { Info, SectionTitle } from "./common";
+import { Panel } from "../panel";
+import { Info } from "./common";
 
 import { Corewar } from "../../state/corewar";
 import { toCssColor, remEuclid } from "../../utils";
@@ -17,9 +18,7 @@ export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
   );
 
   return (
-    <div>
-      <SectionTitle title={`${corewar.players.length} contenders`} />
-
+    <Panel title={`${corewar.players.length} contenders`}>
       <div className="coverage-container">
         {corewar.players.map((player) => {
           const coverage = coverages.get(player.id) ?? 0;
@@ -88,6 +87,6 @@ export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
           </details>
         );
       })}
-    </div>
+    </Panel>
   );
 });

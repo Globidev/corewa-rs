@@ -37,6 +37,9 @@ input[type="radio"]:checked:after {
   background-color: #81a1c1;
 }
 
+.panel {
+  max-width: 200px;
+}
 .vm-container {
   display: flex;
   height: 100%;

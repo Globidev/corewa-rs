@@ -1,8 +1,9 @@
 import { observer } from "mobx-react-lite";
 
+import { Panel } from "../panel";
+
 import { MatchResult } from "../../state/vm";
 import { toCssColor } from "../../utils";
-import { SectionTitle } from "./common";
 
 type Props = {
   result: MatchResult;
@@ -31,8 +32,7 @@ export const ResultsPanel = observer(({ result, playerColors }: Props) => {
   }
 
   return (
-    <div>
-      <SectionTitle title="Match results" />
+    <Panel title="Match results">
       {result.length > 1 ? (
         <div>
           {"Draw between "}
@@ -41,6 +41,6 @@ export const ResultsPanel = observer(({ result, playerColors }: Props) => {
       ) : (
         <div>{joinedSpans} Wins</div>
       )}
-    </div>
+    </Panel>
   );
 });

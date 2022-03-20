@@ -1,7 +1,9 @@
 import { observer } from "mobx-react-lite";
 
+import { Panel } from "../panel";
+
 import { VirtualMachine } from "../../state/vm";
-import { Info, SectionTitle } from "./common";
+import { Info } from "./common";
 
 type Props = {
   vm: VirtualMachine;
@@ -29,8 +31,7 @@ export const StatePanel = observer(({ vm }: Props) => {
   ];
 
   return (
-    <>
-      <SectionTitle title="VM State" />
+    <Panel title="VM State">
       <div className="state-panel">
         <Info title="Cycles">
           <input
@@ -49,6 +50,6 @@ export const StatePanel = observer(({ vm }: Props) => {
           </Info>
         ))}
       </div>
-    </>
+    </Panel>
   );
 });

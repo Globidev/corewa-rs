@@ -2,7 +2,7 @@ import { observer } from "mobx-react-lite";
 
 import S from "react-switch";
 
-import { SectionTitle } from "./common";
+import { Panel } from "../panel";
 
 import { Options } from "../../state/options";
 
@@ -19,8 +19,7 @@ type Props = {
 
 export const DisplaySettingsPanel = observer(({ options }: Props) => {
   return (
-    <>
-      <SectionTitle title="Display settings" />
+    <Panel title="Display settings">
       <div>
         <label className="cell-values-switch">
           <span>Show cell values</span>
@@ -67,6 +66,6 @@ export const DisplaySettingsPanel = observer(({ options }: Props) => {
           </div>
         </div>
       </div>
-    </>
+    </Panel>
   );
 });
