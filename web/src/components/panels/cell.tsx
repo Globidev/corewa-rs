@@ -52,7 +52,7 @@ export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
         <span>
           Cell {idx} <span style={{ fontSize: "75%" }}>{idxDiff()}</span>
         </span>
-        <button onClick={() => onDiscard()}>❌</button>
+        <button onClick={onDiscard}>❌</button>
       </div>
 
       <div ref={editorContainerRef} />
