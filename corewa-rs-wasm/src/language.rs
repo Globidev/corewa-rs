@@ -1,19 +1,49 @@
-use corewa_rs::language;
+use corewa_rs::{language, spec};
 
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn compile_champion(input: &str) -> Result<Vec<u8>, JsValue> {
+pub fn compile_champion(input: &str) -> Result<CompiledChampion, JsValue> {
     compile_champion_impl(input).map_err(JsValue::from)
 }
 
-fn compile_champion_impl(input: &str) -> Result<Vec<u8>, CompileError> {
+fn compile_champion_impl(input: &str) -> Result<CompiledChampion, CompileError> {
     let parsed_champion = language::read_champion(input.as_bytes())?;
+    let name = parsed_champion.name.clone();
+    let comment = parsed_champion.comment.clone();
 
     let mut byte_code = Vec::new();
-    language::write_champion(&mut byte_code, parsed_champion)?;
+    let size_written = language::write_champion(&mut byte_code, parsed_champion)?;
 
-    Ok(byte_code)
+    Ok(CompiledChampion {
+        name,
+        comment,
+        byte_code,
+        code_size: size_written - spec::HEADER_SIZE,
+    })
+}
+
+#[wasm_bindgen]
+pub struct CompiledChampion {
+    name: String,
+    comment: String,
+    byte_code: Vec<u8>,
+    pub code_size: usize,
+}
+
+#[wasm_bindgen]
+impl CompiledChampion {
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn comment(&self) -> String {
+        self.comment.clone()
+    }
+
+    pub fn byte_code(&self) -> Vec<u8> {
+        self.byte_code.clone()
+    }
 }
 
 #[wasm_bindgen]

@@ -1,8 +1,7 @@
 use corewa_rs::vm::{types::*, VirtualMachine as VMImpl};
 
 use super::{
-    champion::ChampionInfo, decoder::DecodeResult, memory::Memory, player::PlayerInfo,
-    process::ProcessCollection,
+    champion::ChampionInfo, decoder::DecodeResult, memory::Memory, process::ProcessCollection,
 };
 
 use wasm_bindgen::prelude::*;
@@ -43,14 +42,6 @@ impl VirtualMachine {
 
     pub fn player_count(&self) -> usize {
         self.0.players.len()
-    }
-
-    pub fn player_info(&self, player_id: PlayerId) -> Option<PlayerInfo> {
-        self.0
-            .players
-            .iter()
-            .find(|p| p.id == player_id)
-            .map(PlayerInfo::from_player)
     }
 
     pub fn champion_info(&self, player_id: PlayerId) -> ChampionInfo {
