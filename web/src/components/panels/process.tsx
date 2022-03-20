@@ -36,19 +36,21 @@ export const ProcessPanel = observer(({ processes, game }: Props) => {
     return (
       <details key={idx} className="pad-left">
         <summary>PID {process.pid}</summary>
-        <Info
-          title="Player"
-          theme={contrastingColor(playerColor) > 0x800000 ? "light" : "dark"}
-        >
-          {coloredPlayer}
-        </Info>
-        <Info title="Zero Flag">{process.zf.toString()}</Info>
-        <Info title="Last live">{process.last_live_cycle}</Info>
-        <Info title="State">
-          {state
-            ? `${state.op()} (${state.exec_at - game.vm.cycles + 1})`
-            : "Idle"}
-        </Info>
+        <div className="spaced">
+          <Info
+            title="Player"
+            theme={contrastingColor(playerColor) > 0x800000 ? "light" : "dark"}
+          >
+            {coloredPlayer}
+          </Info>
+          <Info title="Zero Flag">{process.zf.toString()}</Info>
+          <Info title="Last live">{process.last_live_cycle}</Info>
+          <Info title="State">
+            {state
+              ? `${state.op()} (${state.exec_at - game.vm.cycles + 1})`
+              : "Idle"}
+          </Info>
+        </div>
         <Registers
           registers={process.registers()}
           radix={game.options.regValuesRadix}
@@ -103,14 +105,16 @@ const Registers = ({
   return (
     <details className="pad-left">
       <summary>Registers</summary>
-      {registerGroups.map(([start, end, value]) => {
-        const title = start === end ? `r${start}` : `r${start}-${end}`;
-        return (
-          <Info title={title} key={title}>
-            {formatNumber(value, radix)}
-          </Info>
-        );
-      })}
+      <div className="spaced">
+        {registerGroups.map(([start, end, value]) => {
+          const title = start === end ? `r${start}` : `r${start}-${end}`;
+          return (
+            <Info title={title} key={title}>
+              {formatNumber(value, radix)}
+            </Info>
+          );
+        })}
+      </div>
     </details>
   );
 };

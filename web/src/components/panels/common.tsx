@@ -11,7 +11,7 @@ export const Info = ({ title, children, theme }: InfoProps) => {
 
   return (
     <div
-      className="pad-top info"
+      className="info"
       style={{ display: "flex", justifyContent: "space-between" }}
     >
       <label>{title}</label>

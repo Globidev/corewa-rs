@@ -41,6 +41,12 @@ input[type="radio"]:checked:after {
 }
 
 .panel-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.spaced > *:not(:last-child) {
+  margin-bottom: 0.3em;
 }
 
 .vm-container {
@@ -56,6 +62,11 @@ input[type="radio"]:checked:after {
 .cell-values-switch {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+}
+
+.register-values-setting {
+  display: flex;
   justify-content: space-between;
 }
 
@@ -167,10 +178,6 @@ summary {
 
 .vm-left-panel div {
   direction: ltr;
-}
-
-.state-panel > div {
-  min-width: 100px;
 }
 
 canvas {

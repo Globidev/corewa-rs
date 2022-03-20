@@ -20,22 +20,21 @@ type Props = {
 export const DisplaySettingsPanel = observer(({ options }: Props) => {
   return (
     <Panel title="Display settings">
-      <div>
-        <label className="cell-values-switch">
-          <span>Show cell values</span>
-          <Switch
-            checked={options.showCellValues}
-            onChange={(checked) => options.setShowCellValues(checked)}
-            checkedIcon={false}
-            uncheckedIcon={false}
-            height={20}
-            width={40}
-            handleDiameter={15}
-            onColor="#81a1c1"
-          />
-        </label>
-      </div>
-      <div style={{ display: "flex" }}>
+      <label className="cell-values-switch">
+        <span>Show cell values</span>
+        <Switch
+          checked={options.showCellValues}
+          onChange={(checked) => options.setShowCellValues(checked)}
+          checkedIcon={false}
+          uncheckedIcon={false}
+          height={20}
+          width={40}
+          handleDiameter={15}
+          onColor="#81a1c1"
+        />
+      </label>
+
+      <div className="register-values-setting">
         <span>Register values</span>
         <div style={{ display: "flex" }}>
           <div>

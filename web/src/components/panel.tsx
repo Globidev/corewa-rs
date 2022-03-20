@@ -9,7 +9,7 @@ export const Panel: FC<Props> = ({ title, children }) => {
     <div className="panel">
       <SectionTitle title={title} />
 
-      <div className="panel-content">{children}</div>
+      <div className="panel-content spaced">{children}</div>
     </div>
   );
 };
