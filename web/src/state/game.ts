@@ -1,11 +1,10 @@
 import { action, autorun, makeObservable, observable } from "mobx";
 
-import { compile_champion } from "corewa-rs";
-
 import { VirtualMachine } from "./vm";
 
 import { champions } from "../assets/champions";
 import { Options } from "./options";
+import { CorewarPlayer, PlayerReady } from "./player";
 
 const PLAYER_COLORS = [0x81a1c1, 0xb48ead, 0xa3be8c, 0xbf616a];
 const DEFAULT_CHAMPIONS = <const>[
@@ -32,15 +31,9 @@ export class Game {
 
     autorun(
       () => {
-        const vmPlayers = this.players
-          .filter(
-            (p): p is Required<CorewarPlayer> =>
-              p.compiledChampion !== undefined
-          )
-          .map((p) => ({
-            id: p.id,
-            champion: p.compiledChampion,
-          }));
+        const vmPlayers = this.players.filter((p): p is PlayerReady =>
+          p.isReady()
+        );
         this.vm.setPlayers(vmPlayers);
         this.memoizePlayerColors();
       },
@@ -107,58 +100,5 @@ export class Game {
     } while (id === undefined);
 
     return id;
-  }
-}
-
-export class CorewarPlayer {
-  compiledChampion?: Uint8Array;
-
-  constructor(
-    public code: string,
-    public id: number,
-    public color: number,
-    public store: Game
-  ) {
-    makeObservable(this, {
-      code: observable,
-      compiledChampion: observable,
-      color: observable,
-      id: observable,
-      store: false,
-
-      compile: action.bound,
-      delete: action.bound,
-      setId: action.bound,
-      setColor: action.bound,
-    });
-  }
-
-  compile(newCode: string) {
-    this.code = newCode;
-    this.compiledChampion = undefined;
-    this.compiledChampion = compile_champion(newCode);
-  }
-
-  delete() {
-    this.store.removePlayer(this);
-  }
-
-  setId(newId: number) {
-    // Already taken
-    if (this.store.players.some((p) => p.id === newId)) return;
-    // Must not be NaN, must be non zero and must fit on a signed 32bit integer
-    if (
-      Number.isNaN(newId) ||
-      newId == 0 ||
-      newId < -(2 ** 31) ||
-      newId >= 2 ** 31
-    )
-      return;
-
-    this.id = newId;
-  }
-
-  setColor(color: number) {
-    this.color = color;
   }
 }

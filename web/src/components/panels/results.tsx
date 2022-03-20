@@ -7,15 +7,14 @@ import { toCssColor } from "../../utils";
 
 type Props = {
   result: MatchResult;
-  playerColors: number[];
 };
 
-export const ResultsPanel = observer(({ result, playerColors }: Props) => {
-  const nameSpans = result.map((p, i) => {
-    const color = toCssColor(playerColors[p.id]);
+export const ResultsPanel = observer(({ result }: Props) => {
+  const nameSpans = result.map((player, i) => {
+    const color = toCssColor(player.color);
     return (
       <span key={i} style={{ color }}>
-        {p.champion_name()}
+        {player.champion.name}
       </span>
     );
   });

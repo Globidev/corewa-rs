@@ -1,9 +1,9 @@
 import { observable, action, makeObservable } from "mobx";
 
-import type { PlayerInfo } from "corewa-rs";
 import { VMBuilder } from "corewa-rs";
+import { PlayerReady } from "./player";
 
-export type MatchResult = PlayerInfo[];
+export type MatchResult = VirtualMachine["players"];
 
 const MAX_SPEED = 64;
 const TARGET_UPS = 60;
@@ -35,7 +35,7 @@ export class VirtualMachine {
   lastFrameTime = 0;
 
   matchResult?: MatchResult;
-  players: { id: number; champion: Uint8Array }[] = [];
+  players: PlayerReady[] = [];
 
   constructor(public wasmMemory: WebAssembly.Memory) {
     makeObservable(this, {
@@ -44,6 +44,7 @@ export class VirtualMachine {
       playing: observable,
       speed: observable,
       matchResult: observable,
+      players: observable,
 
       tick: action,
       updateMatchResult: action,
@@ -85,11 +86,7 @@ export class VirtualMachine {
 
   updateMatchResult() {
     const info = this.players.map(
-      (player) =>
-        <const>[
-          this.engine.player_info(player.id)!,
-          this.engine.champion_info(player.id),
-        ]
+      (player) => <const>[player, this.engine.champion_info(player.id)]
     );
 
     const latestLive = Math.max(
@@ -119,7 +116,8 @@ export class VirtualMachine {
     this.matchResult = undefined;
     this.engine = this.players
       .reduce(
-        (builder, player) => builder.with_player(player.id, player.champion),
+        (builder, player) =>
+          builder.with_player(player.id, player.champion.byteCode),
         new VMBuilder()
       )
       .finish();

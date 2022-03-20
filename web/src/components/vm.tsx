@@ -92,7 +92,7 @@ export const VM = observer(
         {
           canvas,
           onCellClicked: (cellIdx, modifiers) => {
-            // if (!modifiers.ctrl) clearSelections();
+            if (!modifiers.ctrl) clearSelections();
             toggleSelection(cellIdx);
           },
         },
@@ -135,15 +135,10 @@ export const VM = observer(
             </div>
 
             <ControlPanel vm={game.vm} />
-
-            {game.vm.matchResult && (
-              <ResultsPanel
-                result={game.vm.matchResult}
-                playerColors={game.playerColors}
-              />
-            )}
-
             <DisplaySettingsPanel options={game.options} />
+            {game.vm.matchResult && (
+              <ResultsPanel result={game.vm.matchResult} />
+            )}
             <StatePanel vm={game.vm} />
             <ContendersPanel game={game} coverages={coverages} />
             <SelectionsPanel game={game} selections={selections} />

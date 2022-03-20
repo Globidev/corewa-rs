@@ -12,15 +12,17 @@ type Props = {
 };
 
 export const ContendersPanel = observer(({ game, coverages }: Props) => {
-  const playerCoverage = game.players.reduce(
+  const players = game.vm.players;
+
+  const playerCoverage = players.reduce(
     (s, p) => s + (coverages.get(p.id) ?? 0),
     0
   );
 
   return (
-    <Panel title={`${game.players.length} contenders`}>
+    <Panel title={`${players.length} contenders`}>
       <div className="coverage-container">
-        {game.players.map((player) => {
+        {players.map((player) => {
           const coverage = coverages.get(player.id) ?? 0;
 
           return (
@@ -41,13 +43,7 @@ export const ContendersPanel = observer(({ game, coverages }: Props) => {
         ></div>
       </div>
 
-      {game.players.map((player, idx) => {
-        const playerInfo = game.vm.engine.player_info(player.id);
-
-        if (playerInfo === undefined) {
-          return undefined;
-        }
-
+      {players.map((player, idx) => {
         const championInfo = game.vm.engine.champion_info(player.id);
         const coverage = coverages.get(player.id) ?? 0;
 
@@ -59,7 +55,7 @@ export const ContendersPanel = observer(({ game, coverages }: Props) => {
               .toUpperCase()
               .padStart(8, "0")}`,
           },
-          { title: "Size", value: playerInfo?.champion_size },
+          { title: "Code size", value: player.champion.codeSize },
           {
             title: "Coverage",
             value: `${((coverage / 4096) * 100).toFixed(2)}%`,
@@ -76,14 +72,17 @@ export const ContendersPanel = observer(({ game, coverages }: Props) => {
                   color: "#eeeeee",
                 }}
               >
-                {playerInfo?.champion_name()}
+                {player.champion.name}
               </span>
             </summary>
-            {sections.map(({ title, value }) => (
-              <Info key={title} title={title}>
-                {value.toString().padStart(6, "\u00A0")}
-              </Info>
-            ))}
+
+            <div className="spaced">
+              {sections.map(({ title, value }) => (
+                <Info key={title} title={title}>
+                  {value.toString().padStart(6, "\u00A0")}
+                </Info>
+              ))}
+            </div>
           </details>
         );
       })}

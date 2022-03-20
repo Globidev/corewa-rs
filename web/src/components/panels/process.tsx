@@ -20,16 +20,20 @@ export const ProcessPanel = observer(({ processes, game }: Props) => {
   const details = [...Array(visibleLen).keys()].map((idx) => {
     const process = processes.at(idx);
     const state = process.executing();
-    const playerColor = game.playerColors[process.player_id];
-    const playerInfo = game.vm.engine.player_info(process.player_id);
+    const player = game.vm.players.find((p) => p.id === process.player_id);
+
+    if (!player) {
+      console.error("Invariant broken: process has an invalid player id");
+      return null;
+    }
 
     const coloredPlayer = (
       <div
         style={{
-          color: toCssColor(playerColor),
+          color: toCssColor(player.color),
         }}
       >
-        {playerInfo?.champion_name() ?? process.player_id}
+        {player.champion.name}
       </div>
     );
 
@@ -39,7 +43,7 @@ export const ProcessPanel = observer(({ processes, game }: Props) => {
         <div className="spaced">
           <Info
             title="Player"
-            theme={contrastingColor(playerColor) > 0x800000 ? "light" : "dark"}
+            theme={contrastingColor(player.color) > 0x800000 ? "light" : "dark"}
           >
             {coloredPlayer}
           </Info>

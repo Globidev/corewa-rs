@@ -165,9 +165,8 @@ export const CorewarLayout = observer(({ game }: { game: Game }) => {
         const config = node.getConfig() as TypedNodeConfig;
 
         if (config?.type === "editor") {
-          const playerInfo = game.vm.engine.player_info(config.playerId);
           const player = game.getPlayer(config.playerId);
-          if (playerInfo && player) {
+          if (player?.isReady()) {
             return (
               <div
                 style={{
@@ -175,7 +174,7 @@ export const CorewarLayout = observer(({ game }: { game: Game }) => {
                   background: toCssColor(contrastingColor(player.color)),
                 }}
               >
-                {playerInfo.champion_name()}
+                {player.champion.name}
               </div>
             );
           }
