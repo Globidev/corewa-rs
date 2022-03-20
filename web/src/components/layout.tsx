@@ -10,7 +10,7 @@ import {
 } from "flexlayout-react";
 import { observer } from "mobx-react-lite";
 
-import { Corewar } from "../state/corewar";
+import { Game } from "../state/game";
 import { load, save } from "../state/persistent";
 
 import { Help } from "./help";
@@ -19,7 +19,7 @@ import { Editor } from "./editor";
 import { runInAction } from "mobx";
 import { toCssColor, contrastingColor } from "../utils";
 
-export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
+export const CorewarLayout = observer(({ game }: { game: Game }) => {
   const flexLayout = useRef<Layout>(null);
 
   const layoutModel = useMemo(() => {
@@ -39,7 +39,7 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
       let playerId = config?.playerId;
 
       if (playerId === undefined) {
-        playerId = corewar.randomPlayerId();
+        playerId = game.randomPlayerId();
         updateNodeConfig(nodeId, {
           type: "editor",
           playerId,
@@ -47,9 +47,9 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
       }
 
       const pid = playerId;
-      runInAction(() => corewar.createPlayer(pid, config?.code, config?.color));
+      runInAction(() => game.createPlayer(pid, config?.code, config?.color));
     },
-    [corewar, updateNodeConfig]
+    [game, updateNodeConfig]
   );
 
   useEffect(() => {
@@ -75,9 +75,9 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
       component: "editor",
       enableRename: false,
       name: `Champion`,
-      config: { type: "editor", playerId: corewar.randomPlayerId() },
+      config: { type: "editor", playerId: game.randomPlayerId() },
     });
-  }, [newTab, corewar]);
+  }, [newTab, game]);
 
   const newHelpTab = useCallback(
     () =>
@@ -118,7 +118,7 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
             return undefined;
           }
 
-          const player = corewar.getPlayer(config.playerId);
+          const player = game.getPlayer(config.playerId);
 
           if (player === undefined) {
             console.warn("editor <=> player invariant broken");
@@ -141,7 +141,7 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
         case "vm":
           return (
             <VM
-              corewar={corewar}
+              game={game}
               onNewPlayerRequested={newPlayerTab}
               onHelpRequested={newHelpTab}
             />
@@ -151,7 +151,7 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
           return <Help />;
       }
     },
-    [corewar, newPlayerTab, newHelpTab, updateNodeConfig]
+    [game, newPlayerTab, newHelpTab, updateNodeConfig]
   );
 
   return (
@@ -165,8 +165,8 @@ export const CorewarLayout = observer(({ corewar }: { corewar: Corewar }) => {
         const config = node.getConfig() as TypedNodeConfig;
 
         if (config?.type === "editor") {
-          const playerInfo = corewar.vm.engine.player_info(config.playerId);
-          const player = corewar.getPlayer(config.playerId);
+          const playerInfo = game.vm.engine.player_info(config.playerId);
+          const player = game.getPlayer(config.playerId);
           if (playerInfo && player) {
             return (
               <div

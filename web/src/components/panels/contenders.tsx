@@ -3,24 +3,24 @@ import { observer } from "mobx-react-lite";
 import { Panel } from "../panel";
 import { Info } from "./common";
 
-import { Corewar } from "../../state/corewar";
+import { Game } from "../../state/game";
 import { toCssColor, remEuclid } from "../../utils";
 
 type Props = {
-  corewar: Corewar;
+  game: Game;
   coverages: Map<number, number>;
 };
 
-export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
-  const playerCoverage = corewar.players.reduce(
+export const ContendersPanel = observer(({ game, coverages }: Props) => {
+  const playerCoverage = game.players.reduce(
     (s, p) => s + (coverages.get(p.id) ?? 0),
     0
   );
 
   return (
-    <Panel title={`${corewar.players.length} contenders`}>
+    <Panel title={`${game.players.length} contenders`}>
       <div className="coverage-container">
-        {corewar.players.map((player) => {
+        {game.players.map((player) => {
           const coverage = coverages.get(player.id) ?? 0;
 
           return (
@@ -41,14 +41,14 @@ export const ContendersPanel = observer(({ corewar, coverages }: Props) => {
         ></div>
       </div>
 
-      {corewar.players.map((player, idx) => {
-        const playerInfo = corewar.vm.engine.player_info(player.id);
+      {game.players.map((player, idx) => {
+        const playerInfo = game.vm.engine.player_info(player.id);
 
         if (playerInfo === undefined) {
           return undefined;
         }
 
-        const championInfo = corewar.vm.engine.champion_info(player.id);
+        const championInfo = game.vm.engine.champion_info(player.id);
         const coverage = coverages.get(player.id) ?? 0;
 
         const sections = [

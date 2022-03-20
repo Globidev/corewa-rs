@@ -15,7 +15,7 @@ const DEFAULT_CHAMPIONS = <const>[
   "justin_bee",
 ];
 
-export class Corewar {
+export class Game {
   players = observable<CorewarPlayer>([]);
   playerColors: number[] = [];
 
@@ -117,7 +117,7 @@ export class CorewarPlayer {
     public code: string,
     public id: number,
     public color: number,
-    public store: Corewar
+    public store: Game
   ) {
     makeObservable(this, {
       code: observable,

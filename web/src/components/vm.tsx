@@ -10,17 +10,17 @@ import { StatePanel } from "./panels/state";
 import { ContendersPanel } from "./panels/contenders";
 import { Selection, SelectionsPanel } from "./panels/selections";
 
-import { Corewar } from "../state/corewar";
+import { Game } from "../state/game";
 import { DisplaySettingsPanel } from "./panels/display-settings";
 
 interface IVMProps {
-  corewar: Corewar;
+  game: Game;
   onNewPlayerRequested: () => void;
   onHelpRequested: () => void;
 }
 
 export const VM = observer(
-  ({ corewar, onHelpRequested, onNewPlayerRequested }: IVMProps) => {
+  ({ game, onHelpRequested, onNewPlayerRequested }: IVMProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const selections = useLocalObservable(() => new Map<number, Selection>());
@@ -28,32 +28,32 @@ export const VM = observer(
 
     const selectionAt = (idx: number) => {
       return {
-        decoded: corewar.vm.engine.decode(idx),
-        processes: corewar.vm.engine.processes_at(idx),
+        decoded: game.vm.engine.decode(idx),
+        processes: game.vm.engine.processes_at(idx),
       };
     };
 
     const onNewClicked = () => {
-      if (corewar.players.length < 4) onNewPlayerRequested();
+      if (game.players.length < 4) onNewPlayerRequested();
     };
 
     const draw = action((renderer: PIXIRenderer) => {
-      const memory = corewar.vm.engine.memory();
+      const memory = game.vm.engine.memory();
 
       const t0 = performance.now();
       renderer.update({
-        showValues: corewar.options.showCellValues,
+        showValues: game.options.showCellValues,
         memory,
         selections: Array.from(selections).map(([idx, selection]) => ({
           idx,
           length: Math.max(selection.decoded.byte_size(), 1),
         })),
-        playerColors: corewar.playerColors,
+        playerColors: game.playerColors,
       });
 
       const t1 = performance.now();
       const cellOwners = new Int32Array(
-        corewar.vm.wasmMemory.buffer,
+        game.vm.wasmMemory.buffer,
         memory.owners_ptr,
         4096
       );
@@ -96,14 +96,14 @@ export const VM = observer(
             toggleSelection(cellIdx);
           },
         },
-        corewar.vm.wasmMemory
+        game.vm.wasmMemory
       );
 
       const disposer = reaction(
         () => [
-          corewar.vm.engine,
-          corewar.vm.cycles,
-          corewar.options.showCellValues,
+          game.vm.engine,
+          game.vm.cycles,
+          game.options.showCellValues,
           selections.size,
         ],
         () => {
@@ -128,25 +128,25 @@ export const VM = observer(
               <button
                 className="ctrl-btn"
                 onClick={onNewClicked}
-                disabled={corewar.players.length >= 4}
+                disabled={game.players.length >= 4}
               >
                 ➕
               </button>
             </div>
 
-            <ControlPanel vm={corewar.vm} />
+            <ControlPanel vm={game.vm} />
 
-            {corewar.vm.matchResult && (
+            {game.vm.matchResult && (
               <ResultsPanel
-                result={corewar.vm.matchResult}
-                playerColors={corewar.playerColors}
+                result={game.vm.matchResult}
+                playerColors={game.playerColors}
               />
             )}
 
-            <DisplaySettingsPanel options={corewar.options} />
-            <StatePanel vm={corewar.vm} />
-            <ContendersPanel corewar={corewar} coverages={coverages} />
-            <SelectionsPanel corewar={corewar} selections={selections} />
+            <DisplaySettingsPanel options={game.options} />
+            <StatePanel vm={game.vm} />
+            <ContendersPanel game={game} coverages={coverages} />
+            <SelectionsPanel game={game} selections={selections} />
           </div>
 
           <div className="vm-arena-container">

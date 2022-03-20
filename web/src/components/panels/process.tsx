@@ -5,14 +5,14 @@ import { Info } from "./common";
 import type { ProcessCollection } from "corewa-rs";
 
 import { contrastingColor, formatNumber, Radix, toCssColor } from "../../utils";
-import { Corewar } from "../../state/corewar";
+import { Game } from "../../state/game";
 
 type Props = {
   processes: ProcessCollection;
-  corewar: Corewar;
+  game: Game;
 };
 
-export const ProcessPanel = observer(({ processes, corewar }: Props) => {
+export const ProcessPanel = observer(({ processes, game }: Props) => {
   const visibleLen = processes.visible_len();
 
   if (visibleLen === 0) return null;
@@ -20,8 +20,8 @@ export const ProcessPanel = observer(({ processes, corewar }: Props) => {
   const details = [...Array(visibleLen).keys()].map((idx) => {
     const process = processes.at(idx);
     const state = process.executing();
-    const playerColor = corewar.playerColors[process.player_id];
-    const playerInfo = corewar.vm.engine.player_info(process.player_id);
+    const playerColor = game.playerColors[process.player_id];
+    const playerInfo = game.vm.engine.player_info(process.player_id);
 
     const coloredPlayer = (
       <div
@@ -46,12 +46,12 @@ export const ProcessPanel = observer(({ processes, corewar }: Props) => {
         <Info title="Last live">{process.last_live_cycle}</Info>
         <Info title="State">
           {state
-            ? `${state.op()} (${state.exec_at - corewar.vm.cycles + 1})`
+            ? `${state.op()} (${state.exec_at - game.vm.cycles + 1})`
             : "Idle"}
         </Info>
         <Registers
           registers={process.registers()}
-          radix={corewar.options.regValuesRadix}
+          radix={game.options.regValuesRadix}
         />
       </details>
     );

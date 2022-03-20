@@ -4,7 +4,7 @@ import CodeMirror from "codemirror";
 import { observer } from "mobx-react-lite";
 
 import { CompileError } from "corewa-rs";
-import { CorewarPlayer } from "../state/corewar";
+import { CorewarPlayer } from "../state/game";
 import { champions } from "../assets/champions";
 import { toCssColor } from "../utils";
 import { autorun } from "mobx";

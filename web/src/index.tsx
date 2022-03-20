@@ -8,7 +8,7 @@ import "./style.css";
 import { StrictMode } from "react";
 import { render } from "react-dom";
 
-import { Corewar } from "./state/corewar";
+import { Game } from "./state/game";
 import { VirtualMachine } from "./state/vm";
 
 import { CorewarLayout } from "./components/layout";
@@ -30,7 +30,7 @@ async function main() {
 
   render(
     <StrictMode>
-      <CorewarLayout corewar={new Corewar(vm)} />
+      <CorewarLayout game={new Game(vm)} />
     </StrictMode>,
     document.getElementById("app")
   );

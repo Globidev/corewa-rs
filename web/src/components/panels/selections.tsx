@@ -1,7 +1,7 @@
 import { action } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { Corewar } from "../../state/corewar";
+import { Game } from "../../state/game";
 import { CellPanel } from "./cell";
 import { ProcessPanel } from "./process";
 
@@ -13,11 +13,11 @@ export type Selection = {
 };
 
 type Props = {
-  corewar: Corewar;
+  game: Game;
   selections: Map<number, Selection>;
 };
 
-export const SelectionsPanel = observer(({ corewar, selections }: Props) => {
+export const SelectionsPanel = observer(({ game, selections }: Props) => {
   const discardSelection = action((idx: number) => {
     selections.delete(idx);
   });
@@ -33,7 +33,7 @@ export const SelectionsPanel = observer(({ corewar, selections }: Props) => {
         onDiscard={() => discardSelection(cellIdx)}
       />
       <div className="pad-top">
-        <ProcessPanel processes={selection.processes} corewar={corewar} />
+        <ProcessPanel processes={selection.processes} game={game} />
       </div>
     </div>
   ));
