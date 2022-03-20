@@ -118,6 +118,7 @@ export class PIXIRenderer {
     });
 
     setup.canvas.addEventListener("wheel", (event) => {
+      event.preventDefault();
       const { deltaY } = event;
       this.scaleViewport((-deltaY / 100) * 0.1);
       this.renderLater();
