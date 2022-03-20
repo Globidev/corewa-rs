@@ -65,8 +65,8 @@ export const VM = observer(
       });
       const t2 = performance.now();
 
-      console.log(`render: ${(t1 - t0).toFixed(2)} ms`);
-      console.log(`cellOwners: ${(t2 - t1).toFixed(2)} ms`);
+      console.debug(`render: ${(t1 - t0).toFixed(2)} ms`);
+      console.debug(`cellOwners: ${(t2 - t1).toFixed(2)} ms`);
     });
 
     const clearSelections = action(() => {
