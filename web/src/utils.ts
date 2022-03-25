@@ -34,7 +34,7 @@ export function formatNumber(num: number, radix: Radix): string {
     case 10:
       return num.toString(10);
     case 16: {
-      const numStr = remEuclid(num, 0xffff_ffff).toString(16);
+      const numStr = remEuclid(num, 0x1_0000_0000).toString(16);
       return `0x${numStr.toUpperCase()}`;
     }
   }
