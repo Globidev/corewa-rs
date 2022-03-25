@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 function toRgb(color: number): [number, number, number] {
   color >>>= 0;
 
@@ -42,4 +44,18 @@ export function formatNumber(num: number, radix: Radix): string {
 
 export function remEuclid(x: number, m: number) {
   return ((x % m) + m) % m;
+}
+
+export function useDebouncer<Args extends unknown[]>(
+  timeoutMs: number,
+  action: (...args: Args) => void
+) {
+  const timeoutHandle = useRef<number>();
+
+  const schedule = (...args: Args) => {
+    clearTimeout(timeoutHandle.current);
+    timeoutHandle.current = setTimeout(() => action(...args), timeoutMs);
+  };
+
+  return schedule;
 }
