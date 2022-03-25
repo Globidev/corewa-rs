@@ -190,6 +190,98 @@ canvas {
   color: #dcddde;
 }
 
+.player-header-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.player-header-container > * {
+  margin-right: 1em;
+}
+
+.player-header-name {
+  width: 100px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* */
+.player-input-container {
+  height: 0.8em;
+  padding: 0.2em 0.2em 0.4em 0.2em;
+  border-radius: 0.3em;
+  background-color: white;
+}
+
+.player-input-container-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  background-color: white;
+  border: 2px solid transparent;
+  border-radius: 0.2em;
+}
+
+.player-input-container-inner:focus-within {
+  border-color: black;
+}
+
+.player-input {
+  border: none;
+  font-family: "Roboto Mono";
+}
+.player-input:focus {
+  outline: none;
+}
+
+.player-input-buttons {
+  display: flex;
+  flex-direction: column;
+  width: 1em;
+}
+
+.player-input-button {
+  height: 50%;
+  background: none;
+  border: none;
+}
+
+.player-input-button > svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  margin: auto;
+  fill: #606060;
+}
+
+.player-input-button:hover {
+  background-color: lightgray;
+  cursor: pointer;
+}
+
+/* */
+input[type="color"] {
+  -webkit-appearance: none;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 10px;
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  border: none;
+  border-radius: 10px;
+  padding: 0;
+}
+
 /* Tooltips (from: https://stackoverflow.com/a/25813336/1592289) */
 
 [data-tooltip]:before {

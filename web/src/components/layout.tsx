@@ -7,17 +7,19 @@ import {
   IJsonModel,
   Action,
   Actions,
+  ITabRenderValues,
 } from "flexlayout-react";
 import { observer } from "mobx-react-lite";
 
-import { Game } from "../state/game";
-import { load, save } from "../state/persistent";
+import { runInAction } from "mobx";
 
 import { Help } from "./help";
 import { VM } from "./vm";
 import { Editor } from "./editor";
-import { runInAction } from "mobx";
-import { toCssColor, contrastingColor } from "../utils";
+import { PlayerHeader } from "./player-header";
+
+import { Game } from "../state/game";
+import { load, save } from "../state/persistent";
 
 export const CorewarLayout = observer(({ game }: { game: Game }) => {
   const flexLayout = useRef<Layout>(null);
@@ -154,6 +156,17 @@ export const CorewarLayout = observer(({ game }: { game: Game }) => {
     [game, newPlayerTab, newHelpTab, updateNodeConfig]
   );
 
+  const onRenderTab = (node: TabNode, values: ITabRenderValues) => {
+    const config = node.getConfig() as TypedNodeConfig;
+
+    if (config?.type === "editor") {
+      const player = game.getPlayer(config.playerId);
+      if (player) {
+        values.content = <PlayerHeader player={player} />;
+      }
+    }
+  };
+
   return (
     <Layout
       ref={flexLayout}
@@ -161,24 +174,9 @@ export const CorewarLayout = observer(({ game }: { game: Game }) => {
       factory={layoutFactory}
       onModelChange={(model) => save("ui::layout", model.toJson())}
       onAction={onAction}
-      titleFactory={(node) => {
-        const config = node.getConfig() as TypedNodeConfig;
-
-        if (config?.type === "editor") {
-          const player = game.getPlayer(config.playerId);
-          if (player?.isReady()) {
-            return (
-              <div
-                style={{
-                  color: toCssColor(player.color),
-                  background: toCssColor(contrastingColor(player.color)),
-                }}
-              >
-                {player.champion.name}
-              </div>
-            );
-          }
-        }
+      onRenderTab={onRenderTab}
+      icons={{
+        close: <>❌</>,
       }}
     />
   );
@@ -190,9 +188,11 @@ type PaneComponent = typeof PANE_COMPONENTS[number];
 function isPaneComponent(
   rawComponent: string | undefined
 ): rawComponent is PaneComponent {
-  return (PANE_COMPONENTS as readonly (string | undefined)[]).includes(
-    rawComponent
-  );
+  if (rawComponent === undefined) {
+    return false;
+  }
+
+  return (PANE_COMPONENTS as readonly string[]).includes(rawComponent);
 }
 
 type TypedNodeConfig =
