@@ -74,6 +74,34 @@ impl VirtualMachine {
             pc_count_ptr: self.0.process_count_per_cells.as_ptr(),
         }
     }
+
+    pub fn coverages(&self) -> Coverages {
+        let mut values = [0; spec::MAX_PLAYERS];
+        let mut unowned = 0;
+
+        for &owner in self.0.memory.owners.inner() {
+            if owner != NO_OWNER {
+                values[usize::from(owner)] += 1
+            } else {
+                unowned += 1
+            }
+        }
+
+        Coverages { values, unowned }
+    }
+}
+
+#[wasm_bindgen]
+pub struct Coverages {
+    values: [usize; spec::MAX_PLAYERS],
+    pub unowned: usize,
+}
+
+#[wasm_bindgen]
+impl Coverages {
+    pub fn get(&self, idx: usize) -> usize {
+        self.values[idx]
+    }
 }
 
 #[wasm_bindgen]

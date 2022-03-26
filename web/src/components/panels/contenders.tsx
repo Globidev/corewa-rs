@@ -8,22 +8,17 @@ import { toCssColor, remEuclid } from "../../utils";
 
 type Props = {
   game: Game;
-  coverages: Map<number, number>;
 };
 
-export const ContendersPanel = observer(({ game, coverages }: Props) => {
+export const ContendersPanel = observer(({ game }: Props) => {
   const players = game.vm.players;
-
-  const playerCoverage = players.reduce(
-    (s, p) => s + (coverages.get(p.id) ?? 0),
-    0
-  );
+  const coverages = game.vm.coverages;
 
   return (
     <Panel title={`${players.length} contenders`}>
       <div className="coverage-container">
-        {players.map((player) => {
-          const coverage = coverages.get(player.id) ?? 0;
+        {players.map((player, idx) => {
+          const coverage = coverages.get(idx);
 
           return (
             <div
@@ -38,7 +33,7 @@ export const ContendersPanel = observer(({ game, coverages }: Props) => {
         })}
         <div
           style={{
-            flexGrow: 4096 - playerCoverage,
+            flexGrow: coverages.unowned,
             backgroundColor: "#404040",
           }}
           data-tooltip="unowned"
@@ -46,8 +41,8 @@ export const ContendersPanel = observer(({ game, coverages }: Props) => {
       </div>
 
       {players.map((player, idx) => {
-        const championInfo = game.vm.engine.champion_info(player.id);
-        const coverage = coverages.get(player.id) ?? 0;
+        const championInfo = game.vm.engine.champion_info(idx);
+        const coverage = coverages.get(idx);
 
         const sections = [
           {

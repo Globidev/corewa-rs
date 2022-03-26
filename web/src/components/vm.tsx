@@ -24,7 +24,6 @@ export const VM = observer(
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const selections = useLocalObservable(() => new Map<number, Selection>());
-    const coverages = useLocalObservable(() => new Map<number, number>());
 
     const selectionAt = (idx: number) => {
       return {
@@ -41,6 +40,7 @@ export const VM = observer(
       const memory = game.vm.engine.memory();
 
       const t0 = performance.now();
+
       renderer.update({
         showValues: game.options.showCellValues,
         memory,
@@ -52,21 +52,8 @@ export const VM = observer(
       });
 
       const t1 = performance.now();
-      const cellOwners = new Int32Array(
-        game.vm.wasmMemory.buffer,
-        memory.owners_ptr,
-        4096
-      );
-
-      coverages.clear();
-      cellOwners.forEach((owner) => {
-        const previous = coverages.get(owner) ?? 0;
-        coverages.set(owner, previous + 1);
-      });
-      const t2 = performance.now();
 
       console.debug(`render: ${(t1 - t0).toFixed(2)} ms`);
-      console.debug(`cellOwners: ${(t2 - t1).toFixed(2)} ms`);
     });
 
     const clearSelections = action(() => {
@@ -114,7 +101,7 @@ export const VM = observer(
 
       draw(renderer);
 
-      return () => disposer();
+      return disposer;
     }, [canvasRef]);
 
     return (
@@ -140,7 +127,7 @@ export const VM = observer(
               <ResultsPanel result={game.vm.matchResult} />
             )}
             <StatePanel vm={game.vm} />
-            <ContendersPanel game={game} coverages={coverages} />
+            <ContendersPanel game={game} />
             <SelectionsPanel game={game} selections={selections} />
           </div>
 

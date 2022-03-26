@@ -26,6 +26,7 @@ export class VirtualMachine {
   // INVARIANT TO MAINTAIN: cycles === engine.cycles
   engine = new VMBuilder().finish();
   cycles = 0;
+  coverages = this.engine.coverages();
 
   playing = false;
   speed = 1;
@@ -42,6 +43,7 @@ export class VirtualMachine {
     makeObservable(this, {
       engine: observable,
       cycles: observable,
+      coverages: observable,
       playing: observable,
       speed: observable,
       matchResult: observable,
@@ -93,27 +95,22 @@ export class VirtualMachine {
   }
 
   tick(n: number) {
-    const before = performance.now();
-    let processes = 0;
+    const t0 = performance.now();
+
     for (let i = 0; i < n; ++i) {
       if (this.engine.tick()) {
         this.updateMatchResult();
         this.pause();
         break;
       }
-      processes += this.engine.process_count();
     }
 
     this.cycles = this.engine.cycles();
+    this.coverages = this.engine.coverages();
 
-    const after = performance.now();
-    const duration = after - before;
-    if (duration > 16)
-      console.warn(
-        `${n} cycles took too long to compute:\n${duration} ms | ${processes} procs`
-      );
-    this.updateTimes.push(after);
-    console.debug(`${n} tick: ${duration.toFixed(2)} ms`);
+    const t1 = performance.now();
+    this.updateTimes.push(t1);
+    console.debug(`${n} tick: ${(t1 - t0).toFixed(2)} ms`);
   }
 
   updateMatchResult() {
@@ -151,6 +148,7 @@ export class VirtualMachine {
       .finish();
 
     this.cycles = this.engine.cycles();
+    this.coverages = this.engine.coverages();
   }
 
   togglePlay() {
