@@ -133,8 +133,8 @@ export class VirtualMachine {
   }
 
   playLoop() {
-    this.tick(this.speed);
     if (this.playing) {
+      this.tick(this.speed);
       window.requestAnimationFrame(this.playLoop);
     }
   }
