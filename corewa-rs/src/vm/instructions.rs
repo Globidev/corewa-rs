@@ -26,7 +26,7 @@ pub fn exec_st(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
         ParamType::Register => ctx.set_reg(dst_p, value_to_store),
         ParamType::Indirect => ctx.memory.write_i32(
             value_to_store,
-            ctx.process.player_id,
+            ctx.process.owner,
             ctx.process
                 .pc
                 .offset(dst_p.value as isize, OffsetType::Limited),
@@ -126,7 +126,7 @@ pub fn exec_sti(instr: &Instruction, ctx: &mut ExecutionContext<'_>) {
     let offset = lhs + rhs;
     ctx.memory.write_i32(
         value,
-        ctx.process.player_id,
+        ctx.process.owner,
         ctx.process.pc.offset(offset as isize, OffsetType::Limited),
     );
 }

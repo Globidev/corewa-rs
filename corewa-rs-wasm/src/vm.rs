@@ -1,4 +1,7 @@
-use corewa_rs::vm::{types::*, VirtualMachine as VMImpl};
+use corewa_rs::{
+    spec,
+    vm::{memory::NO_OWNER, types::*, VirtualMachine as VMImpl},
+};
 
 use super::{
     champion::ChampionInfo, decoder::DecodeResult, memory::Memory, process::ProcessCollection,
@@ -44,14 +47,10 @@ impl VirtualMachine {
         self.0.players.len()
     }
 
-    pub fn champion_info(&self, player_id: PlayerId) -> ChampionInfo {
+    pub fn champion_info(&self, player_idx: usize) -> ChampionInfo {
         ChampionInfo {
-            process_count: *self
-                .0
-                .process_count_by_player_id
-                .get(&player_id)
-                .unwrap_or(&0),
-            last_live: *self.0.last_lives.get(&player_id).unwrap_or(&0),
+            process_count: *self.0.process_count_by_owner.get(player_idx).unwrap_or(&0),
+            last_live: *self.0.last_lives.get(player_idx).unwrap_or(&0),
         }
     }
 

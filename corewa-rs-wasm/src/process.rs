@@ -4,6 +4,7 @@ use arrayvec::ArrayVec;
 use corewa_rs::{
     spec::*,
     vm::{
+        memory::Owner,
         process::{Process, ProcessState},
         types::*,
     },
@@ -15,7 +16,7 @@ use wasm_bindgen::prelude::*;
 #[derive(Clone)]
 pub struct ProcessInfo {
     pub pid: Pid,
-    pub player_id: PlayerId,
+    pub owner: Owner,
     pub pc: usize,
     pub zf: bool,
     pub last_live_cycle: u32,
@@ -42,7 +43,7 @@ impl ProcessInfo {
     pub fn from_process(process: &Process) -> Self {
         Self {
             pid: process.pid,
-            player_id: process.player_id,
+            owner: process.owner,
             pc: process.pc.addr(),
             registers: process.registers,
             zf: process.zf,

@@ -11,13 +11,13 @@ mod wrapping_array;
 use crate::spec::*;
 use decoder::Decode;
 use execution_context::ExecutionContext;
-use memory::Memory;
+use memory::{Memory, Owner};
 use process::{Process, ProcessState};
 use types::*;
 
 use std::ffi::CStr;
 
-use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use fxhash::FxHashSet as HashSet;
 
 pub struct VirtualMachine {
     pub players: Vec<Player>,
@@ -26,7 +26,7 @@ pub struct VirtualMachine {
     pub processes: Vec<Process>,
     pub pid_pool: PidPool,
 
-    pub last_lives: HashMap<PlayerId, u32>,
+    pub last_lives: [u32; MAX_PLAYERS],
 
     pub cycles: u32,
     pub last_live_check: u32,
@@ -35,7 +35,7 @@ pub struct VirtualMachine {
     pub checks_without_cycle_decrement: u32,
 
     pub process_count_per_cells: [u32; MEM_SIZE],
-    pub process_count_by_player_id: HashMap<PlayerId, u32>,
+    pub process_count_by_owner: [u32; MAX_PLAYERS],
 }
 
 impl VirtualMachine {
@@ -44,10 +44,10 @@ impl VirtualMachine {
             players: Vec::with_capacity(MAX_PLAYERS),
 
             memory: Memory::default(),
-            processes: Vec::with_capacity(65536),
+            processes: Vec::with_capacity(u16::MAX.into()),
             pid_pool: PidPool::default(),
 
-            last_lives: HashMap::with_capacity_and_hasher(MAX_PLAYERS, Default::default()),
+            last_lives: [0; MAX_PLAYERS],
 
             cycles: 0,
             last_live_check: 0,
@@ -56,10 +56,7 @@ impl VirtualMachine {
             checks_without_cycle_decrement: 0,
 
             process_count_per_cells: [0; MEM_SIZE],
-            process_count_by_player_id: HashMap::with_capacity_and_hasher(
-                MAX_PLAYERS,
-                Default::default(),
-            ),
+            process_count_by_owner: [0; MAX_PLAYERS],
         }
     }
 
@@ -82,7 +79,7 @@ impl VirtualMachine {
 
     pub fn load_players(&mut self, players: &[(PlayerId, Vec<u8>)]) {
         let player_spacing = MEM_SIZE / players.len().max(1);
-        for (i, (player_id, program)) in players.iter().enumerate() {
+        for ((player_id, program), idx) in players.iter().zip(0..) {
             let header_bytes = &program[..HEADER_SIZE];
             let header = Header::from_bytes(header_bytes);
 
@@ -102,19 +99,20 @@ impl VirtualMachine {
             });
 
             let champion = &program[HEADER_SIZE..];
-            self.load_champion(champion, *player_id, i * player_spacing);
+            self.load_champion(champion, *player_id, idx, usize::from(idx) * player_spacing);
         }
     }
 
-    fn load_champion(&mut self, champion: &[u8], player_id: PlayerId, at: usize) {
-        self.memory.write(at, champion, player_id);
+    fn load_champion(&mut self, champion: &[u8], player_id: PlayerId, owner: Owner, at: usize) {
+        self.memory.write(at, champion, owner);
 
-        let mut starting_process = Process::new(self.pid_pool.get(), player_id, at.into());
+        let mut starting_process = Process::new(self.pid_pool.get(), owner, at.into());
         starting_process.registers[0] = player_id;
+
         self.processes.push(starting_process);
-        self.last_lives.insert(player_id, 0);
+        self.last_lives[usize::from(owner)] = 0;
         self.process_count_per_cells[at] += 1;
-        self.process_count_by_player_id.insert(player_id, 1);
+        self.process_count_by_owner[usize::from(owner)] = 1;
     }
 
     fn run_processes(&mut self) {
@@ -166,30 +164,33 @@ impl VirtualMachine {
 
         for process in &forks {
             self.process_count_per_cells[process.pc.addr()] += 1;
-            if let Some(count) = self.process_count_by_player_id.get_mut(&process.player_id) {
+            if let Some(count) = self
+                .process_count_by_owner
+                .get_mut(usize::from(process.owner))
+            {
                 *count += 1;
             }
         }
 
         self.processes.append(&mut forks);
 
-        for player in &self.players {
+        for (idx, player) in self.players.iter().enumerate() {
             if lives.contains(&player.id) {
-                self.last_lives.insert(player.id, self.cycles);
+                self.last_lives[idx] = self.cycles;
             }
         }
     }
 
     fn live_check(&mut self) {
         let count_per_cells = &mut self.process_count_per_cells;
-        let count_by_player_id = &mut self.process_count_by_player_id;
+        let count_by_owner = &mut self.process_count_by_owner;
 
         let last_live_check = self.last_live_check;
         self.processes.retain(|process| {
             let killed = process.last_live_cycle <= last_live_check;
             if killed {
                 count_per_cells[process.pc.addr()] -= 1;
-                if let Some(count) = count_by_player_id.get_mut(&process.player_id) {
+                if let Some(count) = count_by_owner.get_mut(usize::from(process.owner)) {
                     *count -= 1;
                 }
             }

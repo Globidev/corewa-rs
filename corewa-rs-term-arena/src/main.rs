@@ -1,7 +1,7 @@
 mod util;
 
-use corewa_rs::vm::{types::PlayerId, VirtualMachine};
-use std::{collections::HashMap, error::Error, fs, io};
+use corewa_rs::vm::{memory::NO_OWNER, VirtualMachine};
+use std::{error::Error, fs, io};
 use structopt::StructOpt;
 use termion::{event::Key, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{
@@ -25,6 +25,8 @@ fn main() {
 
     std::process::exit(exit_code)
 }
+
+const PLAYER_COLORS: [Color; 4] = [Color::Yellow, Color::Magenta, Color::Green, Color::Cyan];
 
 fn run() -> Result<(), Box<dyn Error>> {
     let opts = Options::from_args();
@@ -54,15 +56,6 @@ fn run() -> Result<(), Box<dyn Error>> {
     terminal.hide_cursor()?;
 
     let events = Events::new();
-
-    let colors = [Color::Yellow, Color::Magenta, Color::Green, Color::Cyan];
-
-    let player_colors = vm
-        .players
-        .iter()
-        .enumerate()
-        .map(|(idx, player)| (player.id, colors[idx]))
-        .collect();
 
     let mut controls = Controls::default();
 
@@ -97,7 +90,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 
                 f.render_widget(&controls, info_chunks[0]);
                 f.render_widget(VMStateWidget(&vm), info_chunks[1]);
-                f.render_widget(MemoryWidget(&vm, &player_colors, opts.chr), vm_chunks[0]);
+                f.render_widget(MemoryWidget(&vm, opts.chr), vm_chunks[0]);
             })?;
         }
 
@@ -206,9 +199,7 @@ impl Widget for VMStateWidget<'_> {
     }
 }
 
-struct MemoryWidget<'a>(&'a VirtualMachine, &'a PlayerColors, char);
-
-type PlayerColors = HashMap<PlayerId, Color>;
+struct MemoryWidget<'a>(&'a VirtualMachine, char);
 
 impl Widget for MemoryWidget<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
@@ -225,9 +216,9 @@ impl Widget for MemoryWidget<'_> {
 
             let cell = buf.get_mut(area.left() + x, area.top() + y);
 
-            let player_id = mem.owners[idx];
-            let color = if player_id != 0 {
-                self.1[&player_id]
+            let owner = mem.owners[idx];
+            let color = if owner != NO_OWNER {
+                PLAYER_COLORS[usize::from(owner)]
             } else {
                 Color::DarkGray
             };
@@ -235,7 +226,7 @@ impl Widget for MemoryWidget<'_> {
             let pc_count = self.0.process_count_per_cells[idx];
 
             let ch = match pc_count {
-                0 => self.2,
+                0 => self.1,
                 c @ 1..=9 => char::from(b'0' + c as u8),
                 _ => '+',
             };

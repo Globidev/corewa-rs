@@ -1,23 +1,32 @@
 #![allow(clippy::identity_op)]
 
-use super::{types::*, wrapping_array::WrappingArray};
+use super::wrapping_array::WrappingArray;
 use crate::spec::*;
 
 use byteorder::{BigEndian, ByteOrder};
 use std::mem;
 
+// We will store player indices as owner information
+// we can use a u8 to save some space since there will be no more than
+// MAX_PLAYERS players, which should easily fit in a u8
+pub type Owner = u8;
+pub const NO_OWNER: Owner = Owner::MAX;
+
+type CellAge = u16;
+const MAX_AGE: CellAge = 1024;
+
 pub struct Memory<const LEN: usize = MEM_SIZE> {
     pub values: WrappingArray<u8, LEN>,
-    pub ages: WrappingArray<u16, LEN>,
-    pub owners: WrappingArray<PlayerId, LEN>,
+    pub ages: WrappingArray<CellAge, LEN>,
+    pub owners: WrappingArray<Owner, LEN>,
 }
 
-impl Default for Memory<MEM_SIZE> {
+impl Default for Memory {
     fn default() -> Self {
         Self {
             values: [0; MEM_SIZE].into(),
-            ages: [1024; MEM_SIZE].into(),
-            owners: [0; MEM_SIZE].into(),
+            ages: [MAX_AGE; MEM_SIZE].into(),
+            owners: [NO_OWNER; MEM_SIZE].into(),
         }
     }
 }
@@ -33,10 +42,10 @@ impl<const LEN: usize> Memory<LEN> {
         }
     }
 
-    pub fn write(&mut self, at: usize, bytes: &[u8], owner: PlayerId) {
+    pub fn write(&mut self, at: usize, bytes: &[u8], owner: Owner) {
         for (i, byte) in bytes.iter().enumerate() {
             self.values[at + i] = *byte;
-            self.ages[at + i] = 1024;
+            self.ages[at + i] = MAX_AGE;
             self.owners[at + i] = owner
         }
     }
@@ -62,7 +71,7 @@ impl<const LEN: usize> Memory<LEN> {
         }
     }
 
-    pub fn write_i32(&mut self, value: i32, owner: PlayerId, at: usize) {
+    pub fn write_i32(&mut self, value: i32, owner: Owner, at: usize) {
         let value_as_bytes = value.to_be_bytes();
 
         self.write(at, &value_as_bytes, owner)

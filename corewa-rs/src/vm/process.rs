@@ -1,21 +1,21 @@
 use super::{
     execution_context::ExecutionContext,
+    memory::Owner,
     program_counter::ProgramCounter,
-    types::{Pid, PlayerId, Registers},
+    types::{Pid, Registers},
 };
 use crate::spec::OpType;
 
 #[derive(Debug)]
 pub struct Process {
     pub pid: Pid,
-    pub player_id: PlayerId,
+    pub owner: Owner,
     pub pc: ProgramCounter,
     pub registers: Registers,
     pub zf: bool,
     pub state: ProcessState,
     pub last_live_cycle: u32,
 }
-
 #[derive(Debug, Clone, Copy)]
 pub enum ProcessState {
     Idle,
@@ -23,10 +23,10 @@ pub enum ProcessState {
 }
 
 impl Process {
-    pub fn new(pid: Pid, player_id: PlayerId, pc: ProgramCounter) -> Self {
+    pub fn new(pid: Pid, owner: Owner, pc: ProgramCounter) -> Self {
         Self {
             pid,
-            player_id,
+            owner,
             pc,
             registers: Registers::default(),
             zf: false,
@@ -38,7 +38,7 @@ impl Process {
     pub fn fork(pid: Pid, pc: ProgramCounter, ctx: &ExecutionContext<'_>) -> Self {
         Self {
             pid,
-            player_id: ctx.process.player_id,
+            owner: ctx.process.owner,
             pc,
             registers: ctx.process.registers,
             zf: ctx.process.zf,
