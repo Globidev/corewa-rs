@@ -1,4 +1,4 @@
-import { observable, action, makeObservable } from "mobx";
+import { observable, action, makeObservable, computed } from "mobx";
 
 import { VMBuilder } from "corewa-rs";
 import { PlayerReady } from "./player";
@@ -6,7 +6,6 @@ import { PlayerReady } from "./player";
 export type MatchResult = VirtualMachine["players"];
 
 const MAX_SPEED = 64;
-const TARGET_UPS = 60;
 
 // Webassembly memory can only grow (for now). Pages cannot be reclaimed which
 // can lead to leaks overtime. The only way to effectively free the memory is
@@ -37,6 +36,8 @@ export class VirtualMachine {
   matchResult?: MatchResult;
   players: PlayerReady[] = [];
 
+  updateTimes: number[] = [];
+
   constructor(public wasmMemory: WebAssembly.Memory) {
     makeObservable(this, {
       engine: observable,
@@ -45,10 +46,11 @@ export class VirtualMachine {
       speed: observable,
       matchResult: observable,
       players: observable,
+      updateTimes: observable,
 
       tick: action,
       updateMatchResult: action,
-      playLoop: action,
+      playLoop: action.bound,
       compile: action,
       togglePlay: action,
       play: action,
@@ -59,7 +61,35 @@ export class VirtualMachine {
       setCycle: action,
 
       setPlayers: action,
+
+      ups: computed,
     });
+  }
+
+  get ups(): number | undefined {
+    if (this.updateTimes.length === 0 || !this.playing) {
+      return undefined;
+    }
+
+    const now = performance.now();
+    const oneSecondAgo = now - 1_000;
+    let ups = 0;
+
+    for (let idx = this.updateTimes.length - 1; idx >= 0; --idx) {
+      if (this.updateTimes[idx] < oneSecondAgo) {
+        break;
+      }
+
+      if (idx === 0) {
+        return Math.floor(
+          (this.updateTimes.length / (now - this.updateTimes[idx])) * 1_000
+        );
+      }
+
+      ++ups;
+    }
+
+    return ups;
   }
 
   tick(n: number) {
@@ -76,11 +106,13 @@ export class VirtualMachine {
 
     this.cycles = this.engine.cycles();
 
-    const duration = performance.now() - before;
+    const after = performance.now();
+    const duration = after - before;
     if (duration > 16)
       console.warn(
         `${n} cycles took too long to compute:\n${duration} ms | ${processes} procs`
       );
+    this.updateTimes.push(after);
     console.debug(duration);
   }
 
@@ -102,12 +134,8 @@ export class VirtualMachine {
 
   playLoop() {
     this.tick(this.speed);
-    const now = performance.now();
-    const dt = now - this.lastFrameTime;
-    this.lastFrameTime = now;
-    const delta = Math.max(0, 1000 / TARGET_UPS - dt);
     if (this.playing) {
-      this.playTimeout = window.setTimeout(() => this.playLoop(), delta);
+      window.requestAnimationFrame(this.playLoop);
     }
   }
 
@@ -135,7 +163,7 @@ export class VirtualMachine {
 
   play() {
     this.playing = true;
-    this.lastFrameTime = performance.now();
+    this.updateTimes = [];
     this.playLoop();
   }
 
