@@ -113,7 +113,7 @@ export class VirtualMachine {
         `${n} cycles took too long to compute:\n${duration} ms | ${processes} procs`
       );
     this.updateTimes.push(after);
-    console.debug(duration);
+    console.debug(`${n} tick: ${duration.toFixed(2)} ms`);
   }
 
   updateMatchResult() {
