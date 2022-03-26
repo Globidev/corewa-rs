@@ -16,13 +16,11 @@ const DEFAULT_CHAMPIONS = <const>[
 
 export class Game {
   players = observable<CorewarPlayer>([]);
-  playerColors: number[] = [];
 
   options = new Options();
 
   constructor(public vm: VirtualMachine) {
     makeObservable(this, {
-      playerColors: false,
       options: observable,
 
       getPlayer: action.bound,
@@ -35,22 +33,11 @@ export class Game {
           p.isReady()
         );
         this.vm.setPlayers(vmPlayers);
-        this.memoizePlayerColors();
       },
       {
         name: "update vm players",
       }
     );
-  }
-
-  memoizePlayerColors() {
-    const colorsById = [];
-
-    for (const player of this.players) {
-      colorsById[player.id] = player.color;
-    }
-
-    this.playerColors = colorsById;
   }
 
   getPlayer(id: number): CorewarPlayer | undefined {

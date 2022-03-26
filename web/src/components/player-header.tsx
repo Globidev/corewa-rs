@@ -19,7 +19,9 @@ export const PlayerHeader = observer(({ player }: Props) => {
         className="player-header-name"
         style={{
           color: toCssColor(player.color),
-          background: toCssColor(contrastingColor(player.color)),
+          background: toCssColor(
+            contrastingColor(player.color) === "dark" ? 0x303030 : 0xd0d0d0
+          ),
         }}
       >
         {player.champion?.name ?? "Champion"}

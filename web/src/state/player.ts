@@ -4,6 +4,8 @@ import { compile_champion } from "corewa-rs";
 
 import { Game } from "./game";
 
+import { ContrastingColor, contrastingColor } from "../utils";
+
 export class CorewarPlayer {
   champion?: {
     name: string;
@@ -12,16 +14,21 @@ export class CorewarPlayer {
     codeSize: number;
   };
 
+  contrastColor: ContrastingColor;
+
   constructor(
     public code: string,
     public id: number,
     public color: number,
     public store: Game
   ) {
+    this.contrastColor = contrastingColor(color);
+
     makeObservable(this, {
       code: observable,
       champion: observable,
       color: observable,
+      contrastColor: observable,
       id: observable,
       store: false,
 
@@ -67,6 +74,7 @@ export class CorewarPlayer {
 
   setColor(color: number) {
     this.color = color;
+    this.contrastColor = contrastingColor(color);
   }
 
   isReady(): this is PlayerReady {

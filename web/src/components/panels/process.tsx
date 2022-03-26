@@ -20,10 +20,10 @@ export const ProcessPanel = observer(({ processes, game }: Props) => {
   const details = [...Array(visibleLen).keys()].map((idx) => {
     const process = processes.at(idx);
     const state = process.executing();
-    const player = game.vm.players.find((p) => p.id === process.player_id);
+    const player = game.vm.players[process.owner];
 
     if (!player) {
-      console.error("Invariant broken: process has an invalid player id");
+      console.error("Invariant broken: process has an invalid owner");
       return null;
     }
 
@@ -41,10 +41,7 @@ export const ProcessPanel = observer(({ processes, game }: Props) => {
       <details key={idx} className="pad-left">
         <summary>PID {process.pid}</summary>
         <div className="spaced">
-          <Info
-            title="Player"
-            theme={contrastingColor(player.color) > 0x800000 ? "light" : "dark"}
-          >
+          <Info title="Player" theme={contrastingColor(player.color)}>
             {coloredPlayer}
           </Info>
           <Info title="Zero Flag">{process.zf.toString()}</Info>

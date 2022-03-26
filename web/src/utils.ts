@@ -18,11 +18,12 @@ export function toCssColor(color: number) {
   return `#${r}${g}${b}`;
 }
 
-export function contrastingColor(color: number): number {
-  const [r, g, b] = toRgb(color);
-  const v = (r + g + b) / 3 > 128 ? 0x30 : 0xd0;
+export type ContrastingColor = "dark" | "light";
 
-  return (v << 16) | (v << 8) | v;
+export function contrastingColor(color: number): ContrastingColor {
+  const [r, g, b] = toRgb(color);
+
+  return (r + g + b) / 3 > 128 ? "dark" : "light";
 }
 
 export function clamp(num: number, [min, max]: [number, number]): number {

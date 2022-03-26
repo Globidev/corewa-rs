@@ -115,7 +115,7 @@ export class VirtualMachine {
 
   updateMatchResult() {
     const info = this.players.map(
-      (player) => <const>[player, this.engine.champion_info(player.id)]
+      (player, idx) => <const>[player, this.engine.champion_info(idx)]
     );
 
     const latestLive = Math.max(

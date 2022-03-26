@@ -1,7 +1,10 @@
 import * as PIXI from "pixi.js";
 
+import { CorewarPlayer } from "./state/player";
+
+import { clamp } from "./utils";
+
 import type { Memory } from "corewa-rs";
-import { clamp, contrastingColor } from "./utils";
 
 PIXI.utils.skipHello();
 
@@ -13,6 +16,11 @@ const ROWS = 64;
 const COLUMNS = 64;
 const X_SPACING = 2;
 const Y_SPACING = 2;
+
+const UNOWNED_COLORS = {
+  color: 0x404040,
+  contrastColor: "light",
+};
 
 export const MARGIN = 3;
 export const MEM_WIDTH =
@@ -35,7 +43,7 @@ interface RenderContext {
   showValues: boolean;
   memory: Memory;
   selections: { idx: number; length: number }[];
-  playerColors: number[];
+  players: CorewarPlayer[];
 }
 
 export class PIXIRenderer {
@@ -52,7 +60,7 @@ export class PIXIRenderer {
       view: setup.canvas,
       width: MEM_WIDTH,
       height: MEM_HEIGHT,
-      backgroundColor: 0x000000,
+      backgroundColor: 0x1d2025,
     });
     // Stop the automatic rendering since we do not continuously update
     app.stop();
@@ -175,7 +183,7 @@ export class PIXIRenderer {
       ctx.memory.ages_ptr,
       MEM_SIZE
     );
-    const cellOwners = new Int32Array(
+    const cellOwners = new Uint8Array(
       this.wasmMemory.buffer,
       ctx.memory.owners_ptr,
       MEM_SIZE
@@ -192,18 +200,18 @@ export class PIXIRenderer {
       const cellAge = cellAges[i];
       const pcCount = pcCounts[i];
 
-      const color = ctx.playerColors[cellOwner] ?? 0x404040;
-      const contrasting = contrastingColor(color);
+      const player =
+        cellOwner === 255 ? UNOWNED_COLORS : ctx.players[cellOwner];
       // const valueAlpha = valueTint > 0x888888 ? 0.7 : 1.0;
 
       this.cells[i].update(
-        contrasting < 0x888888
+        player.contrastColor === "dark"
           ? this.valueTexturesDark[cellValue]
           : this.valueTexturesLight[cellValue],
         cellOwner,
         cellAge,
         pcCount,
-        color,
+        player.color,
         ctx.showValues
       );
     }

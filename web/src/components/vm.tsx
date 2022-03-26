@@ -48,7 +48,7 @@ export const VM = observer(
           idx,
           length: Math.max(selection.decoded.byte_size(), 1),
         })),
-        playerColors: game.playerColors,
+        players: game.players,
       });
 
       const t1 = performance.now();
