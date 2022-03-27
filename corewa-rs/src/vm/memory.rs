@@ -43,10 +43,18 @@ impl<const LEN: usize> Memory<LEN> {
     }
 
     pub fn write(&mut self, at: usize, bytes: &[u8], owner: Owner) {
-        for (i, byte) in bytes.iter().enumerate() {
-            self.values[at + i] = *byte;
-            self.ages[at + i] = MAX_AGE;
-            self.owners[at + i] = owner
+        let len = bytes.len();
+
+        if at + len > LEN {
+            for (i, byte) in bytes.iter().enumerate() {
+                self.values[at + i] = *byte;
+                self.ages[at + i] = MAX_AGE;
+                self.owners[at + i] = owner
+            }
+        } else {
+            self.values.inner_mut()[at..at + len].copy_from_slice(bytes);
+            self.ages.inner_mut()[at..at + len].fill(MAX_AGE);
+            self.owners.inner_mut()[at..at + len].fill(owner);
         }
     }
 
