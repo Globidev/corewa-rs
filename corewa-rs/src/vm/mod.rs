@@ -36,6 +36,9 @@ pub struct VirtualMachine {
 
     pub process_count_per_cells: [u32; MEM_SIZE],
     pub process_count_by_owner: [u32; MAX_PLAYERS],
+
+    forks: Vec<Process>,
+    live_ids: HashSet<PlayerId>,
 }
 
 impl VirtualMachine {
@@ -44,7 +47,7 @@ impl VirtualMachine {
             players: arrayvec::ArrayVec::new(),
 
             memory: Memory::default(),
-            processes: Vec::with_capacity(u16::MAX.into()),
+            processes: Vec::with_capacity(1 << 20),
             pid_pool: PidPool::default(),
 
             last_lives: [0; MAX_PLAYERS],
@@ -57,6 +60,9 @@ impl VirtualMachine {
 
             process_count_per_cells: [0; MEM_SIZE],
             process_count_by_owner: [0; MAX_PLAYERS],
+
+            forks: Vec::with_capacity(1 << 16),
+            live_ids: HashSet::with_hasher(Default::default()),
         }
     }
 
@@ -116,8 +122,8 @@ impl VirtualMachine {
     }
 
     fn run_processes(&mut self) {
-        let mut forks = Vec::with_capacity(8192);
-        let mut lives = HashSet::with_hasher(Default::default());
+        let forks = &mut self.forks;
+        let live_ids = &mut self.live_ids;
 
         for process in self.processes.iter_mut().rev() {
             match process.state {
@@ -141,11 +147,11 @@ impl VirtualMachine {
                             let execution_context = ExecutionContext {
                                 memory: &mut self.memory,
                                 process,
-                                forks: &mut forks,
+                                forks,
                                 cycle: self.cycles,
                                 live_count: &mut self.live_count_since_last_check,
                                 pid_pool: &mut self.pid_pool,
-                                live_ids: &mut lives,
+                                live_ids,
                             };
                             execute_instr(&instr, execution_context);
                         }
@@ -162,23 +168,20 @@ impl VirtualMachine {
             };
         }
 
-        for process in &forks {
+        for process in forks.iter_mut() {
             self.process_count_per_cells[process.pc.addr()] += 1;
-            if let Some(count) = self
-                .process_count_by_owner
-                .get_mut(usize::from(process.owner))
-            {
-                *count += 1;
-            }
+            self.process_count_by_owner[usize::from(process.owner)] += 1;
         }
 
-        self.processes.append(&mut forks);
+        self.processes.append(forks);
 
         for (idx, player) in self.players.iter().enumerate() {
-            if lives.contains(&player.id) {
+            if live_ids.contains(&player.id) {
                 self.last_lives[idx] = self.cycles;
             }
         }
+
+        live_ids.clear();
     }
 
     fn live_check(&mut self) {
@@ -190,9 +193,7 @@ impl VirtualMachine {
             let killed = process.last_live_cycle <= last_live_check;
             if killed {
                 count_per_cells[process.pc.addr()] -= 1;
-                if let Some(count) = count_by_owner.get_mut(usize::from(process.owner)) {
-                    *count -= 1;
-                }
+                count_by_owner[usize::from(process.owner)] -= 1;
             }
             !killed
         });
