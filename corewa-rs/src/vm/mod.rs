@@ -20,7 +20,7 @@ use std::ffi::CStr;
 use fxhash::FxHashSet as HashSet;
 
 pub struct VirtualMachine {
-    pub players: Vec<Player>,
+    pub players: arrayvec::ArrayVec<Player, MAX_PLAYERS>,
 
     pub memory: Memory,
     pub processes: Vec<Process>,
@@ -41,7 +41,7 @@ pub struct VirtualMachine {
 impl VirtualMachine {
     pub fn new() -> Self {
         Self {
-            players: Vec::with_capacity(MAX_PLAYERS),
+            players: arrayvec::ArrayVec::new(),
 
             memory: Memory::default(),
             processes: Vec::with_capacity(u16::MAX.into()),
