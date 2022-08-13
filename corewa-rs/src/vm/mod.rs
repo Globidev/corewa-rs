@@ -75,8 +75,7 @@ impl VirtualMachine {
         self.memory.tick();
         self.cycles += 1;
 
-        let last_live_check = self.last_live_check;
-        let should_live_check = self.cycles - last_live_check >= self.check_interval;
+        let should_live_check = self.cycles - self.last_live_check >= self.check_interval;
 
         if should_live_check {
             self.live_check()
