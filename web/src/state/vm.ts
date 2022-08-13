@@ -139,6 +139,7 @@ export class VirtualMachine {
   compile() {
     this.pause();
     this.matchResult = undefined;
+    this.engine.release();
     this.engine = this.players
       .reduce(
         (builder, player) =>

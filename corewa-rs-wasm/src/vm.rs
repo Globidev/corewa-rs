@@ -89,6 +89,10 @@ impl VirtualMachine {
 
         Coverages { values, unowned }
     }
+
+    // Forces virtual machine to be dropped
+    // This can help avoid leaks on the js-side, when building multiple VMs
+    pub fn release(self) {}
 }
 
 #[wasm_bindgen]
