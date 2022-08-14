@@ -14,22 +14,27 @@ type ControlPanelProps = {
 };
 
 export const ControlPanel = observer(({ vm }: ControlPanelProps) => {
+  const noPlayers = vm.players.length === 0;
+
   return (
     <div style={{ display: "flex" }}>
       <CtrlBtn
         onClick={() => vm.togglePlay()}
         iconSrc={vm.playing ? pauseIcon : playIcon}
         data-tooltip={vm.playing ? "Pause" : "Play"}
+        disabled={noPlayers}
       />
       <CtrlBtn
         onClick={() => vm.stop()}
         iconSrc={stopIcon}
         data-tooltip="Stop"
+        disabled={noPlayers}
       />
       <CtrlBtn
         onClick={() => vm.step()}
         iconSrc={nextIcon}
         data-tooltip="Next cycle"
+        disabled={noPlayers}
       />
       <CtrlBtn
         onClick={() => vm.nextSpeed()}

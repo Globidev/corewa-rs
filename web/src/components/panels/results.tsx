@@ -38,7 +38,7 @@ export const ResultsPanel = observer(({ result }: Props) => {
           {joinedSpans}
         </div>
       ) : (
-        <div>{joinedSpans} Wins</div>
+        <div>{joinedSpans} Wins 🎉</div>
       )}
     </Panel>
   );
