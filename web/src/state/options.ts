@@ -1,37 +1,32 @@
-import { action, makeObservable, observable } from "mobx";
+import { makeObservable, observable } from "mobx";
 
-import { load, save } from "./persistent";
-import { Radix } from "../utils";
+import { load, Namespaced, saveNamespaced } from "./persistent";
 
+type Entries = Namespaced<"options">;
+
+function loadValues(): Entries {
+  return {
+    "show-cell-values": load("options::show-cell-values") ?? false,
+    "show-ups": load("options::show-ups") ?? false,
+    "reg-values-radix": load("options::reg-values-radix") ?? 10,
+    "instr-params-radix": load("options::instr-params-radix") ?? 10,
+  };
+}
 export class Options {
-  showCellValues = load("options::show-cell-values") ?? false;
-  regValuesRadix = load("options::reg-values-radix") ?? 10;
-  showUps = load("options::show-ups") ?? false;
+  values = loadValues();
 
   constructor() {
     makeObservable(this, {
-      showCellValues: observable,
-      regValuesRadix: observable,
-      showUps: observable,
-
-      setShowCellValues: action,
-      setRegValuesRadix: action,
-      setShowUps: action,
+      values: observable,
     });
   }
 
-  setShowCellValues(show: boolean) {
-    this.showCellValues = show;
-    save("options::show-cell-values", this.showCellValues);
+  get<K extends keyof Entries>(key: K): Entries[K] {
+    return this.values[key];
   }
 
-  setRegValuesRadix(radix: Radix) {
-    this.regValuesRadix = radix;
-    save("options::reg-values-radix", this.regValuesRadix);
-  }
-
-  setShowUps(show: boolean) {
-    this.showUps = show;
-    save("options::show-ups", this.showUps);
+  set<K extends keyof Entries>(key: K, value: Entries[K]) {
+    this.values[key] = value;
+    saveNamespaced("options", key, value);
   }
 }

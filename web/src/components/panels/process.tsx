@@ -54,7 +54,7 @@ export const ProcessPanel = observer(({ processes, game }: Props) => {
         </div>
         <Registers
           registers={process.registers()}
-          radix={game.options.regValuesRadix}
+          radix={game.options.get("reg-values-radix")}
         />
       </details>
     );

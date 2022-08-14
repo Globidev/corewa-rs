@@ -23,8 +23,8 @@ export const DisplaySettingsPanel = observer(({ options }: Props) => {
       <label className="option-switch">
         <span className="info">Show cell values</span>
         <Switch
-          checked={options.showCellValues}
-          onChange={(checked) => options.setShowCellValues(checked)}
+          checked={options.get("show-cell-values")}
+          onChange={(checked) => options.set("show-cell-values", checked)}
           checkedIcon={false}
           uncheckedIcon={false}
           height={20}
@@ -37,8 +37,8 @@ export const DisplaySettingsPanel = observer(({ options }: Props) => {
       <label className="option-switch">
         <span className="info">Show UPS</span>
         <Switch
-          checked={options.showUps}
-          onChange={(checked) => options.setShowUps(checked)}
+          checked={options.get("show-ups")}
+          onChange={(checked) => options.set("show-ups", checked)}
           checkedIcon={false}
           uncheckedIcon={false}
           height={20}
@@ -48,7 +48,7 @@ export const DisplaySettingsPanel = observer(({ options }: Props) => {
         />
       </label>
 
-      <div className="register-values-setting">
+      <div className="radix-setting">
         <span className="info">Register values</span>
         <div style={{ display: "flex" }}>
           <div>
@@ -56,10 +56,10 @@ export const DisplaySettingsPanel = observer(({ options }: Props) => {
             <input
               type="radio"
               name="reg-value-base"
-              checked={options.regValuesRadix === 16}
+              checked={options.get("reg-values-radix") === 16}
               onChange={(e) => {
                 if (e.target.checked) {
-                  options.setRegValuesRadix(16);
+                  options.set("reg-values-radix", 16);
                 }
               }}
             />
@@ -69,10 +69,10 @@ export const DisplaySettingsPanel = observer(({ options }: Props) => {
             <input
               type="radio"
               name="reg-value-base"
-              checked={options.regValuesRadix === 10}
+              checked={options.get("reg-values-radix") === 10}
               onChange={(e) => {
                 if (e.target.checked) {
-                  options.setRegValuesRadix(10);
+                  options.set("reg-values-radix", 10);
                 }
               }}
             />

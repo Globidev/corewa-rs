@@ -45,7 +45,7 @@ export const VM = observer(
       const t0 = performance.now();
 
       renderer.update({
-        showValues: game.options.showCellValues,
+        showValues: game.options.get("show-cell-values"),
         memory,
         selections: Array.from(selections).map(([idx, selection]) => ({
           idx,
@@ -93,7 +93,7 @@ export const VM = observer(
         () => [
           game.vm.engine,
           game.vm.cycles,
-          game.options.showCellValues,
+          game.options.get("show-cell-values"),
           selections.size,
         ],
         () => {
@@ -126,7 +126,7 @@ export const VM = observer(
                 className="tooltip-btm"
               />
               <div className="ups-counter">
-                {game.options.showUps && (
+                {game.options.get("show-ups") && (
                   <span>UPS: {game.vm.ups ?? "N/A"}</span>
                 )}
               </div>
