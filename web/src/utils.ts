@@ -60,3 +60,28 @@ export function useDebouncer<Args extends unknown[]>(
 
   return schedule;
 }
+
+export function groupByKey<T, K>(array: T[], key: (item: T) => K): T[][] {
+  if (array.length === 0) return [];
+
+  const [first, ...rest] = array;
+
+  const grouped = [];
+  let currGroup = [first];
+  let currKey = key(first);
+
+  for (const item of rest) {
+    const itemKey = key(item);
+    if (itemKey === currKey) {
+      currGroup.push(item);
+    } else {
+      grouped.push(currGroup);
+      currGroup = [item];
+      currKey = itemKey;
+    }
+  }
+
+  grouped.push(currGroup);
+
+  return grouped;
+}

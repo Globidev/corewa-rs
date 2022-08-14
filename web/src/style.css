@@ -181,6 +181,12 @@ summary {
   cursor: pointer;
 }
 
+.icon-medal {
+  width: 18px;
+  height: 18px;
+  float: right;
+}
+
 .info {
   font-size: 0.9em;
 }
