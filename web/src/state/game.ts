@@ -28,14 +28,9 @@ export class Game {
     });
 
     reaction(
-      () =>
-        this.players.filter((p): p is PlayerReady => {
-          p.color; // Allows recompiling whenever a color changes
-          return p.isReady();
-        }),
-      (players) => {
-        this.vm.setPlayers(players);
-      }
+      () => this.players.filter((p): p is PlayerReady => p.isReady()),
+      (players) => this.vm.setPlayers(players),
+      { name: "Update VM players" }
     );
   }
 

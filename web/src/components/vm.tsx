@@ -95,6 +95,7 @@ export const VM = observer(
           game.vm.cycles,
           game.options.get("show-cell-values"),
           selections.size,
+          game.players.forEach((p) => p.color),
         ],
         () => {
           updateSelections();

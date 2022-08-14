@@ -70,6 +70,7 @@ export class CorewarPlayer {
       return;
 
     this.id = newId;
+    this.store.vm.compile();
   }
 
   setColor(color: number) {
