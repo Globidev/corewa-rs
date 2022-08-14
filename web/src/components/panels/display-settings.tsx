@@ -20,7 +20,7 @@ type Props = {
 export const DisplaySettingsPanel = observer(({ options }: Props) => {
   return (
     <Panel title="Display settings">
-      <label className="cell-values-switch">
+      <label className="option-switch">
         <span>Show cell values</span>
         <Switch
           checked={options.showCellValues}
@@ -65,6 +65,20 @@ export const DisplaySettingsPanel = observer(({ options }: Props) => {
           </div>
         </div>
       </div>
+
+      <label className="option-switch">
+        <span>Show UPS</span>
+        <Switch
+          checked={options.showUps}
+          onChange={(checked) => options.setShowUps(checked)}
+          checkedIcon={false}
+          uncheckedIcon={false}
+          height={20}
+          width={40}
+          handleDiameter={15}
+          onColor="#81a1c1"
+        />
+      </label>
     </Panel>
   );
 });

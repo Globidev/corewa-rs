@@ -6,6 +6,7 @@ type Storage = {
 
   "options::show-cell-values": boolean;
   "options::reg-values-radix": Radix;
+  "options::show-ups": boolean;
 };
 
 export function save<K extends keyof Storage>(key: K, value: Storage[K]) {

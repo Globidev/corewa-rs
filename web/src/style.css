@@ -59,7 +59,7 @@ input[type="radio"]:checked:after {
   margin: auto;
 }
 
-.cell-values-switch {
+.option-switch {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -154,6 +154,12 @@ input[type="radio"]:checked:after {
 .ctrl-icon {
   max-width: 24px;
   max-height: 24px;
+}
+
+.ups-counter {
+  margin-left: 1em;
+  display: flex;
+  align-items: center;
 }
 
 .code {

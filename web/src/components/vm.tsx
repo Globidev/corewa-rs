@@ -125,7 +125,11 @@ export const VM = observer(
                 data-tooltip="Add player"
                 className="tooltip-btm"
               />
-              {game.vm.ups !== undefined && <span>UPS: {game.vm.ups}</span>}
+              <div className="ups-counter">
+                {game.options.showUps && (
+                  <span>UPS: {game.vm.ups ?? "N/A"}</span>
+                )}
+              </div>
             </div>
 
             <ControlPanel vm={game.vm} />
