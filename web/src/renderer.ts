@@ -4,7 +4,7 @@ import { CorewarPlayer } from "./state/player";
 
 import { clamp } from "./utils";
 
-import type { Memory } from "corewa-rs";
+import { Memory } from "corewa-rs";
 
 PIXI.utils.skipHello();
 
@@ -54,6 +54,9 @@ export class PIXIRenderer {
 
   renderTimeoutHandle: number | undefined;
   renderTimeoutCleared = 0;
+
+  // This has to be fetched after wasm initialization
+  unownedId = Memory.unownedId();
 
   constructor(setup: RendererSetup, private wasmMemory: WebAssembly.Memory) {
     const app = new PIXI.Application({
@@ -200,18 +203,16 @@ export class PIXIRenderer {
       const cellAge = cellAges[i];
       const pcCount = pcCounts[i];
 
-      const player =
-        cellOwner === 255 ? UNOWNED_COLORS : ctx.players[cellOwner];
-      // const valueAlpha = valueTint > 0x888888 ? 0.7 : 1.0;
+      const { color, contrastColor } =
+        cellOwner === this.unownedId ? UNOWNED_COLORS : ctx.players[cellOwner];
 
       this.cells[i].update(
-        player.contrastColor === "dark"
+        contrastColor === "dark"
           ? this.valueTexturesDark[cellValue]
           : this.valueTexturesLight[cellValue],
-        cellOwner,
         cellAge,
         pcCount,
-        player.color,
+        color,
         ctx.showValues
       );
     }
@@ -268,14 +269,13 @@ class Cell {
 
   update(
     valueTexture: PIXI.Texture,
-    owner: number,
     age: number,
     pcCount: number,
     color: number,
     showValue: boolean
   ) {
     const pcAlpha = pcCount !== 0 ? 0.5 + (pcCount - 1) * 0.05 : 0;
-    const ageAlpha = owner !== 0 ? 0.3 * (age / MAX_CELL_AGE) : 0;
+    const ageAlpha = 0.3 * (age / MAX_CELL_AGE);
 
     this.sp.tint = color;
 
