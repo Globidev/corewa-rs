@@ -4,7 +4,7 @@ import { action, reaction } from "mobx";
 
 import { PIXIRenderer, MEM_HEIGHT, MEM_WIDTH } from "../renderer";
 
-import { ControlPanel } from "./panels/control";
+import { ControlPanel, CtrlBtn } from "./panels/control";
 import { ResultsPanel } from "./panels/results";
 import { StatePanel } from "./panels/state";
 import { ContendersPanel } from "./panels/contenders";
@@ -12,6 +12,9 @@ import { Selection, SelectionsPanel } from "./panels/selections";
 
 import { Game } from "../state/game";
 import { DisplaySettingsPanel } from "./panels/display-settings";
+
+import questionIcon from "../assets/question-mark-icon.png?url";
+import addIcon from "../assets/add-icon.png?url";
 
 interface IVMProps {
   game: Game;
@@ -109,16 +112,20 @@ export const VM = observer(
         <div className="vm-container-inner">
           <div className="vm-left-panel" style={{ maxHeight: MEM_HEIGHT }}>
             <div style={{ display: "flex" }}>
-              <button className="ctrl-btn" onClick={onHelpRequested}>
-                ❓
-              </button>
-              <button
-                className="ctrl-btn"
+              <CtrlBtn
+                onClick={onHelpRequested}
+                iconSrc={questionIcon}
+                data-tooltip="Documentation"
+                className="tooltip-btm"
+              />
+              <CtrlBtn
                 onClick={onNewClicked}
                 disabled={game.players.length >= 4}
-              >
-                ➕
-              </button>
+                iconSrc={addIcon}
+                data-tooltip="Add player"
+                className="tooltip-btm"
+              />
+              {game.vm.ups !== undefined && <span>UPS: {game.vm.ups}</span>}
             </div>
 
             <ControlPanel vm={game.vm} />

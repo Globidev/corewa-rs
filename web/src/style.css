@@ -146,6 +146,16 @@ input[type="radio"]:checked:after {
   min-width: 40px;
 }
 
+.ctrl-btn-inner {
+  display: flex;
+  align-items: center;
+}
+
+.ctrl-icon {
+  max-width: 24px;
+  max-height: 24px;
+}
+
 .code {
   color: black;
   padding: 0.2em 0.4em;
@@ -301,6 +311,10 @@ input[type="color"]::-webkit-color-swatch-wrapper {
   background: #ffffff;
   margin-top: -50px;
   margin-left: 20px;
+}
+
+.tooltip-btm[data-tooltip]:hover:before {
+  margin-top: 50px;
 }
 
 [data-tooltip]:not([data-tooltip-persistent]):before {
