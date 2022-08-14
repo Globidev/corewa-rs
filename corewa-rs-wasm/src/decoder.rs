@@ -24,12 +24,21 @@ impl DecodeResult {
     }
 
     #[allow(clippy::inherent_to_string)]
-    pub fn to_string(&self) -> String {
-        self.0
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or_else(ToString::to_string)
+    pub fn to_string(&self, format: DecodeResultFormat) -> String {
+        use DecodeResultFormat::*;
+
+        match (&self.0, format) {
+            (Ok(instr), Decimal) => format!("{instr}"),
+            (Ok(instr), Hexadecimal) => format!("{instr:X}"),
+            (Err(err), _) => err.to_string(),
+        }
     }
+}
+
+#[wasm_bindgen]
+pub enum DecodeResultFormat {
+    Decimal,
+    Hexadecimal,
 }
 
 impl DecodeResult {

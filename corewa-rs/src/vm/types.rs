@@ -43,6 +43,16 @@ impl fmt::Display for Param {
     }
 }
 
+impl fmt::UpperHex for Param {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.kind {
+            ParamType::Direct => write!(f, "%{:#X}", self.value),
+            ParamType::Indirect => write!(f, "{:#X}", self.value),
+            ParamType::Register => write!(f, "r{}", self.value),
+        }
+    }
+}
+
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let spec = op_spec(self.kind);
@@ -54,6 +64,22 @@ impl fmt::Display for Instruction {
         )?;
         for i in 1..spec.param_count {
             write!(f, ", {}", self.params[i])?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::UpperHex for Instruction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let spec = op_spec(self.kind);
+        write!(
+            f,
+            "{} {:X}",
+            self.kind.to_string().to_lowercase(),
+            self.params[0]
+        )?;
+        for i in 1..spec.param_count {
+            write!(f, ", {:X}", self.params[i])?;
         }
         Ok(())
     }

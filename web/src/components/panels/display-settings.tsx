@@ -79,6 +79,38 @@ export const DisplaySettingsPanel = observer(({ options }: Props) => {
           </div>
         </div>
       </div>
+
+      <div className="radix-setting">
+        <span className="info">Instruction params</span>
+        <div style={{ display: "flex" }}>
+          <div>
+            <label>Hex</label>
+            <input
+              type="radio"
+              name="instr-params-base"
+              checked={options.get("instr-params-radix") === 16}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  options.set("instr-params-radix", 16);
+                }
+              }}
+            />
+          </div>
+          <div>
+            <label>Dec</label>
+            <input
+              type="radio"
+              name="instr-params-base"
+              checked={options.get("instr-params-radix") === 10}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  options.set("instr-params-radix", 10);
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
     </Panel>
   );
 });

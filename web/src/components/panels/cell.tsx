@@ -3,16 +3,23 @@ import CodeMirror from "codemirror";
 
 import { ASM_LANGUAGE_ID } from "../editor";
 
-import type { DecodeResult } from "corewa-rs";
+import type { DecodeResult, DecodeResultFormat } from "corewa-rs";
 
 type Props = {
   idx: number;
   previousIdx: number | null;
   decoded: DecodeResult;
+  format: DecodeResultFormat;
   onDiscard: () => void;
 };
 
-export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
+export const CellPanel = ({
+  idx,
+  previousIdx,
+  decoded,
+  format,
+  onDiscard,
+}: Props) => {
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<CodeMirror.Editor | null>(null);
 
@@ -42,9 +49,9 @@ export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
 
   useEffect(() => {
     if (editor) {
-      editor.setValue(cellString(decoded));
+      editor.setValue(cellString(decoded, format));
     }
-  }, [editor, decoded]);
+  }, [editor, decoded, format]);
 
   return (
     <div>
@@ -60,8 +67,8 @@ export const CellPanel = ({ idx, previousIdx, decoded, onDiscard }: Props) => {
   );
 };
 
-const cellString = (decoded: DecodeResult) => {
-  let str = decoded.to_string();
+const cellString = (decoded: DecodeResult, format: DecodeResultFormat) => {
+  let str = decoded.to_string(format);
   const length = decoded.byte_size();
 
   if (length > 1) str += ` # ${length} bytes`;

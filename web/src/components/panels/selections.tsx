@@ -6,7 +6,7 @@ import { CellPanel } from "./cell";
 import { Panel } from "../panel";
 import { ProcessPanel } from "./process";
 
-import type { DecodeResult, ProcessCollection } from "corewa-rs";
+import { DecodeResult, DecodeResultFormat, ProcessCollection } from "corewa-rs";
 
 export type Selection = {
   decoded: DecodeResult;
@@ -23,6 +23,11 @@ export const SelectionsPanel = observer(({ game, selections }: Props) => {
     selections.delete(idx);
   });
 
+  const cellFormat = {
+    10: DecodeResultFormat.Decimal,
+    16: DecodeResultFormat.Hexadecimal,
+  }[game.options.get("instr-params-radix")];
+
   const selectionsAsArray = Array.from(selections);
   const selectionWidgets = selectionsAsArray.map(
     ([cellIdx, selection], idx) => (
@@ -31,6 +36,7 @@ export const SelectionsPanel = observer(({ game, selections }: Props) => {
           idx={cellIdx}
           previousIdx={idx > 0 ? selectionsAsArray[idx - 1][0] : null}
           decoded={selection.decoded}
+          format={cellFormat}
           onDiscard={() => discardSelection(cellIdx)}
         />
         <div className="pad-top">
