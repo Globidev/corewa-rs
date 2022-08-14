@@ -14,6 +14,9 @@ export const ContendersPanel = observer(({ game }: Props) => {
   const players = game.vm.players;
   const coverages = game.vm.coverages;
 
+  const fmtCoverage = (coverage: number) =>
+    `${((coverage / 4096) * 100).toFixed(2)}%`;
+
   return (
     <Panel title={`${players.length} contenders`}>
       <div className="coverage-container">
@@ -27,7 +30,9 @@ export const ContendersPanel = observer(({ game }: Props) => {
                 flexGrow: coverage,
                 backgroundColor: toCssColor(player.color),
               }}
-              data-tooltip={player.champion.name}
+              data-tooltip={`${player.champion.name} (${fmtCoverage(
+                coverage
+              )})`}
             ></div>
           );
         })}
@@ -36,7 +41,7 @@ export const ContendersPanel = observer(({ game }: Props) => {
             flexGrow: coverages.unowned,
             backgroundColor: "#404040",
           }}
-          data-tooltip="unowned"
+          data-tooltip={`unowned (${fmtCoverage(coverages.unowned)})`}
         ></div>
       </div>
 
@@ -53,10 +58,7 @@ export const ContendersPanel = observer(({ game }: Props) => {
               .padStart(8, "0")}`,
           },
           { title: "Code size", value: player.champion.codeSize },
-          {
-            title: "Coverage",
-            value: `${((coverage / 4096) * 100).toFixed(2)}%`,
-          },
+          { title: "Coverage", value: fmtCoverage(coverage) },
           { title: "Processes", value: championInfo.process_count },
           { title: "Last live", value: championInfo.last_live },
         ];
