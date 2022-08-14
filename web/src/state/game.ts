@@ -1,4 +1,4 @@
-import { action, autorun, makeObservable, observable } from "mobx";
+import { action, makeObservable, observable, reaction } from "mobx";
 
 import { VirtualMachine } from "./vm";
 
@@ -27,15 +27,14 @@ export class Game {
       removePlayer: action.bound,
     });
 
-    autorun(
-      () => {
-        const vmPlayers = this.players.filter((p): p is PlayerReady =>
-          p.isReady()
-        );
-        this.vm.setPlayers(vmPlayers);
-      },
-      {
-        name: "update vm players",
+    reaction(
+      () =>
+        this.players.filter((p): p is PlayerReady => {
+          p.color; // Allows recompiling whenever a color changes
+          return p.isReady();
+        }),
+      (players) => {
+        this.vm.setPlayers(players);
       }
     );
   }
